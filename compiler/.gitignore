@@ -1,0 +1,11 @@
+.venv/
+.env
+__pycache__/
+outputs/
+output/
+slides/
+docs/
+/scripts/*
+!/scripts/package.py
+
+AGENTS.md

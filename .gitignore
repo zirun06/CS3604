@@ -1,0 +1,10 @@
+**/.env
+**/.env.*
+!**/.env.example
+**/.venv/
+**/node_modules/
+**/__pycache__/
+**/.arc/
+**/outputs/
+*.zip
+*.bundle
