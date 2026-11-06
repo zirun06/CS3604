@@ -8,4 +8,5 @@
 **/outputs/
 *.zip
 !/releases/arc-compiler-ctrip-v5.zip
+!/releases/arc-compiler-full-track-v8-prestashop.zip
 *.bundle

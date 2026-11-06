@@ -1,0 +1,9 @@
+{
+  "archive": "releases/arc-compiler-full-track-v8-prestashop.zip",
+  "role": "historical v8 baseline; not the current recommended release",
+  "bytes": 4465425,
+  "sha256": "7449a4f7382b68c4e898811b9c4009589c3d0fc4320a7774ab56c325388a39da",
+  "entries": 571,
+  "zip_integrity": "passed",
+  "secret_scan": "passed"
+}

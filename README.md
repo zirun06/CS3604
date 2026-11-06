@@ -13,6 +13,8 @@
 
 原始包SHA256：`189fb42115fe617195a9a972ca438a5405ffcb7c79de5cdc6f3047e78816c4bd`。
 
+历史对照包：[arc-compiler-full-track-v8-prestashop.zip](releases/arc-compiler-full-track-v8-prestashop.zip)，保留原始字节，未替换当前`compiler/`源码或v5推荐包。大小4465425 bytes，SHA256：`7449a4f7382b68c4e898811b9c4009589c3d0fc4320a7774ab56c325388a39da`。完整性与密钥排除记录见[archive-audit.json](docs/evidence/v8-prestashop/archive-audit.json)。
+
 ## 验证结果
 
 | 验证方式 | 结果 | 边界 |
