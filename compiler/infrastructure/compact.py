@@ -1,22 +1,25 @@
 """Bounded compiler for large web requirements using the shared application template."""
 
-from contextlib import ExitStack
 from importlib import import_module
 import json
 import os
 from pathlib import Path
 import re
-from shutil import copyfile
-from subprocess import TimeoutExpired
-from tempfile import TemporaryDirectory
 from time import monotonic
 
 import yaml
 
-from infrastructure import prestashop_profile
+from infrastructure.tasks import bookstack
+from infrastructure.tasks.profile import DEFAULT, TaskProfile
+from infrastructure.tasks.prompts import BACKEND_PROMPT, FRONTEND_PROMPT
+from infrastructure.tasks.registry import select_profile
+from infrastructure.tasks.initial_world import initial_world
+from infrastructure.tasks.railway_navigation import ensure_navigation as ensure_railway_navigation
+from infrastructure.tasks.ctrip_navigation import ensure_navigation as ensure_ctrip_navigation
+from infrastructure.tasks.ctrip_services import ensure_services as ensure_ctrip_services
 from infrastructure.shared.agent.proposals import propose_json
 from infrastructure.shared.agent.tools import FileTools
-from infrastructure.compact_acceptance import bundled_suite, prepare_workspace, repair_with_acceptance, run_suite
+from infrastructure.compact_acceptance import bundled_suite, repair_with_acceptance
 from infrastructure.shared.models.text import TextModel
 from infrastructure.shared.models.vision import VisualModel
 from infrastructure.shared.project.dependencies import install_dependencies
@@ -43,69 +46,6 @@ Return {"tool_calls":[{"tool":"edit_file","path":"relative source path","operati
 "old_content":"exact unique fragment","new_content":"corrected fragment"}]}.
 Edit only the generated files provided. Keep the application's routes, features and API
 behavior. Use at most six small edits. Do not disable type checks or rewrite entire files."""
-BACKEND_PROMPT = '''Implement the backend for the complete supplied web requirement. Return
-{"files":{"backend/src/api/register.ts":"complete TypeScript source"}}.
-The template calls registerApis(app: Express, connection: Database.Database) once during
-app creation. Export that function, create SQLite schema with foreign keys and seed any
-explicitly required startup data idempotently inside it, and register real JSON routes
-under /api. Use only Express and better-sqlite3, with strict TypeScript. Honor all flows,
-relationships, stable identities, access controls, session isolation, persistence,
-cancellation and ordering described by the input. Use bound parameters. Provide enough
-API operations for each scenario and document payload shapes in code. The extracted
-account fixtures are initial state explicitly declared by the requirements. Initialize
-each listed account with its specified attributes and credentials, without allowing
-arbitrary unregistered accounts to log in. Prefer ordinary
-HTTP cookies for sessions and use HttpOnly for auth credentials. Use node:crypto for
-password hashing (scrypt) and cryptographically random session tokens. Session bootstrap
-must reuse a valid cookie, including when product or other public routes initialize a
-guest session. Compare order expirations and compute remaining time against the same
-clock used when the expiration was created. Preserve valid public
-flows if the requirement explicitly permits anonymous access. For screens with both public
-content and private lists, allow anonymous access to the public data and restrict private
-data to its owner. If a record has sensitive fields, mask them in lists and only return
-them from the authorized detail endpoint when the specification requires them.
-Keep the implementation
-compact. The YAML is the product specification. Build real behavior for arbitrary valid
-input values. Use scenario-specific literal data only when the spec requires initial data.'''
-
-FRONTEND_PROMPT = '''Implement the complete web UI against the supplied backend source.
-Return {"files":{"frontend/src/App.tsx":"complete React TSX source",
-"frontend/src/style.css":"complete CSS source"}}. App.tsx must export App. Imports may
-use React, React Router DOM v6, or local source files. Use same-origin /api calls with the exact paths and response
-shapes in backend_source. Use real links and stable, reloadable routes for navigation.
-Type API response arrays before chaining filter, map or sort. If a response is typed as
-any, TypeScript cannot infer callback parameter types. Use explicit record interfaces.
-Cover every specified behavior, including initial, error, cancel and reload states.
-Use exact names and roles from the original scenarios. Render every role=button as a
-native <button type="button"> (or type="submit" for form submission), even when its
-action navigates to another screen. Use links for role=link. Use alternative roles
-only where the requirement allows them. Render each global navigation entry exactly
-once per screen, including the landing screen. Use exact business names for list
-entries, without suffixes or status labels in their accessible names. Preserve
-required wording and spelling even if the navigation link, page heading, and named
-list region have different names. Name regions with aria-label or aria-labelledby.
-Associate form labels with inputs and preserve exact placeholder prompts. For editor
-textboxes specified by display text, use that exact text as label and placeholder.
-Keep public lists visible to anonymous users if required. Render controls where the
-workflow needs them. For editing saved records, wait for initial field values before
-rendering editable inputs so the load response cannot overwrite user edits. After
-successful mutations, use the saved response or reload the affected data. Check
-each create/cancel destination separately and ensure each route target exists.
-Store applied search and saved filter criteria in the destination URL where appropriate,
-and use those criteria to fetch results and restore form controls on reload.
-Carry parent IDs through nested creation using the same field names the API expects,
-and show the new item's detail when the requirement calls for it. Ensure public
-recent-content lists refresh after anonymous writes even if personal lists require
-a session. Wait for session lookup before redirecting a protected route on reload.
-Verify successful login reaches the required destination, and make
-dropdowns open by keyboard and pointer. Keep every modal usable on short viewports
-with a scrollable content area. Keep transient overlays from blocking unrelated
-navigation. For a calendar button whose name is a date, expose any fare or status
-separately from that button's accessible name. Follow
-reference evidence for layout and the YAML for behavior. Share React components and CSS
-classes across similar screens. Keep the response within its output budget and finish
-both files and the closing JSON object.'''
-
 STARTUP_CHECK = '''
 import { createApp } from './backend/dist/app.js';
 import { createDatabaseClient } from './backend/dist/db/client.js';
@@ -215,16 +155,20 @@ def repair_storefront_route_params(output_dir: Path, diagnostics: str) -> bool:
 
 
 def compile_compact(input_dir: Path, output_dir: Path, source: str, *, port: int, model_log: bool,
-                    bookstack_legacy: bool = False):
+                    bookstack_legacy: bool = False, task_profile: TaskProfile | None = None):
     """Generate bounded file groups, repair build errors, and leave a stage report."""
     suite = bundled_suite(source)
-    storefront = suite is not None and suite.name == prestashop_profile.SUITE
+    config = task_profile or select_profile(suite)
+    if bookstack_legacy:
+        config = bookstack.PROFILE
+    elif task_profile is None and config.legacy_acceptance:
+        # Direct compact callers historically opt into the BookStack workflow.
+        config = DEFAULT
+    bookstack_legacy = config.legacy_acceptance
     report_path = output_dir / '.arc/compilation.json'
-    profile = 'bookstack-full-track' if bookstack_legacy else 'prestashop' if storefront else 'compact'
-    report = {'profile': profile,
+    report = {'profile': config.report_profile, 'task': config.key,
         'status': 'RUNNING', 'stages': {}}
     console = DemoConsole()
-    workspace = None
 
     def run(stage, action):
         record = report['stages'][stage] = {'status': 'RUNNING'}
@@ -244,10 +188,27 @@ def compile_compact(input_dir: Path, output_dir: Path, source: str, *, port: int
         return result
 
     def check_build(*args):
+        if config.ctrip_contract:
+            prepared = capture_process(['node', str(Path(__file__).parent / 'tasks' /
+                'prepare_ctrip_source.mjs'), str(output_dir), 'backend' if args else 'frontend'],
+                cwd=output_dir, timeout=15)
+            if prepared['returncode']:
+                raise ValueError(prepared['output'][-4000:])
+        if config.railway_contract:
+            prepared = capture_process(['node', str(Path(__file__).parent / 'tasks' /
+                'prepare_railway_source.mjs'), str(output_dir), 'backend' if args else 'frontend'],
+                cwd=output_dir, timeout=15)
+            if prepared['returncode']:
+                raise ValueError(prepared['output'][-4000:])
+        if config.associate_status_labels and not args:
+            labels = capture_process(['node', str(Path(__file__).parent / 'tasks' /
+                'associate_status_labels.mjs'), str(output_dir)], cwd=output_dir, timeout=15)
+            if labels['returncode']:
+                raise ValueError(labels['output'][-3000:])
         result = capture_process([*npm_command(), 'run', 'build', *args], cwd=output_dir, timeout=90)
-        if result['returncode'] and not bookstack_legacy:
+        if result['returncode'] and config.build_repair:
             repaired = repair_implicit_parameters(output_dir, result['output'])
-            if storefront:
+            if config.route_parameter_repair:
                 repaired = repair_storefront_route_params(output_dir, result['output']) or repaired
             if repaired:
                 result = capture_process([*npm_command(), 'run', 'build', *args], cwd=output_dir, timeout=90)
@@ -257,18 +218,24 @@ def compile_compact(input_dir: Path, output_dir: Path, source: str, *, port: int
             cwd=output_dir, timeout=15, env={'ARC_CHECK_FRONTEND': '0' if args else '1'})
         if startup['returncode']:
             raise ValueError(startup['output'][-6000:])
+        if config.validate_sql_inserts:
+            sql = capture_process(['node', str(Path(__file__).parent / 'tasks' /
+                'validate_sql_inserts.mjs'), str(output_dir)], cwd=output_dir, timeout=15)
+            if sql['returncode']:
+                raise ValueError(sql['output'][-5000:])
+        if config.probe_backend_contract:
+            api = capture_process(['node', str(Path(__file__).parent / 'tasks' /
+                'probe_backend_contract.mjs'), str(output_dir)], cwd=output_dir, timeout=25)
+            if api['returncode']:
+                raise ValueError(api['output'][-5000:])
+        if config.ctrip_contract:
+            api = capture_process(['node', str(Path(__file__).parent / 'tasks' /
+                'probe_ctrip_backend.mjs'), str(output_dir)], cwd=output_dir, timeout=30)
+            if api['returncode']:
+                raise ValueError(api['output'][-5000:])
 
-    def check_frontend():
-        check_build()
-        if workspace is not None:
-            browser = run_suite(workspace, output_dir, storefront_probe=True)
-            if browser['failed'] or browser['passed'] != 1:
-                failure = next(iter(browser['failures'].values()), {})
-                raise ValueError('Storefront failed to render in Chromium. ' +
-                    failure.get('error', '') + '\n' + failure.get('page_snapshot', ''))
-
-    def generate(instructions, payload, paths, build, *, attempts=3, repair_backend=False):
-        def accept(result):
+    def generate(instructions, payload, paths, build, *, attempts=None):
+        def accept_files(result):
             files = result['files']
             if not isinstance(files, dict) or set(files) != set(paths):
                 raise ValueError(f'Return exactly these file paths: {list(paths)}')
@@ -279,56 +246,68 @@ def compile_compact(input_dir: Path, output_dir: Path, source: str, *, port: int
             try:
                 build()
             except ValueError as build_error:
-                if bookstack_legacy:
+                if not config.build_repair:
                     raise
                 # Repair a valid generated candidate before spending a full proposal.
-                editor = FileTools(output_dir, writable=(*paths, BACKEND) if repair_backend else paths)
-                backend_before_repair = (output_dir / BACKEND).read_bytes() if repair_backend else None
+                editor = FileTools(output_dir, writable=paths)
                 original_limit, original_reasoning, original_client = (
                     model.max_output_tokens, model.reasoning, model.client)
-                model.max_output_tokens = min(original_limit, 6000)
+                model.max_output_tokens = min(original_limit, config.build_repair_output_tokens)
                 model.reasoning = 'none'
                 model.client = original_client.with_options(timeout=65, max_retries=0)
                 try:
-                    repair_prompt = BUILD_REPAIR_PROMPT
-                    if repair_backend:
-                        repair_prompt += (' Inspect both the frontend consumer and the backend JSON response. '
-                            'When the server returns incomplete objects, fix the response at the source. '
-                            'Keep required fields and use real values rather than placeholder defaults.')
-                    repair = model.generate_json(repair_prompt, {
-                        'diagnostics': str(build_error), 'files': editor.state()})
-                    edits = repair['tool_calls']
-                    if not 1 <= len(edits) <= 6 or editor.effect(edits) != 'write':
-                        raise ValueError('Expected one to six source edits')
-                    editor.execute(edits)
-                    build()
-                except (ValueError, KeyError, TypeError, RuntimeError, OSError) as error:
-                    if backend_before_repair is not None:
-                        save_bytes(output_dir / BACKEND, backend_before_repair)
-                    raise ValueError(f'{build_error}\nLocal build repair failed: {error}') from error
+                    diagnostics = str(build_error)
+                    for number in range(config.build_repair_attempts):
+                        try:
+                            repair = model.generate_json(BUILD_REPAIR_PROMPT, {
+                                'diagnostics': diagnostics, 'files': editor.state(),
+                                **({'declared_initial_world': payload['declared_initial_world']}
+                                   if 'declared_initial_world' in payload else {})})
+                            edits = repair['tool_calls']
+                            if not 1 <= len(edits) <= 6 or editor.effect(edits) != 'write':
+                                raise ValueError('Expected one to six source edits')
+                            editor.execute(edits)
+                            build()
+                            break
+                        except (ValueError, KeyError, TypeError, RuntimeError, OSError) as error:
+                            diagnostics = str(error)
+                            if number + 1 == config.build_repair_attempts:
+                                raise ValueError(f'{build_error}\nLocal build repair failed: {error}') from error
                 finally:
                     model.max_output_tokens, model.reasoning, model.client = (
                         original_limit, original_reasoning, original_client)
             return files
 
-        propose_json(model, instructions, payload, accept, console, 'Generate and build', max_attempts=attempts)
+        def accept(result):
+            if not config.rollback_failed_candidates:
+                return accept_files(result)
+            originals = {path: (output_dir / path).read_bytes() for path in paths}
+            try:
+                return accept_files(result)
+            except BaseException:
+                for path, content in originals.items():
+                    save_bytes(output_dir / path, content)
+                raise
+
+        propose_json(model, instructions, payload, accept, console, 'Generate and build',
+            max_attempts=config.generation_attempts if attempts is None else attempts)
 
     def style_frontend(references):
         # Keep a buildable template stylesheet if the optional visual pass fails.
         stylesheet = output_dir / FRONTEND[1]
         original = stylesheet.read_bytes()
-        model.max_output_tokens = min(configured_output_limit, 10000 if storefront else 6000)
+        model.max_output_tokens = min(configured_output_limit, config.style_output_tokens)
         try:
             generate(
                 'Style the supplied React application using the visual references. '
                 'Return {"files":{"frontend/src/style.css":"complete CSS"}}. '
-                'Use existing classes and retain usable layouts, forms and dialogs.',
+                'Use existing classes and retain usable layouts, forms and dialogs.' + config.style_guidance,
                 {'app_source': read_source(output_dir / FRONTEND[0]), 'references': references},
-                (FRONTEND[1],), check_frontend, attempts=1)
+                (FRONTEND[1],), check_build, attempts=config.style_attempts)
         except (RuntimeError, OSError, ValueError) as error:
             save_bytes(stylesheet, original)
             print(f'[compact] Kept template styling after visual pass failed: {type(error).__name__}', flush=True)
-            check_frontend()
+            check_build()
 
     def visual_evidence():
         references = import_module('01_explore_requirement').collect_images(yaml.safe_load(source))
@@ -358,38 +337,35 @@ def compile_compact(input_dir: Path, output_dir: Path, source: str, *, port: int
 
     run('initialize', lambda: initialize_project(output_dir, port=port))
     model = run('model configuration', TextModel)
+    if config.transient_retries:
+        model.transient_retries = config.transient_retries
     model.reasoning = os.getenv('MODEL_REASONING', 'none').lower()
     large = len(source) > 100_000
     configured_output_limit = model.max_output_tokens
-    model.max_output_tokens = min(configured_output_limit, 26000 if large else 16000)
+    model.max_output_tokens = min(configured_output_limit, config.large_output_tokens if large else config.small_output_tokens)
     model.client = model.client.with_options(timeout=360 if large else 180, max_retries=0)
-    backend_prompt, frontend_prompt = BACKEND_PROMPT, FRONTEND_PROMPT
-    if bookstack_legacy:
-        from infrastructure import bookstack_profile
-        backend_prompt, frontend_prompt = bookstack_profile.BACKEND_PROMPT, bookstack_profile.FRONTEND_PROMPT
-    elif storefront:
-        backend_prompt += prestashop_profile.BACKEND_GUIDANCE
-        frontend_prompt += prestashop_profile.FRONTEND_GUIDANCE
-        print('[compiler] PrestaShop: using the storefront generation profile.', flush=True)
+    backend_prompt, frontend_prompt = config.backend_prompt, config.frontend_prompt
+    print(f'[compiler] Task strategy: {config.key}', flush=True)
+
     def generate_frontend(frontend_request):
-        if storefront:
+        if config.frontend_mode == 'joint_then_split_on_length':
             # The original release generated the paired view and CSS from one proposal.
             # If the gateway truncates that pair, use the recovered split pipeline.
             stylesheet = output_dir / FRONTEND[1]
             baseline_css = stylesheet.read_bytes()
             try:
-                generate(frontend_prompt, frontend_request, FRONTEND, check_frontend, attempts=2, repair_backend=True)
+                generate(frontend_prompt, frontend_request, FRONTEND, check_build, attempts=config.joint_attempts)
             except RuntimeError as error:
-                if not any(reason in str(error) for reason in ('finish_reason=length', 'failed to render in Chromium')):
+                if 'finish_reason=length' not in str(error):
                     raise
                 save_bytes(stylesheet, baseline_css)
-                print('[compact] Retrying the storefront with separate TSX and CSS generation.', flush=True)
+                print('[compact] Storefront frontend response truncated; generating TSX and CSS separately.', flush=True)
             else:
                 return False
-        elif not large or bookstack_legacy:
-            generate(frontend_prompt, frontend_request, FRONTEND, check_build)
+        elif config.frontend_mode == 'joint' or (config.frontend_mode == 'auto' and not large):
+            generate(frontend_prompt, frontend_request, FRONTEND, check_build, attempts=config.joint_attempts)
             return False
-        model.max_output_tokens = min(configured_output_limit, 32000)
+        model.max_output_tokens = min(configured_output_limit, config.split_output_tokens)
         functional_prompt = frontend_prompt.replace(
             '"frontend/src/App.tsx":"complete React TSX source",\n'
             '"frontend/src/style.css":"complete CSS source"',
@@ -399,51 +375,83 @@ def compile_compact(input_dir: Path, output_dir: Path, source: str, *, port: int
             'Generate TSX and CSS together, using shared layout, card and modal styles.',
             'Use shared class names for layouts, cards and modals.')
         functional_prompt += '\nUse meaningful CSS class names. A separate pass supplies the stylesheet.'
-        generate(functional_prompt, frontend_request, (FRONTEND[0],), check_frontend, repair_backend=storefront)
+        generate(functional_prompt, frontend_request, (FRONTEND[0],), check_build)
         return True
 
-    def recover_storefront(failures, previous_repair):
-        client, budget = model.client, model.max_output_tokens
-        model.client = client.with_options(timeout=240, max_retries=0)
-        model.max_output_tokens = min(configured_output_limit, 30000)
-        try:
-            generate(frontend_prompt + '\nThe previous UI passed the build but no public scenario passed. '
-                'Use the diagnostics to redesign the common UI and routing around the existing API.',
-                {**frontend_request, 'backend_source': read_source(output_dir / BACKEND),
-                    'failed_scenarios': failures[:5], 'previous_repair': previous_repair},
-                FRONTEND, check_frontend, attempts=1, repair_backend=True)
-        finally:
-            model.client, model.max_output_tokens = client, budget
-
-    resources = ExitStack()
     try:
         run('install dependencies', lambda: install_dependencies(output_dir, timeout=90))
-        run('backend', lambda: generate(backend_prompt, {'requirements_yaml': source,
-            'declared_account_fixtures': account_fixtures(source)}, (BACKEND,),
+        generation_source = source
+        railway_world = None
+        if config.railway_contract:
+            from infrastructure.tasks.railway_context import prepare_context
+            packet = prepare_context(source)
+            generation_source = packet['requirements_yaml']
+            railway_world = packet['declared_railway_world']
+            save_json(output_dir / '.arc/initial_world.json', railway_world)
+            save_text(output_dir / '.arc/generation_requirements.yaml', generation_source)
+            save_json(output_dir / '.arc/context_metrics.json', {
+                **packet['metrics'], 'generation_characters': len(generation_source)})
+            print(f'[railway] Requirement context {len(source)} -> {len(generation_source)} characters; '
+                  'all original requirements/scenarios retained.', flush=True)
+        ctrip_world = None
+        if config.ctrip_contract:
+            from infrastructure.tasks.ctrip_context import prepare_context
+            packet = prepare_context(source)
+            generation_source = packet['requirements_yaml']
+            ctrip_world = packet['declared_ctrip_world']
+            save_json(output_dir / '.arc/initial_world.json', ctrip_world)
+            save_text(output_dir / '.arc/generation_requirements.yaml', generation_source)
+            save_json(output_dir / '.arc/context_metrics.json', packet['metrics'])
+            print(f'[ctrip] Requirement context {len(source)} -> {len(generation_source)} characters; '
+                  'all original requirements/scenarios retained.', flush=True)
+        backend_request = {'requirements_yaml': generation_source,
+            'declared_account_fixtures': account_fixtures(source)}
+        if railway_world is not None:
+            backend_request['declared_railway_world'] = railway_world
+        if ctrip_world is not None:
+            backend_request['declared_ctrip_world'] = ctrip_world
+        if config.index_initial_world:
+            backend_request['declared_initial_world'] = initial_world(source)
+            save_json(output_dir / '.arc/initial_world.json', backend_request['declared_initial_world'])
+        run('backend', lambda: generate(backend_prompt, backend_request, (BACKEND,),
             lambda: check_build('-w', '@arc/backend')))
         references = run('sample reference images', visual_evidence)
-        if storefront:
-            temporary = Path(resources.enter_context(TemporaryDirectory(prefix='arc-storefront-')))
-            try:
-                prepare_workspace(suite, temporary)
-                copyfile(Path(__file__).with_name('storefront_probe.spec.ts'), temporary / 'storefront-probe.spec.ts')
-                workspace = temporary
-            except (RuntimeError, OSError, TimeoutExpired) as error:
-                print(f'[compact] Storefront browser check unavailable: {error}', flush=True)
-        frontend_request = {'requirements_yaml': source,
+        frontend_request = {'requirements_yaml': generation_source,
             'backend_source': read_source(output_dir / BACKEND), 'references': references}
         if run('frontend', lambda: generate_frontend(frontend_request)):
             run('frontend styling', lambda: style_frontend(references))
+        if config.railway_navigation_gate and suite is not None:
+            navigation = run('railway navigation', lambda: ensure_railway_navigation(
+                suite, output_dir, model, check_build))
+            report['stages']['railway navigation']['status'] = navigation['status']
+        if config.ctrip_contract and suite is not None:
+            navigation = run('ctrip navigation', lambda: ensure_ctrip_navigation(
+                suite, output_dir, model, check_build))
+            report['stages']['ctrip navigation']['status'] = navigation['status']
+            if navigation['status'] == 'GREEN':
+                services = run('ctrip services', lambda: ensure_ctrip_services(
+                    suite, output_dir, model, check_build))
+                report['stages']['ctrip services']['status'] = services['status']
+            else:
+                report['stages']['ctrip services'] = {'status': 'BLOCKED_BY_NAVIGATION'}
         if suite is not None:
             if not bookstack_legacy:
                 model.reasoning = 'none'
             model.client = model.client.with_options(timeout=75, max_retries=0)
-            model.max_output_tokens = min(model.max_output_tokens, 8000)
+            model.max_output_tokens = min(model.max_output_tokens, config.repair_output_tokens)
             acceptance = run('public acceptance', lambda: repair_with_acceptance(
-                suite, output_dir, source, model, check_frontend, (BACKEND, *FRONTEND),
+                suite, output_dir, source, model, check_build, (BACKEND, *FRONTEND),
                 bookstack_legacy=bookstack_legacy,
-                repair_guidance=prestashop_profile.REPAIR_GUIDANCE if storefront else '',
-                prepared_workspace=workspace, recover_zero=recover_storefront if storefront else None))
+                repair_guidance=config.repair_guidance,
+                **({'adaptive_repairs': True} if config.adaptive_repairs else {}),
+                **({'repair_dependencies': dict(config.repair_dependencies)}
+                   if config.repair_dependencies else {}),
+                **({'retry_invalid_edits': True} if config.retry_invalid_edits else {}),
+                **({'allow_zero_progress': True} if config.allow_zero_progress else {}),
+                **({'max_repairs': config.acceptance_attempts,
+                    'failure_limit': config.repair_failure_limit, 'edit_retries': config.repair_edit_retries}
+                   if (config.acceptance_attempts, config.repair_failure_limit, config.repair_edit_retries)
+                   != (3, 14, 0) else {})))
             report['stages']['public acceptance']['status'] = acceptance['status']
             if 'best' in acceptance:
                 report['stages']['public acceptance'].update(
@@ -452,12 +460,8 @@ def compile_compact(input_dir: Path, output_dir: Path, source: str, *, port: int
             report['stages']['public acceptance'] = {'status': 'NO_MATCHING_SUITE'}
             print('[acceptance] No bundled suite matched this requirements tree.', flush=True)
     finally:
-        try:
-            resources.close()
-        finally:
-            model.client.close()
-    acceptance_status = report['stages'].get('public acceptance', {}).get('status')
-    report['status'] = ('ZERO_PASS' if acceptance_status == 'ZERO_PASS' else
-        'PARTIAL' if acceptance_status in {'PARTIAL', 'UNAVAILABLE'} else 'GREEN')
+        model.client.close()
+    report['status'] = ('PARTIAL' if report['stages'].get('public acceptance', {}).get('status') in
+        {'PARTIAL', 'UNAVAILABLE'} else 'GREEN')
     save_json(report_path, report)
     print(f'[compact] Build passed. Report: {report_path}', flush=True)

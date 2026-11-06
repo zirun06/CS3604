@@ -2,10 +2,11 @@
 
 import json
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
-from openai import OpenAI, OpenAIError
+from openai import OpenAI, OpenAIError, APIConnectionError, APITimeoutError
 from infrastructure.utils.presentation.model_io import http_client, invoke
 
 
@@ -30,6 +31,18 @@ def reasoning_rejected(error):
     return getattr(error, "status_code", None) in {400, 422} and any(
         word in message for word in ("unsupported", "unknown", "unrecognized", "not supported", "not allowed", "unexpected")) and any(
         word in message for word in ("thinking", "reasoning_effort"))
+
+
+def transient_failure(error):
+    """Recognize transport failures, including the gateway's wrapped HTTP 400."""
+    if isinstance(error, (APIConnectionError, APITimeoutError)):
+        return True
+    status = getattr(error, 'status_code', None)
+    if status == 429 or status in {500, 502, 503, 504}:
+        return True
+    message = str(error).lower()
+    return status == 400 and any(tag in message for tag in ('model_proxy_error', 'proxy_error')) and any(
+        cause in message for cause in ('connection reset', 'timed out', 'timeout', 'connection refused'))
 
 
 def reasoning_arguments(name, mode):
@@ -75,6 +88,7 @@ class TextModel:
 
     def _request(self, **arguments):
         """Apply one output budget to JSON calls, with legacy endpoint compatibility."""
+        transient_attempt = 0
         while True:
             options = dict(arguments)
             if not getattr(self, "_reasoning_supported", True):
@@ -92,6 +106,11 @@ class TextModel:
                 if getattr(self, "_reasoning_supported", True) and reasoning_rejected(error):
                     self._reasoning_supported = False
                     print("Provider rejected reasoning controls; using provider defaults.", flush=True)
+                    continue
+                if transient_failure(error) and transient_attempt < getattr(self, 'transient_retries', 0):
+                    transient_attempt += 1
+                    print(f'Transient model gateway failure; retry {transient_attempt}.', flush=True)
+                    time.sleep(transient_attempt)
                     continue
                 raise
 
@@ -111,10 +130,15 @@ class TextModel:
         except OpenAIError as error:
             raise RuntimeError(f"Text model request failed: {error}") from error
         if response.choices and response.choices[0].finish_reason == "length":
+            protocol = (
+                'Return the complete requested files as nonempty source strings, including every requested path. '
+                if '"files"' in instructions else
+                'Return a complete JSON object with only necessary changes/tool calls; omit unchanged files. '
+            )
             raise ValueError(
                 f"Model output was truncated (finish_reason=length). The output budget is "
                 f"{self.max_output_tokens} tokens including reasoning; this is not an input-length error. "
-                "Return a complete JSON object with only necessary changes/tool calls; omit unchanged files. "
+                f"{protocol}"
                 "Do not spend the entire budget restating the task.")
         if response.choices and getattr(response.choices[0].message, "refusal", None):
             raise ValueError(f"Text model refused the request: {response.choices[0].message.refusal}")

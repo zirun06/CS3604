@@ -1,0 +1,8 @@
+{
+  "compiler_blobs_match_original_zip": true,
+  "compiler_files": 576,
+  "staged_files_scanned": 85,
+  "real_secrets_found": false,
+  "v6_runtime_excluded": true,
+  "archive_sha256": "189fb42115fe617195a9a972ca438a5405ffcb7c79de5cdc6f3047e78816c4bd"
+}

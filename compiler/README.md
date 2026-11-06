@@ -64,12 +64,9 @@ up to three repair attempts using failure diagnostics and retains changes only i
 they improve coverage without breaking a passing case. The run records its result
 in `.arc/acceptance.json`. Public cases are bundled for the supplied revisions of
 12306, BookStack, Ctrip, Keep, PrestaShop, and Stack Overflow. The compiler selects
-cases by the SHA-256 of the requirements text or by the requirement and scenario
-tree. PrestaShop also checks the first page in Chromium and attempts frontend
-regeneration if no public scenario passes after an initial repair.
-A successful build with failed public cases is generally marked `PARTIAL`.
-PrestaShop reports `ZERO_PASS` when the recovery attempts leave it with no
-passing scenarios. These are local results; the ARC-Bench evaluator reports the submission score.
+cases by the SHA-256 of the requirements text; a different revision can still
+compile without them. A successful build with failed public cases is marked
+`PARTIAL`. These are local results; the ARC-Bench evaluator reports the submission score.
 
 Run each task by passing its own requirements directory to the same compiler:
 

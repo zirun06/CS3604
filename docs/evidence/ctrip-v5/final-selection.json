@@ -1,0 +1,7 @@
+{
+  "recommended_package": "arc-compiler-ctrip-v5.zip",
+  "working_compiler_matches_v5": true,
+  "v5_fresh_passed": 122,
+  "v6_experiment_passed": 113,
+  "v6_source_saved": "experiments/ctrip-v6"
+}

@@ -9,9 +9,6 @@ from infrastructure.utils.cli import resolve_directories
 from infrastructure.utils.presentation.logging import configure_console
 
 
-BOOKSTACK_SUITE = "8189d63bbffef9e873d3c27589dbe26532f44afa2d485d3e9d1d8c593f7e7274"
-
-
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Read public options and validate paths and the backend port before compilation."""
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
@@ -48,16 +45,19 @@ def main(argv: list[str] | None = None) -> None:
     if args.profile != "staged":
         from infrastructure.compact import compile_compact, load_requirements
         from infrastructure.compact_acceptance import bundled_suite
+        from infrastructure.tasks.registry import select_profile
         try:
             source, tree = load_requirements(args.requirement_path)
             suite = bundled_suite(source) if args.profile == "auto" else None
-            if suite is not None and suite.name == BOOKSTACK_SUITE:
+            task = select_profile(suite)
+            if task.legacy_acceptance:
                 print("[compiler] BookStack: using the original arc-compiler-full-track.zip workflow.", flush=True)
                 compile_compact(args.requirement_path, args.output_dir, source, port=args.port,
-                    model_log=args.model_log, bookstack_legacy=True)
+                    model_log=args.model_log, task_profile=task)
                 return
             elif args.profile == "compact" or len(tree.leaves) >= 10:
-                compile_compact(args.requirement_path, args.output_dir, source, port=args.port, model_log=args.model_log)
+                compile_compact(args.requirement_path, args.output_dir, source, port=args.port,
+                    model_log=args.model_log, task_profile=task if args.profile == "auto" else None)
                 return
         except Exception as error:
             print(f"Compilation failed: {error}", file=sys.stderr)

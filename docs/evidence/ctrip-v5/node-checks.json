@@ -1,0 +1,57 @@
+[
+  {
+    "output": "Backend contract checks passed: public reads, cookie flow, credentials, sessions, HTTP failures, response shape.",
+    "test": "test_backend_contract.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Ctrip backend checks passed: real HTTP registration/login/logout, lost guest cookie detected, unsent-code bypass detected.",
+    "test": "test_ctrip_backend.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Ctrip component checks passed: only global navigation can change; app, business views, routes and providers preserved.",
+    "test": "test_ctrip_components.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Ctrip browser checks passed: public service navigation, real login/reload, native account links; menuitem override rejected.",
+    "test": "test_ctrip_navigation.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Ctrip source checks passed: actual nullable SQLite guest session, authenticated owner, advancing clock, native roles, headings, menu hover/click, idempotence.",
+    "test": "test_ctrip_source.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Feed region checks passed: scope, handlers, layout nodes, syntax, idempotence, protected/ambiguous landmarks.",
+    "test": "test_feed_regions.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Railway component checks passed: component scope, complete declarations, route/guard/provider preservation, original business source retention.",
+    "test": "test_railway_components.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Railway browser gate checks passed: real login/reload, persistent multi-page navigation, missing child-page menu detected.",
+    "test": "test_railway_navigation.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Railway source checks passed: real cookie HTTP roundtrip, malformed/duplicate cookies, labelled controls, isolated identity, idempotence.",
+    "test": "test_railway_source.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "SQL checks passed: valid insert, column mismatch, unknown column, dynamic SQL, no writes.",
+    "test": "test_sql_inserts.mjs",
+    "exit_code": 0
+  },
+  {
+    "output": "Status association checks passed: labels, dynamic labels, existing names, unrelated text, idempotence, syntax errors.",
+    "test": "test_status_labels.mjs",
+    "exit_code": 0
+  }
+]

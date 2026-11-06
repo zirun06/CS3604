@@ -7,4 +7,5 @@
 **/.arc/
 **/outputs/
 *.zip
+!/releases/arc-compiler-ctrip-v5.zip
 *.bundle

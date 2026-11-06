@@ -1,0 +1,308 @@
+{
+  "railway12306:large=True:truncate=False:legacy=False": {
+    "requests": [
+      {
+        "prompt": "74073cb2df40cd957a80b4d9263a4a497f771820da3871ca9b046838705e103b",
+        "payload": "299b3952de400cfcb9607d602954f5877696fb325b56183a42ce5bcfcc3fd83b",
+        "budget": 26000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "e918bef96bee88b1adad014bb1d4fd375e3cd24f7784a190d6dabbe25cddec43",
+        "payload": "ef54c3b61b5f610ebc0c0a367de25551351a7fee69a836df5ff7b317e8c4e255",
+        "budget": 32000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "ff729d093e7171ac587941c37840cfc3f84c765b94c1f208523fcae284d6dd84",
+        "payload": "939b146e2ec58f51e4717246bd926376897e49b297dd79f8e4e272bd661bdd1e",
+        "budget": 6000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      3,
+      1
+    ],
+    "acceptance": [
+      {
+        "budget": 6000,
+        "bookstack_legacy": false,
+        "repair_guidance": ""
+      }
+    ]
+  },
+  "bookstack:large=False:truncate=False:legacy=True": {
+    "requests": [
+      {
+        "prompt": "7e395e064dba5be9d5cda4d87bf0d16475da9e8b43a26679b1c4ff1d261bf1a0",
+        "payload": "15a56ca2b344703440d4dcea4e92b9dc28d18c6c54dac8662279b2c6c6c4c1fb",
+        "budget": 16000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "04dab3030ddbe8caf62c2571d164a3d0ef14eb28b405300595510eaf58d38fdf",
+        "payload": "7b7660185738d3482b1a8c12997e7e22504d75666307532763e628433affc50c",
+        "budget": 16000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      3
+    ],
+    "acceptance": [
+      {
+        "budget": 8000,
+        "bookstack_legacy": true,
+        "repair_guidance": ""
+      }
+    ]
+  },
+  "ctrip:large=True:truncate=False:legacy=False": {
+    "requests": [
+      {
+        "prompt": "74073cb2df40cd957a80b4d9263a4a497f771820da3871ca9b046838705e103b",
+        "payload": "299b3952de400cfcb9607d602954f5877696fb325b56183a42ce5bcfcc3fd83b",
+        "budget": 26000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "e918bef96bee88b1adad014bb1d4fd375e3cd24f7784a190d6dabbe25cddec43",
+        "payload": "ef54c3b61b5f610ebc0c0a367de25551351a7fee69a836df5ff7b317e8c4e255",
+        "budget": 32000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "ff729d093e7171ac587941c37840cfc3f84c765b94c1f208523fcae284d6dd84",
+        "payload": "939b146e2ec58f51e4717246bd926376897e49b297dd79f8e4e272bd661bdd1e",
+        "budget": 6000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      3,
+      1
+    ],
+    "acceptance": [
+      {
+        "budget": 6000,
+        "bookstack_legacy": false,
+        "repair_guidance": ""
+      }
+    ]
+  },
+  "keep:large=False:truncate=False:legacy=False": {
+    "requests": [
+      {
+        "prompt": "74073cb2df40cd957a80b4d9263a4a497f771820da3871ca9b046838705e103b",
+        "payload": "15a56ca2b344703440d4dcea4e92b9dc28d18c6c54dac8662279b2c6c6c4c1fb",
+        "budget": 16000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "dc816e91ea608d0d866f2dce1dbe9cf11dfb5428ebbf4614836869c614c35142",
+        "payload": "7b7660185738d3482b1a8c12997e7e22504d75666307532763e628433affc50c",
+        "budget": 16000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      3
+    ],
+    "acceptance": [
+      {
+        "budget": 8000,
+        "bookstack_legacy": false,
+        "repair_guidance": ""
+      }
+    ]
+  },
+  "prestashop:large=True:truncate=False:legacy=False": {
+    "requests": [
+      {
+        "prompt": "b8013ed89b1536529f8ec9d5215aae04ea97bdbcb25dd15112655a9516ba61fd",
+        "payload": "299b3952de400cfcb9607d602954f5877696fb325b56183a42ce5bcfcc3fd83b",
+        "budget": 26000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "184f52ee82203020f62267e50015d2d2da1b676f87d2f117a281c85875559572",
+        "payload": "ef54c3b61b5f610ebc0c0a367de25551351a7fee69a836df5ff7b317e8c4e255",
+        "budget": 26000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      2
+    ],
+    "acceptance": [
+      {
+        "budget": 8000,
+        "bookstack_legacy": false,
+        "repair_guidance": "\nFor the storefront, address shared blockers before individual details. If unrelated\nscenarios fail at the same navigation entry, session transition, add-to-cart action,\nor checkout step, trace that entry from the UI to the API and fix the shared cause.\nWhen diagnostics show two matching controls, inspect both rendered elements. For\nexample, disambiguate the newsletter's actual associated label from the login\nform's Email label. Changing the placeholder alone leaves the label unchanged.\nKeep the login form's required label and the newsletter's functionality.\nUse the supplied page snapshots to distinguish a missing control from one hidden\nby styling. Keep active sessions, selected variants, and owner isolation intact.\n"
+      }
+    ]
+  },
+  "stackoverflow:large=True:truncate=False:legacy=False": {
+    "requests": [
+      {
+        "prompt": "74073cb2df40cd957a80b4d9263a4a497f771820da3871ca9b046838705e103b",
+        "payload": "299b3952de400cfcb9607d602954f5877696fb325b56183a42ce5bcfcc3fd83b",
+        "budget": 26000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "e918bef96bee88b1adad014bb1d4fd375e3cd24f7784a190d6dabbe25cddec43",
+        "payload": "ef54c3b61b5f610ebc0c0a367de25551351a7fee69a836df5ff7b317e8c4e255",
+        "budget": 32000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "ff729d093e7171ac587941c37840cfc3f84c765b94c1f208523fcae284d6dd84",
+        "payload": "939b146e2ec58f51e4717246bd926376897e49b297dd79f8e4e272bd661bdd1e",
+        "budget": 6000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      3,
+      1
+    ],
+    "acceptance": [
+      {
+        "budget": 6000,
+        "bookstack_legacy": false,
+        "repair_guidance": ""
+      }
+    ]
+  },
+  "prestashop:large=True:truncate=True:legacy=False": {
+    "requests": [
+      {
+        "prompt": "b8013ed89b1536529f8ec9d5215aae04ea97bdbcb25dd15112655a9516ba61fd",
+        "payload": "299b3952de400cfcb9607d602954f5877696fb325b56183a42ce5bcfcc3fd83b",
+        "budget": 26000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "184f52ee82203020f62267e50015d2d2da1b676f87d2f117a281c85875559572",
+        "payload": "ef54c3b61b5f610ebc0c0a367de25551351a7fee69a836df5ff7b317e8c4e255",
+        "budget": 26000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "aaee6db4a91cc82c1a26f24d7e1e95d5448530bdb8b770ff8ebeb21ecabb487b",
+        "payload": "0d52def31efef7622244a43128fabfa15e2275146a23e3bcc6b52115752004dc",
+        "budget": 26000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "574dbd20a5dd0cbeffcc8cc32ca53c91b50964b3e8a7f551de6a8af4e6c1c14b",
+        "payload": "ef54c3b61b5f610ebc0c0a367de25551351a7fee69a836df5ff7b317e8c4e255",
+        "budget": 32000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "ff729d093e7171ac587941c37840cfc3f84c765b94c1f208523fcae284d6dd84",
+        "payload": "939b146e2ec58f51e4717246bd926376897e49b297dd79f8e4e272bd661bdd1e",
+        "budget": 10000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      2,
+      3,
+      1
+    ],
+    "acceptance": [
+      {
+        "budget": 8000,
+        "bookstack_legacy": false,
+        "repair_guidance": "\nFor the storefront, address shared blockers before individual details. If unrelated\nscenarios fail at the same navigation entry, session transition, add-to-cart action,\nor checkout step, trace that entry from the UI to the API and fix the shared cause.\nWhen diagnostics show two matching controls, inspect both rendered elements. For\nexample, disambiguate the newsletter's actual associated label from the login\nform's Email label. Changing the placeholder alone leaves the label unchanged.\nKeep the login form's required label and the newsletter's functionality.\nUse the supplied page snapshots to distinguish a missing control from one hidden\nby styling. Keep active sessions, selected variants, and owner isolation intact.\n"
+      }
+    ]
+  },
+  "generic:large=False:truncate=False:legacy=False": {
+    "requests": [
+      {
+        "prompt": "74073cb2df40cd957a80b4d9263a4a497f771820da3871ca9b046838705e103b",
+        "payload": "15a56ca2b344703440d4dcea4e92b9dc28d18c6c54dac8662279b2c6c6c4c1fb",
+        "budget": 16000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "dc816e91ea608d0d866f2dce1dbe9cf11dfb5428ebbf4614836869c614c35142",
+        "payload": "7b7660185738d3482b1a8c12997e7e22504d75666307532763e628433affc50c",
+        "budget": 16000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      3
+    ],
+    "acceptance": []
+  },
+  "generic:large=True:truncate=False:legacy=False": {
+    "requests": [
+      {
+        "prompt": "74073cb2df40cd957a80b4d9263a4a497f771820da3871ca9b046838705e103b",
+        "payload": "299b3952de400cfcb9607d602954f5877696fb325b56183a42ce5bcfcc3fd83b",
+        "budget": 26000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "e918bef96bee88b1adad014bb1d4fd375e3cd24f7784a190d6dabbe25cddec43",
+        "payload": "ef54c3b61b5f610ebc0c0a367de25551351a7fee69a836df5ff7b317e8c4e255",
+        "budget": 32000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "ff729d093e7171ac587941c37840cfc3f84c765b94c1f208523fcae284d6dd84",
+        "payload": "939b146e2ec58f51e4717246bd926376897e49b297dd79f8e4e272bd661bdd1e",
+        "budget": 6000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      3,
+      1
+    ],
+    "acceptance": []
+  },
+  "bookstack:large=False:truncate=False:legacy=False": {
+    "requests": [
+      {
+        "prompt": "74073cb2df40cd957a80b4d9263a4a497f771820da3871ca9b046838705e103b",
+        "payload": "15a56ca2b344703440d4dcea4e92b9dc28d18c6c54dac8662279b2c6c6c4c1fb",
+        "budget": 16000,
+        "reasoning": "none"
+      },
+      {
+        "prompt": "dc816e91ea608d0d866f2dce1dbe9cf11dfb5428ebbf4614836869c614c35142",
+        "payload": "7b7660185738d3482b1a8c12997e7e22504d75666307532763e628433affc50c",
+        "budget": 16000,
+        "reasoning": "none"
+      }
+    ],
+    "proposal_limits": [
+      3,
+      3
+    ],
+    "acceptance": [
+      {
+        "budget": 8000,
+        "bookstack_legacy": false,
+        "repair_guidance": ""
+      }
+    ]
+  }
+}
