@@ -44,6 +44,10 @@ def reasoning_arguments(name, mode):
     return {"reasoning_effort": mode}
 
 
+class ModelOutputTruncated(ValueError):
+    """A provider finished with length rather than returning a complete answer."""
+
+
 class TextModel:
     """Transport for structured stage proposals and file-edit responses."""
     def __init__(self, *, model_name: str | None = None, json_mode: bool = True) -> None:
@@ -114,7 +118,7 @@ class TextModel:
         except OpenAIError as error:
             raise RuntimeError(f"Text model request failed: {error}") from error
         if response.choices and response.choices[0].finish_reason == "length":
-            raise ValueError(
+            raise ModelOutputTruncated(
                 f"Model output was truncated (finish_reason=length). The output budget is "
                 f"{self.max_output_tokens} tokens including reasoning; this is not an input-length error. "
                 "Return a complete JSON object with only necessary changes/tool calls; omit unchanged files. "

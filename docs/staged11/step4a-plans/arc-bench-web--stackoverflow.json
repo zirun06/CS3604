@@ -1,0 +1,3117 @@
+{
+  "source": "arc-bench-web--stackoverflow/requirements.yaml",
+  "sha256": "75912b85c96a15ebd749a0b344556d5e972b39c866cdcfbcd043576ab73f9c0c",
+  "yaml_chars": 187708,
+  "batch_count": 18,
+  "coverage_counts": {
+    "leaves": 52,
+    "scenarios": 66,
+    "steps": 66
+  },
+  "coverage_verified": true,
+  "reference_images": 15,
+  "max_leaves": 6,
+  "max_input_chars": 24000,
+  "batches": [
+    {
+      "id": "B001",
+      "module": "REQ-1",
+      "leaves": [
+        "REQ-1.1",
+        "REQ-1.2",
+        "REQ-1.3"
+      ],
+      "input_chars": 13946,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B002",
+      "module": "REQ-2",
+      "leaves": [
+        "REQ-2.1",
+        "REQ-2.3",
+        "REQ-2.4",
+        "REQ-2.6"
+      ],
+      "input_chars": 23217,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B003",
+      "module": "REQ-2",
+      "leaves": [
+        "REQ-2.2",
+        "REQ-2.5"
+      ],
+      "input_chars": 10620,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B004",
+      "module": "REQ-3",
+      "leaves": [
+        "REQ-3.1",
+        "REQ-3.3",
+        "REQ-3.8"
+      ],
+      "input_chars": 23201,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B005",
+      "module": "REQ-3",
+      "leaves": [
+        "REQ-3.5",
+        "REQ-3.4",
+        "REQ-3.9",
+        "REQ-3.6",
+        "REQ-3.7"
+      ],
+      "input_chars": 23812,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B006",
+      "module": "REQ-6",
+      "leaves": [
+        "REQ-6.1",
+        "REQ-6.2",
+        "REQ-6.6",
+        "REQ-6.8"
+      ],
+      "input_chars": 19977,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B007",
+      "module": "REQ-6",
+      "leaves": [
+        "REQ-6.3",
+        "REQ-6.4",
+        "REQ-6.5"
+      ],
+      "input_chars": 19302,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B008",
+      "module": "REQ-3",
+      "leaves": [
+        "REQ-3.2",
+        "REQ-3.10"
+      ],
+      "input_chars": 10890,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B009",
+      "module": "REQ-4",
+      "leaves": [
+        "REQ-4.4",
+        "REQ-4.7",
+        "REQ-4.2",
+        "REQ-4.6"
+      ],
+      "input_chars": 19996,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B010",
+      "module": "REQ-4",
+      "leaves": [
+        "REQ-4.9",
+        "REQ-4.10",
+        "REQ-4.3",
+        "REQ-4.5"
+      ],
+      "input_chars": 23172,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B011",
+      "module": "REQ-4",
+      "leaves": [
+        "REQ-4.8"
+      ],
+      "input_chars": 5019,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B012",
+      "module": "REQ-5",
+      "leaves": [
+        "REQ-5.1",
+        "REQ-5.2",
+        "REQ-5.5",
+        "REQ-5.8",
+        "REQ-5.9"
+      ],
+      "input_chars": 21624,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B013",
+      "module": "REQ-5",
+      "leaves": [
+        "REQ-5.3",
+        "REQ-5.4",
+        "REQ-5.6",
+        "REQ-5.10"
+      ],
+      "input_chars": 19370,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B014",
+      "module": "REQ-6",
+      "leaves": [
+        "REQ-6.7"
+      ],
+      "input_chars": 11694,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B015",
+      "module": "REQ-7",
+      "leaves": [
+        "REQ-7.1",
+        "REQ-7.2",
+        "REQ-7.3",
+        "REQ-7.5"
+      ],
+      "input_chars": 18397,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B016",
+      "module": "REQ-7",
+      "leaves": [
+        "REQ-7.4"
+      ],
+      "input_chars": 12074,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B017",
+      "module": "REQ-4",
+      "leaves": [
+        "REQ-4.1"
+      ],
+      "input_chars": 5034,
+      "oversize_single_leaf": false
+    },
+    {
+      "id": "B018",
+      "module": "REQ-5",
+      "leaves": [
+        "REQ-5.7"
+      ],
+      "input_chars": 4413,
+      "oversize_single_leaf": false
+    }
+  ],
+  "coverage": {
+    "leaves": [
+      {
+        "id": "REQ-1.1",
+        "batch": "B001",
+        "source": [
+          0,
+          0
+        ],
+        "input_chars": 5245
+      },
+      {
+        "id": "REQ-1.2",
+        "batch": "B001",
+        "source": [
+          0,
+          1
+        ],
+        "input_chars": 3922
+      },
+      {
+        "id": "REQ-1.3",
+        "batch": "B001",
+        "source": [
+          0,
+          2
+        ],
+        "input_chars": 4779
+      },
+      {
+        "id": "REQ-2.1",
+        "batch": "B002",
+        "source": [
+          1,
+          0
+        ],
+        "input_chars": 8054
+      },
+      {
+        "id": "REQ-2.2",
+        "batch": "B003",
+        "source": [
+          1,
+          1
+        ],
+        "input_chars": 6245
+      },
+      {
+        "id": "REQ-2.3",
+        "batch": "B002",
+        "source": [
+          1,
+          2
+        ],
+        "input_chars": 5044
+      },
+      {
+        "id": "REQ-2.4",
+        "batch": "B002",
+        "source": [
+          1,
+          3
+        ],
+        "input_chars": 5445
+      },
+      {
+        "id": "REQ-2.5",
+        "batch": "B003",
+        "source": [
+          1,
+          4
+        ],
+        "input_chars": 4375
+      },
+      {
+        "id": "REQ-2.6",
+        "batch": "B002",
+        "source": [
+          1,
+          5
+        ],
+        "input_chars": 4674
+      },
+      {
+        "id": "REQ-3.1",
+        "batch": "B004",
+        "source": [
+          2,
+          0
+        ],
+        "input_chars": 10856
+      },
+      {
+        "id": "REQ-3.2",
+        "batch": "B008",
+        "source": [
+          2,
+          1
+        ],
+        "input_chars": 6531
+      },
+      {
+        "id": "REQ-3.3",
+        "batch": "B004",
+        "source": [
+          2,
+          2
+        ],
+        "input_chars": 8056
+      },
+      {
+        "id": "REQ-3.4",
+        "batch": "B005",
+        "source": [
+          2,
+          3
+        ],
+        "input_chars": 4986
+      },
+      {
+        "id": "REQ-3.5",
+        "batch": "B005",
+        "source": [
+          2,
+          4
+        ],
+        "input_chars": 5124
+      },
+      {
+        "id": "REQ-3.6",
+        "batch": "B005",
+        "source": [
+          2,
+          5
+        ],
+        "input_chars": 4609
+      },
+      {
+        "id": "REQ-3.7",
+        "batch": "B005",
+        "source": [
+          2,
+          6
+        ],
+        "input_chars": 4268
+      },
+      {
+        "id": "REQ-3.8",
+        "batch": "B004",
+        "source": [
+          2,
+          7
+        ],
+        "input_chars": 4289
+      },
+      {
+        "id": "REQ-3.9",
+        "batch": "B005",
+        "source": [
+          2,
+          8
+        ],
+        "input_chars": 4825
+      },
+      {
+        "id": "REQ-3.10",
+        "batch": "B008",
+        "source": [
+          2,
+          9
+        ],
+        "input_chars": 4359
+      },
+      {
+        "id": "REQ-4.1",
+        "batch": "B017",
+        "source": [
+          3,
+          0
+        ],
+        "input_chars": 5034
+      },
+      {
+        "id": "REQ-4.2",
+        "batch": "B009",
+        "source": [
+          3,
+          1
+        ],
+        "input_chars": 4834
+      },
+      {
+        "id": "REQ-4.3",
+        "batch": "B010",
+        "source": [
+          3,
+          2
+        ],
+        "input_chars": 6525
+      },
+      {
+        "id": "REQ-4.4",
+        "batch": "B009",
+        "source": [
+          3,
+          3
+        ],
+        "input_chars": 5015
+      },
+      {
+        "id": "REQ-4.5",
+        "batch": "B010",
+        "source": [
+          3,
+          4
+        ],
+        "input_chars": 7437
+      },
+      {
+        "id": "REQ-4.6",
+        "batch": "B009",
+        "source": [
+          3,
+          5
+        ],
+        "input_chars": 5246
+      },
+      {
+        "id": "REQ-4.7",
+        "batch": "B009",
+        "source": [
+          3,
+          6
+        ],
+        "input_chars": 4901
+      },
+      {
+        "id": "REQ-4.8",
+        "batch": "B011",
+        "source": [
+          3,
+          7
+        ],
+        "input_chars": 5019
+      },
+      {
+        "id": "REQ-4.9",
+        "batch": "B010",
+        "source": [
+          3,
+          8
+        ],
+        "input_chars": 4567
+      },
+      {
+        "id": "REQ-4.10",
+        "batch": "B010",
+        "source": [
+          3,
+          9
+        ],
+        "input_chars": 4643
+      },
+      {
+        "id": "REQ-5.1",
+        "batch": "B012",
+        "source": [
+          4,
+          0
+        ],
+        "input_chars": 4404
+      },
+      {
+        "id": "REQ-5.2",
+        "batch": "B012",
+        "source": [
+          4,
+          1
+        ],
+        "input_chars": 4223
+      },
+      {
+        "id": "REQ-5.3",
+        "batch": "B013",
+        "source": [
+          4,
+          2
+        ],
+        "input_chars": 4978
+      },
+      {
+        "id": "REQ-5.4",
+        "batch": "B013",
+        "source": [
+          4,
+          3
+        ],
+        "input_chars": 5173
+      },
+      {
+        "id": "REQ-5.5",
+        "batch": "B012",
+        "source": [
+          4,
+          4
+        ],
+        "input_chars": 4084
+      },
+      {
+        "id": "REQ-5.6",
+        "batch": "B013",
+        "source": [
+          4,
+          5
+        ],
+        "input_chars": 4379
+      },
+      {
+        "id": "REQ-5.7",
+        "batch": "B018",
+        "source": [
+          4,
+          6
+        ],
+        "input_chars": 4413
+      },
+      {
+        "id": "REQ-5.8",
+        "batch": "B012",
+        "source": [
+          4,
+          7
+        ],
+        "input_chars": 4505
+      },
+      {
+        "id": "REQ-5.9",
+        "batch": "B012",
+        "source": [
+          4,
+          8
+        ],
+        "input_chars": 4408
+      },
+      {
+        "id": "REQ-5.10",
+        "batch": "B013",
+        "source": [
+          4,
+          9
+        ],
+        "input_chars": 4840
+      },
+      {
+        "id": "REQ-6.1",
+        "batch": "B006",
+        "source": [
+          5,
+          0
+        ],
+        "input_chars": 7174
+      },
+      {
+        "id": "REQ-6.2",
+        "batch": "B006",
+        "source": [
+          5,
+          1
+        ],
+        "input_chars": 3880
+      },
+      {
+        "id": "REQ-6.3",
+        "batch": "B007",
+        "source": [
+          5,
+          2
+        ],
+        "input_chars": 6911
+      },
+      {
+        "id": "REQ-6.4",
+        "batch": "B007",
+        "source": [
+          5,
+          3
+        ],
+        "input_chars": 5120
+      },
+      {
+        "id": "REQ-6.5",
+        "batch": "B007",
+        "source": [
+          5,
+          4
+        ],
+        "input_chars": 7271
+      },
+      {
+        "id": "REQ-6.6",
+        "batch": "B006",
+        "source": [
+          5,
+          5
+        ],
+        "input_chars": 4782
+      },
+      {
+        "id": "REQ-6.7",
+        "batch": "B014",
+        "source": [
+          5,
+          6
+        ],
+        "input_chars": 11694
+      },
+      {
+        "id": "REQ-6.8",
+        "batch": "B006",
+        "source": [
+          5,
+          7
+        ],
+        "input_chars": 4141
+      },
+      {
+        "id": "REQ-7.1",
+        "batch": "B015",
+        "source": [
+          6,
+          0
+        ],
+        "input_chars": 4994
+      },
+      {
+        "id": "REQ-7.2",
+        "batch": "B015",
+        "source": [
+          6,
+          1
+        ],
+        "input_chars": 4324
+      },
+      {
+        "id": "REQ-7.3",
+        "batch": "B015",
+        "source": [
+          6,
+          2
+        ],
+        "input_chars": 4364
+      },
+      {
+        "id": "REQ-7.4",
+        "batch": "B016",
+        "source": [
+          6,
+          3
+        ],
+        "input_chars": 12074
+      },
+      {
+        "id": "REQ-7.5",
+        "batch": "B015",
+        "source": [
+          6,
+          4
+        ],
+        "input_chars": 4715
+      }
+    ],
+    "scenarios": [
+      {
+        "requirement": "REQ-1.1",
+        "id": "SCN-REQ-1.1-01",
+        "batch": "B001",
+        "source": [
+          0,
+          0,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-1.2",
+        "id": "SCN-REQ-1.2-01",
+        "batch": "B001",
+        "source": [
+          0,
+          1,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-1.3",
+        "id": "SCN-REQ-1.3-01",
+        "batch": "B001",
+        "source": [
+          0,
+          2,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "id": "SCN-REQ-2.1-01",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "id": "SCN-REQ-2.1-02",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          1
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "id": "SCN-REQ-2.1-03",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          2
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "id": "SCN-REQ-2.1-04",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          3
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "id": "SCN-REQ-2.1-05",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          4
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "id": "SCN-REQ-2.1-06",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          5
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.2",
+        "id": "SCN-REQ-2.2-01",
+        "batch": "B003",
+        "source": [
+          1,
+          1,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.2",
+        "id": "SCN-REQ-2.2-02",
+        "batch": "B003",
+        "source": [
+          1,
+          1,
+          "scenarios",
+          1
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.2",
+        "id": "SCN-REQ-2.2-03",
+        "batch": "B003",
+        "source": [
+          1,
+          1,
+          "scenarios",
+          2
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.3",
+        "id": "SCN-REQ-2.3-01",
+        "batch": "B002",
+        "source": [
+          1,
+          2,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.4",
+        "id": "SCN-REQ-2.4-01",
+        "batch": "B002",
+        "source": [
+          1,
+          3,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.5",
+        "id": "SCN-REQ-2.5-01",
+        "batch": "B003",
+        "source": [
+          1,
+          4,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.6",
+        "id": "SCN-REQ-2.6-01",
+        "batch": "B002",
+        "source": [
+          1,
+          5,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.1",
+        "id": "SCN-REQ-3.1-01",
+        "batch": "B004",
+        "source": [
+          2,
+          0,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.2",
+        "id": "SCN-REQ-3.2-01",
+        "batch": "B008",
+        "source": [
+          2,
+          1,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.3",
+        "id": "SCN-REQ-3.3-01",
+        "batch": "B004",
+        "source": [
+          2,
+          2,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.3",
+        "id": "SCN-REQ-3.3-02",
+        "batch": "B004",
+        "source": [
+          2,
+          2,
+          "scenarios",
+          1
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.3",
+        "id": "SCN-REQ-3.3-03",
+        "batch": "B004",
+        "source": [
+          2,
+          2,
+          "scenarios",
+          2
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.4",
+        "id": "SCN-REQ-3.4-01",
+        "batch": "B005",
+        "source": [
+          2,
+          3,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.5",
+        "id": "SCN-REQ-3.5-01",
+        "batch": "B005",
+        "source": [
+          2,
+          4,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.6",
+        "id": "SCN-REQ-3.6-01",
+        "batch": "B005",
+        "source": [
+          2,
+          5,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.7",
+        "id": "SCN-REQ-3.7-01",
+        "batch": "B005",
+        "source": [
+          2,
+          6,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.8",
+        "id": "SCN-REQ-3.8-01",
+        "batch": "B004",
+        "source": [
+          2,
+          7,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.9",
+        "id": "SCN-REQ-3.9-01",
+        "batch": "B005",
+        "source": [
+          2,
+          8,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.10",
+        "id": "SCN-REQ-3.10-01",
+        "batch": "B008",
+        "source": [
+          2,
+          9,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.1",
+        "id": "SCN-REQ-4.1-01",
+        "batch": "B017",
+        "source": [
+          3,
+          0,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.2",
+        "id": "SCN-REQ-4.2-01",
+        "batch": "B009",
+        "source": [
+          3,
+          1,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.3",
+        "id": "SCN-REQ-4.3-01",
+        "batch": "B010",
+        "source": [
+          3,
+          2,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.3",
+        "id": "SCN-REQ-4.3-02",
+        "batch": "B010",
+        "source": [
+          3,
+          2,
+          "scenarios",
+          1
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.4",
+        "id": "SCN-REQ-4.4-01",
+        "batch": "B009",
+        "source": [
+          3,
+          3,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.5",
+        "id": "SCN-REQ-4.5-01",
+        "batch": "B010",
+        "source": [
+          3,
+          4,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.5",
+        "id": "SCN-REQ-4.5-02",
+        "batch": "B010",
+        "source": [
+          3,
+          4,
+          "scenarios",
+          1
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.5",
+        "id": "SCN-REQ-4.5-03",
+        "batch": "B010",
+        "source": [
+          3,
+          4,
+          "scenarios",
+          2
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.6",
+        "id": "SCN-REQ-4.6-01",
+        "batch": "B009",
+        "source": [
+          3,
+          5,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.7",
+        "id": "SCN-REQ-4.7-01",
+        "batch": "B009",
+        "source": [
+          3,
+          6,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.8",
+        "id": "SCN-REQ-4.8-01",
+        "batch": "B011",
+        "source": [
+          3,
+          7,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.9",
+        "id": "SCN-REQ-4.9-01",
+        "batch": "B010",
+        "source": [
+          3,
+          8,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.10",
+        "id": "SCN-REQ-4.10-01",
+        "batch": "B010",
+        "source": [
+          3,
+          9,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.1",
+        "id": "SCN-REQ-5.1-01",
+        "batch": "B012",
+        "source": [
+          4,
+          0,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.2",
+        "id": "SCN-REQ-5.2-01",
+        "batch": "B012",
+        "source": [
+          4,
+          1,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.3",
+        "id": "SCN-REQ-5.3-01",
+        "batch": "B013",
+        "source": [
+          4,
+          2,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.4",
+        "id": "SCN-REQ-5.4-01",
+        "batch": "B013",
+        "source": [
+          4,
+          3,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.5",
+        "id": "SCN-REQ-5.5-01",
+        "batch": "B012",
+        "source": [
+          4,
+          4,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.6",
+        "id": "SCN-REQ-5.6-01",
+        "batch": "B013",
+        "source": [
+          4,
+          5,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.7",
+        "id": "SCN-REQ-5.7-01",
+        "batch": "B018",
+        "source": [
+          4,
+          6,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.8",
+        "id": "SCN-REQ-5.8-01",
+        "batch": "B012",
+        "source": [
+          4,
+          7,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.9",
+        "id": "SCN-REQ-5.9-01",
+        "batch": "B012",
+        "source": [
+          4,
+          8,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.10",
+        "id": "SCN-REQ-5.10-01",
+        "batch": "B013",
+        "source": [
+          4,
+          9,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.1",
+        "id": "SCN-REQ-6.1-01",
+        "batch": "B006",
+        "source": [
+          5,
+          0,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.2",
+        "id": "SCN-REQ-6.2-01",
+        "batch": "B006",
+        "source": [
+          5,
+          1,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.3",
+        "id": "SCN-REQ-6.3-01",
+        "batch": "B007",
+        "source": [
+          5,
+          2,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.4",
+        "id": "SCN-REQ-6.4-01",
+        "batch": "B007",
+        "source": [
+          5,
+          3,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.5",
+        "id": "SCN-REQ-6.5-01",
+        "batch": "B007",
+        "source": [
+          5,
+          4,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.6",
+        "id": "SCN-REQ-6.6-01",
+        "batch": "B006",
+        "source": [
+          5,
+          5,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.7",
+        "id": "SCN-REQ-6.7-01",
+        "batch": "B014",
+        "source": [
+          5,
+          6,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.8",
+        "id": "SCN-REQ-6.8-01",
+        "batch": "B006",
+        "source": [
+          5,
+          7,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.1",
+        "id": "SCN-REQ-7.1-01",
+        "batch": "B015",
+        "source": [
+          6,
+          0,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.2",
+        "id": "SCN-REQ-7.2-01",
+        "batch": "B015",
+        "source": [
+          6,
+          1,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.3",
+        "id": "SCN-REQ-7.3-01",
+        "batch": "B015",
+        "source": [
+          6,
+          2,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.4",
+        "id": "SCN-REQ-7.4-01",
+        "batch": "B016",
+        "source": [
+          6,
+          3,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.4",
+        "id": "SCN-REQ-7.4-02",
+        "batch": "B016",
+        "source": [
+          6,
+          3,
+          "scenarios",
+          1
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.4",
+        "id": "SCN-REQ-7.4-03",
+        "batch": "B016",
+        "source": [
+          6,
+          3,
+          "scenarios",
+          2
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.5",
+        "id": "SCN-REQ-7.5-01",
+        "batch": "B015",
+        "source": [
+          6,
+          4,
+          "scenarios",
+          0
+        ],
+        "organizational": false
+      }
+    ],
+    "steps": [
+      {
+        "requirement": "REQ-1.1",
+        "scenario": "SCN-REQ-1.1-01",
+        "id": "STEP-REQ-1.1-01-01",
+        "batch": "B001",
+        "source": [
+          0,
+          0,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-1.2",
+        "scenario": "SCN-REQ-1.2-01",
+        "id": "STEP-REQ-1.2-01-01",
+        "batch": "B001",
+        "source": [
+          0,
+          1,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-1.3",
+        "scenario": "SCN-REQ-1.3-01",
+        "id": "STEP-REQ-1.3-01-01",
+        "batch": "B001",
+        "source": [
+          0,
+          2,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "scenario": "SCN-REQ-2.1-01",
+        "id": "STEP-REQ-2.1-01-01",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "scenario": "SCN-REQ-2.1-02",
+        "id": "STEP-REQ-2.1-02-01",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          1,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "scenario": "SCN-REQ-2.1-03",
+        "id": "STEP-REQ-2.1-03-01",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          2,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "scenario": "SCN-REQ-2.1-04",
+        "id": "STEP-REQ-2.1-04-01",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          3,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "scenario": "SCN-REQ-2.1-05",
+        "id": "STEP-REQ-2.1-05-01",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          4,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.1",
+        "scenario": "SCN-REQ-2.1-06",
+        "id": "STEP-REQ-2.1-06-01",
+        "batch": "B002",
+        "source": [
+          1,
+          0,
+          "scenarios",
+          5,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.2",
+        "scenario": "SCN-REQ-2.2-01",
+        "id": "STEP-REQ-2.2-01-01",
+        "batch": "B003",
+        "source": [
+          1,
+          1,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.2",
+        "scenario": "SCN-REQ-2.2-02",
+        "id": "STEP-REQ-2.2-02-01",
+        "batch": "B003",
+        "source": [
+          1,
+          1,
+          "scenarios",
+          1,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.2",
+        "scenario": "SCN-REQ-2.2-03",
+        "id": "STEP-REQ-2.2-03-01",
+        "batch": "B003",
+        "source": [
+          1,
+          1,
+          "scenarios",
+          2,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.3",
+        "scenario": "SCN-REQ-2.3-01",
+        "id": "STEP-REQ-2.3-01-01",
+        "batch": "B002",
+        "source": [
+          1,
+          2,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.4",
+        "scenario": "SCN-REQ-2.4-01",
+        "id": "STEP-REQ-2.4-01-01",
+        "batch": "B002",
+        "source": [
+          1,
+          3,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.5",
+        "scenario": "SCN-REQ-2.5-01",
+        "id": "STEP-REQ-2.5-01-01",
+        "batch": "B003",
+        "source": [
+          1,
+          4,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-2.6",
+        "scenario": "SCN-REQ-2.6-01",
+        "id": "STEP-REQ-2.6-01-01",
+        "batch": "B002",
+        "source": [
+          1,
+          5,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.1",
+        "scenario": "SCN-REQ-3.1-01",
+        "id": "STEP-REQ-3.1-01-01",
+        "batch": "B004",
+        "source": [
+          2,
+          0,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.2",
+        "scenario": "SCN-REQ-3.2-01",
+        "id": "STEP-REQ-3.2-01-01",
+        "batch": "B008",
+        "source": [
+          2,
+          1,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.3",
+        "scenario": "SCN-REQ-3.3-01",
+        "id": "STEP-REQ-3.3-01-01",
+        "batch": "B004",
+        "source": [
+          2,
+          2,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.3",
+        "scenario": "SCN-REQ-3.3-02",
+        "id": "STEP-REQ-3.3-02-01",
+        "batch": "B004",
+        "source": [
+          2,
+          2,
+          "scenarios",
+          1,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.3",
+        "scenario": "SCN-REQ-3.3-03",
+        "id": "STEP-REQ-3.3-03-01",
+        "batch": "B004",
+        "source": [
+          2,
+          2,
+          "scenarios",
+          2,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.4",
+        "scenario": "SCN-REQ-3.4-01",
+        "id": "STEP-REQ-3.4-01-01",
+        "batch": "B005",
+        "source": [
+          2,
+          3,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.5",
+        "scenario": "SCN-REQ-3.5-01",
+        "id": "STEP-REQ-3.5-01-01",
+        "batch": "B005",
+        "source": [
+          2,
+          4,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.6",
+        "scenario": "SCN-REQ-3.6-01",
+        "id": "STEP-REQ-3.6-01-01",
+        "batch": "B005",
+        "source": [
+          2,
+          5,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.7",
+        "scenario": "SCN-REQ-3.7-01",
+        "id": "STEP-REQ-3.7-01-01",
+        "batch": "B005",
+        "source": [
+          2,
+          6,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.8",
+        "scenario": "SCN-REQ-3.8-01",
+        "id": "STEP-REQ-3.8-01-01",
+        "batch": "B004",
+        "source": [
+          2,
+          7,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.9",
+        "scenario": "SCN-REQ-3.9-01",
+        "id": "STEP-REQ-3.9-01-01",
+        "batch": "B005",
+        "source": [
+          2,
+          8,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-3.10",
+        "scenario": "SCN-REQ-3.10-01",
+        "id": "STEP-REQ-3.10-01-01",
+        "batch": "B008",
+        "source": [
+          2,
+          9,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.1",
+        "scenario": "SCN-REQ-4.1-01",
+        "id": "STEP-REQ-4.1-01-01",
+        "batch": "B017",
+        "source": [
+          3,
+          0,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.2",
+        "scenario": "SCN-REQ-4.2-01",
+        "id": "STEP-REQ-4.2-01-01",
+        "batch": "B009",
+        "source": [
+          3,
+          1,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.3",
+        "scenario": "SCN-REQ-4.3-01",
+        "id": "STEP-REQ-4.3-01-01",
+        "batch": "B010",
+        "source": [
+          3,
+          2,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.3",
+        "scenario": "SCN-REQ-4.3-02",
+        "id": "STEP-REQ-4.3-02-01",
+        "batch": "B010",
+        "source": [
+          3,
+          2,
+          "scenarios",
+          1,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.4",
+        "scenario": "SCN-REQ-4.4-01",
+        "id": "STEP-REQ-4.4-01-01",
+        "batch": "B009",
+        "source": [
+          3,
+          3,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.5",
+        "scenario": "SCN-REQ-4.5-01",
+        "id": "STEP-REQ-4.5-01-01",
+        "batch": "B010",
+        "source": [
+          3,
+          4,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.5",
+        "scenario": "SCN-REQ-4.5-02",
+        "id": "STEP-REQ-4.5-02-01",
+        "batch": "B010",
+        "source": [
+          3,
+          4,
+          "scenarios",
+          1,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.5",
+        "scenario": "SCN-REQ-4.5-03",
+        "id": "STEP-REQ-4.5-03-01",
+        "batch": "B010",
+        "source": [
+          3,
+          4,
+          "scenarios",
+          2,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.6",
+        "scenario": "SCN-REQ-4.6-01",
+        "id": "STEP-REQ-4.6-01-01",
+        "batch": "B009",
+        "source": [
+          3,
+          5,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.7",
+        "scenario": "SCN-REQ-4.7-01",
+        "id": "STEP-REQ-4.7-01-01",
+        "batch": "B009",
+        "source": [
+          3,
+          6,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.8",
+        "scenario": "SCN-REQ-4.8-01",
+        "id": "STEP-REQ-4.8-01-01",
+        "batch": "B011",
+        "source": [
+          3,
+          7,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.9",
+        "scenario": "SCN-REQ-4.9-01",
+        "id": "STEP-REQ-4.9-01-01",
+        "batch": "B010",
+        "source": [
+          3,
+          8,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-4.10",
+        "scenario": "SCN-REQ-4.10-01",
+        "id": "STEP-REQ-4.10-01-01",
+        "batch": "B010",
+        "source": [
+          3,
+          9,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.1",
+        "scenario": "SCN-REQ-5.1-01",
+        "id": "STEP-REQ-5.1-01-01",
+        "batch": "B012",
+        "source": [
+          4,
+          0,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.2",
+        "scenario": "SCN-REQ-5.2-01",
+        "id": "STEP-REQ-5.2-01-01",
+        "batch": "B012",
+        "source": [
+          4,
+          1,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.3",
+        "scenario": "SCN-REQ-5.3-01",
+        "id": "STEP-REQ-5.3-01-01",
+        "batch": "B013",
+        "source": [
+          4,
+          2,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.4",
+        "scenario": "SCN-REQ-5.4-01",
+        "id": "STEP-REQ-5.4-01-01",
+        "batch": "B013",
+        "source": [
+          4,
+          3,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.5",
+        "scenario": "SCN-REQ-5.5-01",
+        "id": "STEP-REQ-5.5-01-01",
+        "batch": "B012",
+        "source": [
+          4,
+          4,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.6",
+        "scenario": "SCN-REQ-5.6-01",
+        "id": "STEP-REQ-5.6-01-01",
+        "batch": "B013",
+        "source": [
+          4,
+          5,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.7",
+        "scenario": "SCN-REQ-5.7-01",
+        "id": "STEP-REQ-5.7-01-01",
+        "batch": "B018",
+        "source": [
+          4,
+          6,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.8",
+        "scenario": "SCN-REQ-5.8-01",
+        "id": "STEP-REQ-5.8-01-01",
+        "batch": "B012",
+        "source": [
+          4,
+          7,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.9",
+        "scenario": "SCN-REQ-5.9-01",
+        "id": "STEP-REQ-5.9-01-01",
+        "batch": "B012",
+        "source": [
+          4,
+          8,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-5.10",
+        "scenario": "SCN-REQ-5.10-01",
+        "id": "STEP-REQ-5.10-01-01",
+        "batch": "B013",
+        "source": [
+          4,
+          9,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.1",
+        "scenario": "SCN-REQ-6.1-01",
+        "id": "STEP-REQ-6.1-01-01",
+        "batch": "B006",
+        "source": [
+          5,
+          0,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.2",
+        "scenario": "SCN-REQ-6.2-01",
+        "id": "STEP-REQ-6.2-01-01",
+        "batch": "B006",
+        "source": [
+          5,
+          1,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.3",
+        "scenario": "SCN-REQ-6.3-01",
+        "id": "STEP-REQ-6.3-01-01",
+        "batch": "B007",
+        "source": [
+          5,
+          2,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.4",
+        "scenario": "SCN-REQ-6.4-01",
+        "id": "STEP-REQ-6.4-01-01",
+        "batch": "B007",
+        "source": [
+          5,
+          3,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.5",
+        "scenario": "SCN-REQ-6.5-01",
+        "id": "STEP-REQ-6.5-01-01",
+        "batch": "B007",
+        "source": [
+          5,
+          4,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.6",
+        "scenario": "SCN-REQ-6.6-01",
+        "id": "STEP-REQ-6.6-01-01",
+        "batch": "B006",
+        "source": [
+          5,
+          5,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.7",
+        "scenario": "SCN-REQ-6.7-01",
+        "id": "STEP-REQ-6.7-01-01",
+        "batch": "B014",
+        "source": [
+          5,
+          6,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-6.8",
+        "scenario": "SCN-REQ-6.8-01",
+        "id": "STEP-REQ-6.8-01-01",
+        "batch": "B006",
+        "source": [
+          5,
+          7,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.1",
+        "scenario": "SCN-REQ-7.1-01",
+        "id": "STEP-REQ-7.1-01-01",
+        "batch": "B015",
+        "source": [
+          6,
+          0,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.2",
+        "scenario": "SCN-REQ-7.2-01",
+        "id": "STEP-REQ-7.2-01-01",
+        "batch": "B015",
+        "source": [
+          6,
+          1,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.3",
+        "scenario": "SCN-REQ-7.3-01",
+        "id": "STEP-REQ-7.3-01-01",
+        "batch": "B015",
+        "source": [
+          6,
+          2,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.4",
+        "scenario": "SCN-REQ-7.4-01",
+        "id": "STEP-REQ-7.4-01-01",
+        "batch": "B016",
+        "source": [
+          6,
+          3,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.4",
+        "scenario": "SCN-REQ-7.4-02",
+        "id": "STEP-REQ-7.4-02-01",
+        "batch": "B016",
+        "source": [
+          6,
+          3,
+          "scenarios",
+          1,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.4",
+        "scenario": "SCN-REQ-7.4-03",
+        "id": "STEP-REQ-7.4-03-01",
+        "batch": "B016",
+        "source": [
+          6,
+          3,
+          "scenarios",
+          2,
+          "steps",
+          0
+        ],
+        "organizational": false
+      },
+      {
+        "requirement": "REQ-7.5",
+        "scenario": "SCN-REQ-7.5-01",
+        "id": "STEP-REQ-7.5-01-01",
+        "batch": "B015",
+        "source": [
+          6,
+          4,
+          "scenarios",
+          0,
+          "steps",
+          0
+        ],
+        "organizational": false
+      }
+    ]
+  },
+  "explicit_dependencies": {
+    "REQ-1.2": [
+      "REQ-1.1"
+    ],
+    "REQ-1.3": [
+      "REQ-1.1"
+    ],
+    "REQ-2.1": [
+      "REQ-1.1"
+    ],
+    "REQ-2.2": [
+      "REQ-1.1"
+    ],
+    "REQ-2.3": [
+      "REQ-2.1"
+    ],
+    "REQ-2.4": [
+      "REQ-2.3"
+    ],
+    "REQ-2.5": [
+      "REQ-2.1",
+      "REQ-2.2"
+    ],
+    "REQ-2.6": [
+      "REQ-2.1",
+      "REQ-2.2"
+    ],
+    "REQ-3.1": [
+      "REQ-1.1"
+    ],
+    "REQ-3.2": [
+      "REQ-2.1",
+      "REQ-6.3"
+    ],
+    "REQ-3.3": [
+      "REQ-2.1",
+      "REQ-3.1"
+    ],
+    "REQ-3.4": [
+      "REQ-3.1",
+      "REQ-3.2",
+      "REQ-3.3"
+    ],
+    "REQ-3.5": [
+      "REQ-3.1",
+      "REQ-3.3"
+    ],
+    "REQ-3.6": [
+      "REQ-2.1",
+      "REQ-3.1",
+      "REQ-3.2"
+    ],
+    "REQ-3.7": [
+      "REQ-2.1",
+      "REQ-3.1",
+      "REQ-3.2"
+    ],
+    "REQ-3.8": [
+      "REQ-2.3",
+      "REQ-3.1",
+      "REQ-3.3"
+    ],
+    "REQ-3.9": [
+      "REQ-3.1",
+      "REQ-3.4"
+    ],
+    "REQ-3.10": [
+      "REQ-3.5",
+      "REQ-6.3"
+    ],
+    "REQ-4.1": [
+      "REQ-3.3",
+      "REQ-7.4"
+    ],
+    "REQ-4.2": [
+      "REQ-2.1",
+      "REQ-4.1"
+    ],
+    "REQ-4.3": [
+      "REQ-2.1",
+      "REQ-4.1"
+    ],
+    "REQ-4.4": [
+      "REQ-3.2"
+    ],
+    "REQ-4.5": [
+      "REQ-4.1"
+    ],
+    "REQ-4.6": [
+      "REQ-4.1",
+      "REQ-4.2"
+    ],
+    "REQ-4.7": [
+      "REQ-4.4"
+    ],
+    "REQ-4.8": [
+      "REQ-4.5"
+    ],
+    "REQ-4.9": [
+      "REQ-4.6"
+    ],
+    "REQ-4.10": [
+      "REQ-4.3",
+      "REQ-4.6"
+    ],
+    "REQ-5.1": [
+      "REQ-3.2"
+    ],
+    "REQ-5.2": [
+      "REQ-2.1",
+      "REQ-3.3",
+      "REQ-5.1"
+    ],
+    "REQ-5.3": [
+      "REQ-3.2",
+      "REQ-5.1"
+    ],
+    "REQ-5.4": [
+      "REQ-2.1",
+      "REQ-3.2",
+      "REQ-5.1"
+    ],
+    "REQ-5.5": [
+      "REQ-5.1",
+      "REQ-5.2"
+    ],
+    "REQ-5.6": [
+      "REQ-2.1",
+      "REQ-3.2",
+      "REQ-5.1"
+    ],
+    "REQ-5.7": [
+      "REQ-2.1",
+      "REQ-4.1",
+      "REQ-5.1"
+    ],
+    "REQ-5.8": [
+      "REQ-5.1",
+      "REQ-5.2"
+    ],
+    "REQ-5.9": [
+      "REQ-5.2",
+      "REQ-5.4",
+      "REQ-5.5"
+    ],
+    "REQ-5.10": [
+      "REQ-5.1",
+      "REQ-5.2",
+      "REQ-5.7"
+    ],
+    "REQ-6.1": [
+      "REQ-1.2"
+    ],
+    "REQ-6.2": [
+      "REQ-2.1",
+      "REQ-6.1"
+    ],
+    "REQ-6.3": [
+      "REQ-1.1"
+    ],
+    "REQ-6.4": [
+      "REQ-1.1"
+    ],
+    "REQ-6.5": [
+      "REQ-2.1",
+      "REQ-6.4"
+    ],
+    "REQ-6.6": [
+      "REQ-1.3",
+      "REQ-6.1"
+    ],
+    "REQ-6.7": [
+      "REQ-6.5"
+    ],
+    "REQ-6.8": [
+      "REQ-6.2"
+    ],
+    "REQ-7.1": [
+      "REQ-2.3"
+    ],
+    "REQ-7.2": [
+      "REQ-2.3"
+    ],
+    "REQ-7.3": [
+      "REQ-1.1"
+    ],
+    "REQ-7.4": [
+      "REQ-2.3"
+    ],
+    "REQ-7.5": [
+      "REQ-3.2",
+      "REQ-7.4"
+    ]
+  },
+  "shared_symbol_candidates": {
+    "community": [
+      "REQ-1.1",
+      "REQ-1.2"
+    ],
+    "image:IMG-HOMEPAGE": [
+      "REQ-1.1",
+      "REQ-1.2",
+      "REQ-1.3",
+      "REQ-2.1",
+      "REQ-2.2",
+      "REQ-2.3",
+      "REQ-2.6",
+      "REQ-3.1",
+      "REQ-6.3"
+    ],
+    "page:home": [
+      "REQ-1.1",
+      "REQ-1.2",
+      "REQ-1.3",
+      "REQ-2.1",
+      "REQ-2.2",
+      "REQ-2.3",
+      "REQ-2.6",
+      "REQ-3.1",
+      "REQ-6.3"
+    ],
+    "image:IMG-QUESTIONS-PAGE": [
+      "REQ-1.2",
+      "REQ-1.3",
+      "REQ-3.1",
+      "REQ-3.2",
+      "REQ-3.3",
+      "REQ-3.4",
+      "REQ-3.5",
+      "REQ-3.6",
+      "REQ-3.7",
+      "REQ-3.8",
+      "REQ-3.9",
+      "REQ-3.10",
+      "REQ-6.1",
+      "REQ-6.2",
+      "REQ-6.4",
+      "REQ-6.5",
+      "REQ-6.6",
+      "REQ-6.7",
+      "REQ-6.8"
+    ],
+    "image:IMG-TAGS-PAGE": [
+      "REQ-1.2",
+      "REQ-6.1",
+      "REQ-6.2",
+      "REQ-6.6",
+      "REQ-6.8"
+    ],
+    "navigate": [
+      "REQ-1.2",
+      "REQ-7.4"
+    ],
+    "page:questions": [
+      "REQ-1.2",
+      "REQ-1.3",
+      "REQ-3.1",
+      "REQ-3.2",
+      "REQ-3.3",
+      "REQ-3.4",
+      "REQ-3.5",
+      "REQ-3.6",
+      "REQ-3.7",
+      "REQ-3.8",
+      "REQ-3.9",
+      "REQ-3.10",
+      "REQ-6.1",
+      "REQ-6.2",
+      "REQ-6.3",
+      "REQ-6.4",
+      "REQ-6.5",
+      "REQ-6.6",
+      "REQ-6.7",
+      "REQ-6.8"
+    ],
+    "page:tags": [
+      "REQ-1.2",
+      "REQ-6.1",
+      "REQ-6.2",
+      "REQ-6.6",
+      "REQ-6.8"
+    ],
+    "image:IMG-QUESTION-PAGE": [
+      "REQ-1.3",
+      "REQ-3.2",
+      "REQ-3.3",
+      "REQ-3.4",
+      "REQ-3.5",
+      "REQ-3.6",
+      "REQ-3.7",
+      "REQ-3.8",
+      "REQ-3.9",
+      "REQ-3.10",
+      "REQ-4.2",
+      "REQ-4.3",
+      "REQ-4.4",
+      "REQ-4.5",
+      "REQ-4.6",
+      "REQ-4.7",
+      "REQ-4.8",
+      "REQ-4.9",
+      "REQ-4.10",
+      "REQ-5.2",
+      "REQ-5.3",
+      "REQ-5.4",
+      "REQ-5.5",
+      "REQ-5.6",
+      "REQ-5.7",
+      "REQ-5.8",
+      "REQ-5.9",
+      "REQ-5.10",
+      "REQ-6.6",
+      "REQ-7.5"
+    ],
+    "page:question": [
+      "REQ-1.3",
+      "REQ-3.2",
+      "REQ-3.3",
+      "REQ-3.4",
+      "REQ-3.5",
+      "REQ-3.6",
+      "REQ-3.7",
+      "REQ-3.8",
+      "REQ-3.9",
+      "REQ-3.10",
+      "REQ-4.1",
+      "REQ-4.2",
+      "REQ-4.3",
+      "REQ-4.4",
+      "REQ-4.5",
+      "REQ-4.6",
+      "REQ-4.7",
+      "REQ-4.8",
+      "REQ-4.9",
+      "REQ-4.10",
+      "REQ-5.1",
+      "REQ-5.2",
+      "REQ-5.3",
+      "REQ-5.4",
+      "REQ-5.5",
+      "REQ-5.6",
+      "REQ-5.7",
+      "REQ-5.8",
+      "REQ-5.9",
+      "REQ-5.10",
+      "REQ-6.6",
+      "REQ-7.5"
+    ],
+    "public": [
+      "REQ-1.3",
+      "REQ-2.4",
+      "REQ-3.1",
+      "REQ-6.3"
+    ],
+    "question": [
+      "REQ-1.3",
+      "REQ-3.2",
+      "REQ-3.3",
+      "REQ-3.4",
+      "REQ-3.5",
+      "REQ-3.6",
+      "REQ-3.7",
+      "REQ-3.8",
+      "REQ-3.9",
+      "REQ-3.10",
+      "REQ-5.1",
+      "REQ-5.2",
+      "REQ-6.4",
+      "REQ-6.6"
+    ],
+    "read": [
+      "REQ-1.3",
+      "REQ-3.2",
+      "REQ-7.1"
+    ],
+    "image:IMG-LOGIN": [
+      "REQ-2.1",
+      "REQ-2.5",
+      "REQ-2.6"
+    ],
+    "page:login": [
+      "REQ-2.1",
+      "REQ-2.5",
+      "REQ-2.6"
+    ],
+    "account": [
+      "REQ-2.2",
+      "REQ-2.5",
+      "REQ-2.6"
+    ],
+    "image:IMG-SIGN-UP": [
+      "REQ-2.2",
+      "REQ-2.5",
+      "REQ-2.6"
+    ],
+    "page:signup": [
+      "REQ-2.2",
+      "REQ-2.5",
+      "REQ-2.6"
+    ],
+    "image:IMG-PROFILE-PAGE": [
+      "REQ-2.3",
+      "REQ-7.1",
+      "REQ-7.2",
+      "REQ-7.3"
+    ],
+    "page:profile": [
+      "REQ-2.3",
+      "REQ-2.4",
+      "REQ-3.8",
+      "REQ-7.1",
+      "REQ-7.2",
+      "REQ-7.3",
+      "REQ-7.4",
+      "REQ-7.5"
+    ],
+    "questions": [
+      "REQ-3.1",
+      "REQ-6.1",
+      "REQ-6.3"
+    ],
+    "page:question_editor": [
+      "REQ-3.3",
+      "REQ-3.4",
+      "REQ-3.9"
+    ],
+    "publish": [
+      "REQ-3.3",
+      "REQ-4.1"
+    ],
+    "image:IMG-EDIT-QUESTION": [
+      "REQ-3.4",
+      "REQ-3.9"
+    ],
+    "revise": [
+      "REQ-3.4",
+      "REQ-4.5"
+    ],
+    "delete": [
+      "REQ-3.5",
+      "REQ-4.6",
+      "REQ-5.5"
+    ],
+    "toggle": [
+      "REQ-3.6",
+      "REQ-4.2",
+      "REQ-5.6"
+    ],
+    "upvote": [
+      "REQ-3.6",
+      "REQ-4.2",
+      "REQ-5.6"
+    ],
+    "activity": [
+      "REQ-3.8",
+      "REQ-7.4",
+      "REQ-7.5"
+    ],
+    "image:IMG-USER-FEED": [
+      "REQ-3.8",
+      "REQ-7.4",
+      "REQ-7.5"
+    ],
+    "owned": [
+      "REQ-3.8",
+      "REQ-7.4",
+      "REQ-7.5"
+    ],
+    "saved": [
+      "REQ-3.9",
+      "REQ-6.7"
+    ],
+    "deletion": [
+      "REQ-3.10",
+      "REQ-4.9",
+      "REQ-4.10"
+    ],
+    "ownership": [
+      "REQ-3.10",
+      "REQ-5.9"
+    ],
+    "protect": [
+      "REQ-3.10",
+      "REQ-4.9",
+      "REQ-5.9"
+    ],
+    "answer": [
+      "REQ-4.1",
+      "REQ-4.2",
+      "REQ-4.3",
+      "REQ-4.5",
+      "REQ-4.6",
+      "REQ-4.8",
+      "REQ-4.9",
+      "REQ-4.10",
+      "REQ-5.7"
+    ],
+    "answers": [
+      "REQ-4.4",
+      "REQ-4.7"
+    ],
+    "order": [
+      "REQ-4.4",
+      "REQ-4.7",
+      "REQ-6.4"
+    ],
+    "save": [
+      "REQ-4.8",
+      "REQ-6.5"
+    ],
+    "comment": [
+      "REQ-5.1",
+      "REQ-5.2",
+      "REQ-5.4",
+      "REQ-5.5",
+      "REQ-5.6",
+      "REQ-5.7",
+      "REQ-5.8",
+      "REQ-5.9",
+      "REQ-5.10"
+    ],
+    "keep": [
+      "REQ-5.10",
+      "REQ-6.7",
+      "REQ-6.8"
+    ],
+    "post": [
+      "REQ-5.10",
+      "REQ-7.5"
+    ],
+    "custom": [
+      "REQ-6.5",
+      "REQ-6.7"
+    ],
+    "personal": [
+      "REQ-6.7",
+      "REQ-6.8"
+    ],
+    "badge": [
+      "REQ-7.2",
+      "REQ-7.3"
+    ]
+  },
+  "calls": {
+    "old_by_stage": {
+      "00": [
+        0,
+        0
+      ],
+      "01": [
+        15,
+        15
+      ],
+      "02": [
+        52,
+        52
+      ],
+      "03": [
+        52,
+        52
+      ],
+      "04": [
+        65.0,
+        78.0
+      ],
+      "05": [
+        52,
+        52
+      ],
+      "06": [
+        104,
+        208
+      ],
+      "07": [
+        52,
+        52
+      ],
+      "08": [
+        52,
+        104
+      ],
+      "09": [
+        52,
+        52
+      ],
+      "10": [
+        156,
+        156
+      ]
+    },
+    "new_by_stage": {
+      "00": [
+        0,
+        0
+      ],
+      "01": [
+        15,
+        15
+      ],
+      "02": [
+        18,
+        18
+      ],
+      "03": [
+        18,
+        18
+      ],
+      "04": [
+        65.0,
+        78.0
+      ],
+      "05": [
+        18,
+        18
+      ],
+      "06": [
+        104,
+        208
+      ],
+      "07": [
+        18,
+        18
+      ],
+      "08": [
+        52,
+        104
+      ],
+      "09": [
+        18,
+        18
+      ],
+      "10": [
+        156,
+        156
+      ]
+    },
+    "old_total": [
+      652.0,
+      821.0
+    ],
+    "new_total": [
+      482.0,
+      651.0
+    ],
+    "design_calls_saved": 170
+  }
+}

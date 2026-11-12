@@ -80,14 +80,14 @@ test("count notes", async ({ page }) => {
 """
 
 
-def response(payload=None, *, tools=()):
+def response(payload=None, *, tools=(), finish_reason=None):
     message = ChatCompletionMessage(role="assistant",
         content=json.dumps(payload) if payload is not None else None,
         tool_calls=[{"id": f"call-{i}", "type": "function",
             "function": {"name": name, "arguments": json.dumps(arguments)}}
             for i, (name, arguments) in enumerate(tools)] or None)
     return SimpleNamespace(choices=[SimpleNamespace(message=message,
-        finish_reason="tool_calls" if tools else "stop")])
+        finish_reason=finish_reason or ("tool_calls" if tools else "stop"))])
 
 
 def edit(output, path, content):
@@ -104,7 +104,7 @@ def replace_once(output, path, old, new):
         "old_content": old, "new_content": new}]})
 
 
-def fixture_model(output, rid, sid, calls):
+def fixture_model(output, rid, sid, calls, *, other=None):
     object_schema = {"type": "object", "properties": {}}
     api = {"description": "Read the note count", "read": ["Note.id"], "write": [],
         "signature": {"name": "countNotes", "method": "GET", "path": "/api/note-count"},
@@ -123,42 +123,56 @@ def fixture_model(output, rid, sid, calls):
         number = session_info()["stage"].split()[1]
         calls.append(number)
         prompt = args["messages"][-1]["content"]
+        if number in {"02", "03", "05", "07", "09"}:
+            request = json.loads(prompt)
+            owners = request["order"]
+            known_steps = {rid: sid, **(dict([other]) if other else {})}
+            assert set(owners) <= set(known_steps)
+            assert all(known_steps[owner] in prompt for owner in owners)
+            assert {"identity", "session", "naming", "errors", "data"} == set(request["shared_catalog"]["policies"])
         if number == "02":
-            assert rid in prompt and sid in prompt
-            return response(tools=[("create_entity", {"name": "Note",
-                "entity": {"description": "Persisted note", "fields": {"id": {
-                    "description": "Note identity", "type": "integer", "nullable": False,
-                    "primary_key": True, "unique": False, "references": None, "constraints": []}}},
-                "related_fields": ["Note.id"]})])
+            if len(owners) > 1:
+                return response(finish_reason="length")
+            exists = "Note" in request["shared_catalog"]["accepted_symbols"].get("entities", {})
+            return response({"entities": {} if exists else {"Note": {"description": "Persisted note", "fields": {"id": {
+                "description": "Note identity", "type": "integer", "nullable": False,
+                "primary_key": True, "unique": False, "references": None, "constraints": []}}}},
+                "requirements": {owner: {"related_fields": ["Note.id"]} for owner in owners}})
         if number == "03":
-            assert "Note.id" in prompt
-            return response(tools=[("submit_obligations", {"requirement": obligations, "steps": {sid: obligations}})])
+            assert "Note.id" in request["shared_catalog"]["accepted_symbols"]["fields"]
+            return response({"requirements": {owner: {"requirement": obligations,
+                "steps": {known_steps[owner]: obligations}} for owner in owners}})
         if number == "04":
             if SQL_PATH in prompt and not (output / SQL_PATH).exists():
                 return response(tools=[("edit_file", edit(output, SQL_PATH, SQL))])
             assert (output / SQL_PATH).is_file()
             return response()
         if number == "05":
-            assert "Read: Note.id" in prompt
-            return response(tools=[("create_api", {"id": "API-COUNT", "definition": api}),
-                ("create_module", {"id": "MOD-COUNT", "definition": module}),
-                ("associate_requirement", {"api_ids": ["API-COUNT"], "module_ids": []})])
-        request = json.loads(prompt)
+            assert all(request["requirements"][owner]["required_obligations"]["read"] == ["Note.id"] for owner in owners)
+            return response({"apis": {"API-COUNT": api}, "modules": {"MOD-COUNT": module},
+                "requirements": {owner: {"api_ids": ["API-COUNT"], "module_ids": [],
+                    "conventions": {"count": "Use integer count for note counts."}} for owner in owners}})
         if number == "07":
             assert "One panel" in json.dumps(request)
+            assert "count" in request["shared_catalog"]["shared_conventions"]
             root = "UI-count"
-            return response({"pages": {"notes": {"route": "/", "name": "Notes", "root": root, "images": []}},
+            return response({"requirements": {owner: {
+                "pages": {"notes": {"route": "/", "name": "Notes", "root": root, "images": []}} if i == 0 else {},
                 "elements": {
                     root: {"type": "page", "parent": None},
                     "UI-button": {"type": "button", "parent": root, "prop": {"text": "Count notes"}},
-                }, "requirement_ui": [root, "UI-button"], "step_ui": {sid: ["UI-button"]}})
+                } if i == 0 else {}, "requirement_ui": [root, "UI-button"], "step_ui": {known_steps[owner]: ["UI-button"]}}
+                for i, owner in enumerate(owners)}})
         if number == "09":
             assert request["backend_apis"]["API-COUNT"]["read"] == ["Note.id"]
-            assert "UI-button" in request["ui"]["elements"]
-            return response({"triggers": {"TR-COUNT": {"source": "UI-button", "event": "click",
-                "guard": None, "read": [], "write": [], "action": [{"kind": "api",
-                    "api": "API-COUNT", "description": "Fetch and display count"}]}},
-                "requirement_triggers": ["TR-COUNT"], "step_triggers": {sid: ["TR-COUNT"]}})
+            assert all("UI-button" in request["requirements"][owner]["ui"]["elements"] for owner in owners)
+            return response({"requirements": {owner: {
+                "triggers": {"TR-COUNT": {"source": "UI-button", "event": "click",
+                    "guard": None, "read": [], "write": [], "action": [{"kind": "api",
+                        "api": "API-COUNT", "description": "Fetch and display count"}]}} if i == 0 else {},
+                "requirement_triggers": ["TR-COUNT"], "step_triggers": {known_steps[owner]: ["TR-COUNT"]}}
+                for i, owner in enumerate(owners)}})
+        request = json.loads(prompt)
         task = request["task"]
         if number == "06":
             assert task["api_id"] == "API-COUNT"
@@ -233,6 +247,7 @@ def mock_local_checks(stack):
 @pytest.mark.parametrize("root_id,rid,sid,dirname", [
     ("ROOT", "R-COUNT", "S-COUNT", "original"),
     ("NEW-ROOT", "RENAMED-REQ", "RENAMED-STEP", "unseen-project"),
+    ("ROOT-BATCH", "R-COUNT", "S-COUNT", "multi-leaf"),
 ])
 def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, dirname):
     source, output = tmp_path / dirname, tmp_path / "application"
@@ -242,11 +257,21 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
         "description": {"text": "On the Notes page, count records on request.", "image": [{"id": "IMG-notes", "reference": "reference.png", "page": "notes"}]},
         "scenarios": [{"id": "scenario-" + rid, "name": "Count notes", "steps": [{"id": sid,
             "Given": "There are no notes", "When": "Click Count notes", "Then": "Show 0"}]}]}]}
+    other = None
+    if dirname == "multi-leaf":
+        from copy import deepcopy
+        other = ("R-SECOND", "S-SECOND")
+        first = raw["children"][0]
+        second = deepcopy(first)
+        second["id"], second["scenarios"][0]["steps"][0]["id"] = other
+        second["scenarios"][0]["id"] = "scenario-" + other[0]
+        second["description"]["text"] = r"Show the same count as \ref[requirement](R-COUNT)."
+        raw["children"] = [{"id": "module-notes", "name": "Notes", "children": [first, second]}]
     (source / "requirements.yaml").write_text(yaml.safe_dump(raw), encoding="utf-8")
     monkeypatch.setenv("OPENAI_BASE_URL", "https://example.invalid/v1")
     monkeypatch.setenv("OPENAI_API_KEY", "mock-only")
     calls = []
-    fake = fixture_model(output, rid, sid, calls)
+    fake = fixture_model(output, rid, sid, calls, other=other)
     with ExitStack() as stack:
         stack.enter_context(patch.object(text, "invoke", fake))
         def fake_vision(_client, args):
@@ -282,6 +307,21 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
     assert read("frontend_triggers")["steps"][sid] == ["TR-COUNT"]
     assert read("frontend_e2e")["requirements"][rid]["status"] == "GREEN"
     assert read("frontend_e2e")["summary"]["triggers"] == 1
+    if other:
+        second, second_step = other
+        attempts = read("design_batches_02")["attempts"]
+        assert [(entry["id"], entry["status"]) for entry in attempts] == [
+            ("B001", "SPLIT"), ("B001.a", "GREEN"), ("B001.b", "GREEN")]
+        assert attempts[0]["split_reason"] == "output_truncated"
+        assert {entry["batch"] for entry in read("design_batches_02")["coverage"]["steps"]} == {"B001.a", "B001.b"}
+        assert calls.count("02") == 3
+        for stage in ("03", "05", "07", "09"):
+            assert calls.count(stage) == 1
+            assert read("design_batches_" + stage)["attempts"][0]["leaves"] == [rid, second]
+        assert read("db_obligations")["steps"][second_step]["read"] == ["Note.id"]
+        assert read("backend_apis")["requirements"][second] == ["API-COUNT"]
+        assert read("ui_design")["steps"][second_step] == ["UI-button"]
+        assert read("frontend_triggers")["steps"][second_step] == ["TR-COUNT"]
     assert set(calls) == {"01", "02", "03", "04", "05", "06", "07", "08", "09", "10"}
     assert "fetch(" in (output / APP).read_text(encoding="utf-8")
     assert (output / "deploy.sh").is_file()

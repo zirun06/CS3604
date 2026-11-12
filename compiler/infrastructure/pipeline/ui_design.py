@@ -14,7 +14,9 @@ def design_frontend_ui(input_dir: Path, arc_dir: Path, pause: bool = False, top_
         raise ValueError("--top-k must be positive")
     tree, images, contexts = load_ui_context(arc_dir, input_dir)
     console, model = DemoConsole(pause), TextModel(json_mode=False)
-    design = synthesize_ui(arc_dir, tree, images, contexts,
-        model, console, top_k, max_attempts)
+    try:
+        design = synthesize_ui(arc_dir, tree, images, contexts, model, console, top_k, max_attempts)
+    finally:
+        model.client.close()
     print(f"UI/data design saved: {arc_dir / 'ui_design.json'}\nRun main.py --stage 08 to generate existence tests and implement the pages.", flush=True)
     return design

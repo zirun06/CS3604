@@ -2,6 +2,7 @@
 
 import json
 
+from infrastructure.shared.models.text import ModelOutputTruncated
 from infrastructure.shared.agent.discovery import DISCOVERY_RULES, DiscoverySession
 from infrastructure.shared.project.git import checkpoint
 
@@ -36,7 +37,7 @@ def response_feedback(error, response):
     return feedback
 
 
-def propose_json(model, instructions, request, accept, console, label, max_attempts=10, context_index=None):
+def propose_json(model, instructions, request, accept, console, label, max_attempts=10, context_index=None, *, split_on_truncation=False):
     """Generate and repair a proposal within a finite total model-call budget."""
     if max_attempts < 1:
         raise ValueError("--max-attempts must be positive")
@@ -69,6 +70,8 @@ def propose_json(model, instructions, request, accept, console, label, max_attem
                 details={"attempt": attempt, "sections": list(response) if isinstance(response, dict) else []})
             return accepted, response
         except RESPONSE_ERRORS as error:
+            if split_on_truncation and isinstance(error, ModelOutputTruncated):
+                raise
             feedback = response_feedback(error, response)
             feedback["failed_attempt"] = attempt
             checkpoint(task=label, action=f"Reject design proposal {attempt}", status="REJECTED", details=feedback)

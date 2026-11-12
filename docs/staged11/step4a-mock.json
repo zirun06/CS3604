@@ -1,0 +1,567 @@
+{
+  "mode": "mocked model and local checks",
+  "test": "test_staged_pipeline.py -k multi",
+  "compilation_status": "GREEN",
+  "stage_statuses": {
+    "00_project_initialization": "GREEN",
+    "01_explore_requirement": "GREEN",
+    "02_build_db_schema": "GREEN",
+    "03_infer_db_obligations": "GREEN",
+    "04_implement_db": "GREEN",
+    "05_design_backend_apis": "GREEN",
+    "06_implement_backend_tdd": "GREEN",
+    "07_design_ui": "GREEN",
+    "08_implement_ui": "GREEN",
+    "09_design_frontend_triggers": "GREEN",
+    "10_implement_frontend_tdd": "GREEN"
+  },
+  "design_batches": {
+    "02": {
+      "stage": "02_build_db_schema",
+      "status": "GREEN",
+      "attempts": [
+        {
+          "id": "B001",
+          "module": "module-notes",
+          "leaves": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "input_chars": 880,
+          "oversize_single_leaf": false,
+          "status": "SPLIT",
+          "request_chars": 1927,
+          "split_reason": "output_truncated",
+          "children": [
+            "B001.a",
+            "B001.b"
+          ]
+        },
+        {
+          "id": "B001.a",
+          "module": "module-notes",
+          "leaves": [
+            "R-COUNT"
+          ],
+          "input_chars": 435,
+          "oversize_single_leaf": false,
+          "status": "GREEN",
+          "request_chars": 1413
+        },
+        {
+          "id": "B001.b",
+          "module": "module-notes",
+          "leaves": [
+            "R-SECOND"
+          ],
+          "input_chars": 445,
+          "oversize_single_leaf": false,
+          "status": "GREEN",
+          "request_chars": 1490
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "batch": "B001.a",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 435
+          },
+          {
+            "id": "R-SECOND",
+            "batch": "B001.b",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 445
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "batch": "B001.a",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "batch": "B001.b",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "batch": "B001.a",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "batch": "B001.b",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          }
+        ]
+      }
+    },
+    "03": {
+      "stage": "03_infer_db_obligations",
+      "status": "GREEN",
+      "attempts": [
+        {
+          "id": "B001",
+          "module": "module-notes",
+          "leaves": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "input_chars": 880,
+          "oversize_single_leaf": false,
+          "status": "GREEN",
+          "request_chars": 2248
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 435
+          },
+          {
+            "id": "R-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 445
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          }
+        ]
+      }
+    },
+    "05": {
+      "stage": "05_design_backend_apis",
+      "status": "GREEN",
+      "attempts": [
+        {
+          "id": "B001",
+          "module": "module-notes",
+          "leaves": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "input_chars": 880,
+          "oversize_single_leaf": false,
+          "status": "GREEN",
+          "request_chars": 9289
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 435
+          },
+          {
+            "id": "R-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 445
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          }
+        ]
+      }
+    },
+    "07": {
+      "stage": "07_design_ui",
+      "status": "GREEN",
+      "attempts": [
+        {
+          "id": "B001",
+          "module": "module-notes",
+          "leaves": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "input_chars": 880,
+          "oversize_single_leaf": false,
+          "status": "GREEN",
+          "request_chars": 2516
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 435
+          },
+          {
+            "id": "R-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 445
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          }
+        ]
+      }
+    },
+    "09": {
+      "stage": "09_design_frontend_triggers",
+      "status": "GREEN",
+      "attempts": [
+        {
+          "id": "B001",
+          "module": "module-notes",
+          "leaves": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "input_chars": 880,
+          "oversize_single_leaf": false,
+          "status": "GREEN",
+          "request_chars": 4069
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 435
+          },
+          {
+            "id": "R-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 445
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "batch": "B001",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "batch": "B001",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false
+          }
+        ]
+      }
+    }
+  },
+  "shared_conventions": {
+    "count": {
+      "description": "Use integer count for note counts.",
+      "fields": [
+        "Note.id"
+      ],
+      "requirements": [
+        "R-COUNT",
+        "R-SECOND"
+      ]
+    }
+  },
+  "requirement_api_bindings": {
+    "ROOT-BATCH": [],
+    "module-notes": [],
+    "R-COUNT": [
+      "API-COUNT"
+    ],
+    "R-SECOND": [
+      "API-COUNT"
+    ]
+  },
+  "step_trigger_bindings": {
+    "S-COUNT": [
+      "TR-COUNT"
+    ],
+    "S-SECOND": [
+      "TR-COUNT"
+    ]
+  }
+}

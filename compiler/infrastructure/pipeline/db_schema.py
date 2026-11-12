@@ -1,90 +1,76 @@
-"""Step 02: discover entities and fields incrementally using schema RAG."""
+"""Step 02: discover entities and fields in bounded requirement batches."""
 
-import json
+from copy import deepcopy
 from pathlib import Path
 
-from infrastructure.stages.database.schema_agent import SchemaAgent
-from infrastructure.utils.presentation.console import DemoConsole
-from infrastructure.utils.presentation.formatting import format_changes, format_schema
+from infrastructure.shared.agent.design_batches import DesignBatches
+from infrastructure.shared.agent.discovery import ContextIndex
+from infrastructure.shared.models.text import TextModel
 from infrastructure.shared.rag.schema import SchemaRetriever
+from infrastructure.stages.database.schema import check_related_fields
+from infrastructure.stages.database.schema_agent import create_entity, update_entity
 from infrastructure.stages.requirements.tree import RequirementTree
-from infrastructure.utils.files import save_json
-from infrastructure.shared.agent.tasks import TaskFailures
+from infrastructure.utils.files import read_artifact, save_json
+from infrastructure.utils.presentation.console import DemoConsole
 
 
-def requirement_nodes(root: dict):
-    """Visit leaf requirements in document order; parents only organize the tree."""
-    tree = RequirementTree(root)
-    nodes = {}
-    parents = {}
+INSTRUCTIONS = """Extend one application's persistent SQLite schema from the supplied
+requirement evidence. Reuse canonical entities and fields, including fields read
+here whose creation belongs to another requirement. Only persist required data:
+store password hashes and omit transient confirmation inputs. Use SQL-compatible
+names and constraints supported by the requirements.
 
-    def visit(node, parent_name):
-        nodes[node["id"]] = node
-        parents[node["id"]] = parent_name
-        for child in node.get("children", []) or []:
-            visit(child, node.get("name", ""))
-
-    visit(root, None)
-    for rid in tree.leaves:
-        yield {**tree.requirements[rid], "steps": tree.concatenated_steps(rid),
-            "scenarios": nodes[rid].get("scenarios", []), "parent_module": parents[rid]}
+Return "entities" mapping each new or updated entity name to its definition,
+plus "requirements" mapping each leaf ID to {"related_fields":["Entity.field"]}.
+New entities need description and fields. New fields need description, type,
+nullable, primary_key, unique, references (null or Entity.field), and constraints
+(an array of strings). For an existing entity supply only changed properties and
+fields. Preserve accepted names and unrelated behavior; references=null clears a
+reference. Omit unchanged entities. Each related_fields list must include all
+persistent fields needed by that leaf, including unchanged fields, or [] for none.
+Use the entity context query if an existing symbol needs closer inspection."""
 
 
 def build_db_schema(arc_dir: Path, pause: bool = False, top_k: int = 10, max_attempts: int = 5) -> dict:
-    requirements_path = arc_dir / "requirements.json"
-    if not requirements_path.is_file():
-        raise ValueError("Run main.py --stage 01 first to create .arc/requirements.json")
-    requirements = json.loads(requirements_path.read_text(encoding="utf-8-sig"))
-    # --- Extension point 02B: traversal and analysis context -------------------
-    # RequirementTree owns traversal and step ownership. Study how another visit
-    # order or richer node context changes the schema available to later nodes.
-    nodes = list(requirement_nodes(requirements))
-    if top_k < 1:
-        raise ValueError("--top-k must be positive")
-    if max_attempts < 1:
-        raise ValueError("max_attempts must be positive")
+    if min(top_k, max_attempts) < 1:
+        raise ValueError("top_k and max_attempts must be positive")
+    root = read_artifact(arc_dir, "requirements.json")
+    tree, retriever = RequirementTree(root), SchemaRetriever()
     console = DemoConsole(pause)
-    retriever = SchemaRetriever()
     schema = {"entities": {}, "requirements": {}}
-    failures = TaskFailures(arc_dir, "02_build_db_schema", console)
-    save_json(arc_dir / "db_schema.json", schema)
+    path = arc_dir / "db_schema.json"
+    save_json(path, schema)
+    batches = DesignBatches(arc_dir, "02_build_db_schema", console, root)
+    model = TextModel(json_mode=False)
 
-    # for each requirement, retrieve relevant schema and propose an update
-    for index, requirement in enumerate(nodes, 1):
-        with failures.task(requirement["id"]):
-            label = f"{index}/{len(nodes)} {requirement['id']}"
-            console.show(f"{label} | 1. Current requirement", (
-                f"{requirement['name']}\n\nDescription:\n{requirement['description']}"
-                f"\n\nConcatenated steps:\n{requirement['steps'] or '(No steps on this requirement.)'}"
-            ))
-            console.show(f"{label} | 2. All existing schema (excerpt)", format_schema(schema["entities"], excerpt=True))
+    def process(batch):
+        nonlocal schema
+        requests = {}
+        for rid in batch.leaves:
+            requirement = tree.requirements[rid]
+            query = "\n".join((requirement["name"], requirement["description"], tree.concatenated_steps(rid)))
+            requests[rid] = {"retrieved_entities": list(retriever.retrieve(query, schema, top_k)["entities"])}
+        provided = {name: schema["entities"][name] for entry in requests.values() for name in entry["retrieved_entities"]}
 
-            # retrieve relevant schema using BM25; show matches and retrieved entities
-            query = "\n".join(requirement[key] for key in ("name", "description", "steps"))
-            retrieved = retriever.retrieve(query, schema, top_k)
-            ranking = "\n".join(f"{item['symbol']}  BM25={item['score']:.4f}" for item in retrieved["matches"])
-            console.show(f"{label} | 3. Retrieved schema", (
-                (ranking or "No lexical matches (the schema may still be empty).")
-                + "\n\nRetrieved entity definitions:\n"
-                + format_schema(retrieved["entities"])
-            ))
+        def accept(proposal):
+            candidate = deepcopy(schema)
+            for name, entity in proposal["entities"].items():
+                apply = update_entity if name in candidate["entities"] else create_entity
+                apply(candidate, name, entity)
+            for rid in batch.leaves:
+                fields = proposal["requirements"][rid]["related_fields"]
+                check_related_fields(candidate, fields)
+                candidate["requirements"][rid] = sorted(set(fields))
+            return candidate
 
-            # start the schema agent to propose a complete update, including related_fields
-            agent = SchemaAgent(json_mode=False)
-            try:
-                updated = agent.run({"requirement": requirement, "schema": schema,
-                    "retrieved_entities": retrieved["entities"]}, max_rounds=min(max_attempts, 5))
-            finally:
-                agent.model.client.close()
-            changes = format_changes(schema, updated)
+        schema = batches.propose(batch, model, INSTRUCTIONS, requests, accept, min(max_attempts, 5),
+            shared={"retrieved_entities": provided}, context_index=ContextIndex(lambda: {"entity": schema["entities"]}))
+        save_json(path, schema)
+        console.artifact("db_schema", schema, batch.id + " | Accepted schema")
+        return True
 
-            # save the updated schema and show the changes
-            save_json(arc_dir / "db_schema.json", updated)
-            console.show(f"{label} | 4. Schema changes (saved)", (
-                changes
-            ))
-            schema = updated
-            console.artifact("db_schema", schema, f"{label} | Accepted schema")
-    failures.finish()
-    print(f"Schema saved: {arc_dir / 'db_schema.json'}", flush=True)
+    try:
+        batches.run(process)
+    finally:
+        model.client.close()
     return schema

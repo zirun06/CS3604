@@ -38,3 +38,13 @@
   ```
 
   真实检查仍使用 mock 模型。移除 `-k original` 可复验两份合成输入。
+
+
+## 第 4a 步：五个设计阶段分批
+
+- 02、03、05、07、09 接入同一规划器和批次执行器。保留原产物及逐条校验；04、06、08、10 的调用粒度不变。弃用的单叶 agent 执行代码移除，继续复用原有数据库字段校验、后端契约及逐条设计校验。
+- 六份 YAML 的叶子、场景、步骤已独立核验集合一致且没有重复。离线清单、旧／新调用估算与路径见 [STEP4A.md](STEP4A.md)。
+- 多叶子用例走完 11 个阶段；02 的截断拆批和 03、05、07、09 的同批调用可查 [step4a-mock.json](step4a-mock.json)。`compiler/tests/test_design_batches.py` 覆盖过大输入、逐条后端校验与跨模块共享约定。
+- 替换本地检查的全量回归（`-k 'not timeout_stops_descendants'`）退出码 0：123 通过、1 跳过、1 未选择，另有 38 个子测试通过。跳过项需要 `ARC_DB_TEST_NODE_MODULES`；未选择项是沙箱内的 Windows 进程树检查。
+- 未运行真实 Node／SQLite／Chromium 合成复验；命令见前置修复记录。未调用模型 API，未做 4b。
+- 清理弃用代码后，最终针对 `test_design_batches.py` 与 `test_staged_pipeline.py` 的复跑为 10 通过、退出码 0。六份规划在独立目录重生成，哈希逐份一致。实际运行命令见 [STEP4A.md](STEP4A.md)。
