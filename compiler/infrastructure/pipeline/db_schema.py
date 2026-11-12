@@ -39,7 +39,6 @@ def build_db_schema(arc_dir: Path, pause: bool = False, top_k: int = 10, max_att
     console = DemoConsole(pause)
     schema = {"entities": {}, "requirements": {}}
     path = arc_dir / "db_schema.json"
-    save_json(path, schema)
     batches = DesignBatches(arc_dir, "02_build_db_schema", console, root)
     model = TextModel(json_mode=False)
 

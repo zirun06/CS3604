@@ -13,7 +13,7 @@ from infrastructure.shared.agent.tasks import StageIncomplete
 from infrastructure.shared.models.text import ModelRequestFailed, TextModel, reasoning_scope
 from infrastructure.utils.budget import BudgetExhausted, RunBudget, budget_scope, wait_for_reservations
 from infrastructure.utils.files import save_json
-from infrastructure.utils.presentation.model_io import DeadlineStream, DeadlineTransport
+from infrastructure.utils.presentation.model_io import DeadlineStream
 from test_budget_boundaries import USAGE, answer, offline_model
 
 
@@ -59,7 +59,7 @@ def test_socket_reads_use_absolute_deadline_without_dividing_first_byte_time():
 
 
 @pytest.mark.parametrize("error,unknown", [("unsupported", False), ("connect", False), ("read", True)])
-def test_http_accounting_caps_the_wire_and_refunds_proven_preflight_errors(error, unknown, monkeypatch):
+def test_http_accounting_caps_the_wire_and_refunds_proven_preflight_errors(error, unknown):
     sent = []
 
     def transport(request):
@@ -73,10 +73,6 @@ def test_http_accounting_caps_the_wire_and_refunds_proven_preflight_errors(error
         raise httpx.ReadTimeout("may have been billed", request=request)
 
     model = offline_model(TextModel, transport, retries=1)
-    if error == "connect":
-        # Exercise the real transport's classification without opening a socket.
-        monkeypatch.setattr(httpx.HTTPTransport, "handle_request", lambda self, request: transport(request))
-        model.client._client._transport = DeadlineTransport()
     model.max_output_tokens = 24000
     budget = RunBudget({"tokens": 20000, "seconds": 20})
     budget.select_stage(0, "03")
@@ -259,3 +255,12 @@ def test_stage04_publishes_only_tables_with_accepted_foreign_key_targets(tmp_pat
     assert blocked["tables"] == ["parent"]
     initializer = (tmp_path / "backend/src/db/initialize.ts").read_text(encoding="utf-8")
     assert '"independent.sql"' in initializer and '"dependent.sql"' not in initializer
+
+
+def test_stage04_rejects_schema_placeholder_without_verifying_runtime(tmp_path, monkeypatch):
+    arc = tmp_path / ".arc"
+    save_json(arc / "db_schema.json", {"entities": {}, "requirements": {}})
+    verify = Mock()
+    monkeypatch.setattr(database, "verify_database_runtime", verify)
+    assert database.implement_db(arc)["status"] == "MISSING_PREREQUISITES"
+    verify.assert_not_called()

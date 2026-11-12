@@ -15,6 +15,7 @@ ENV = {
     "tokens": "COMPILER_BUDGET_TOKENS",
     "seconds": "COMPILER_BUDGET_SECONDS",
 }
+MODEL_FAILURE_LIMIT = "COMPILER_MODEL_FAILURE_THRESHOLD"
 STAGE_WEIGHTS = dict(zip((f"{i:02}" for i in range(11)), (1, 13, 14, 12, 10, 9, 12, 7, 7, 5, 10)))
 OUTPUT_CAPS = {"02": 8192, "03": 6144, "04": 8192, **{f"{i:02}": 12288 for i in range(5, 11)}}
 
@@ -43,6 +44,15 @@ class BudgetExhausted(BaseException):
         return self.resource == "seconds"
 
 
+class ModelCircuitOpen(BaseException):
+    """Run control flow: the model connection has repeatedly failed."""
+
+    def __init__(self, details):
+        self.details = details
+        super().__init__(f"Model circuit opened after {details['consecutive_failures']} consecutive failures: "
+            f"{details['category']} ({details['reason']})")
+
+
 @dataclass
 class Attempt:
     input_tokens: int
@@ -56,7 +66,7 @@ class Attempt:
 
 
 class RunBudget:
-    def __init__(self, limits=None, *, clock=monotonic, stages=1, image_tokens=4096):
+    def __init__(self, limits=None, *, clock=monotonic, stages=1, image_tokens=4096, model_failure_threshold=3):
         self.limits = dict(limits or {})
         self.clock = clock
         self.started = clock()
@@ -77,6 +87,10 @@ class RunBudget:
         self.unreported_tokens = 0
         self.denials = []
         self.denial_count = 0
+        self.model_failure_threshold = model_failure_threshold
+        self.last_model_failure = None
+        self.consecutive_model_failures = 0
+        self.model_circuit = None
 
     @classmethod
     def from_settings(cls, settings, stages):
@@ -99,7 +113,13 @@ class RunBudget:
                 raise ValueError
         except (TypeError, ValueError):
             raise ValueError("COMPILER_IMAGE_TOKEN_RESERVE must be a positive integer") from None
-        budget = cls(limits, stages=stages, image_tokens=image_tokens)
+        try:
+            threshold = int(settings.get(MODEL_FAILURE_LIMIT) or 3)
+            if threshold < 1:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise ValueError(f"{MODEL_FAILURE_LIMIT} must be a positive integer") from None
+        budget = cls(limits, stages=stages, image_tokens=image_tokens, model_failure_threshold=threshold)
         budget.stage_weights = stage_values(settings.get("COMPILER_STAGE_WEIGHTS"), STAGE_WEIGHTS, "COMPILER_STAGE_WEIGHTS")
         budget.output_caps = stage_values(settings.get("COMPILER_STAGE_OUTPUT_CAPS"), OUTPUT_CAPS, "COMPILER_STAGE_OUTPUT_CAPS")
         budget.design_workers = int(settings.get("COMPILER_OBLIGATION_WORKERS") or 3)
@@ -157,6 +177,32 @@ class RunBudget:
             self.deny("seconds", scope)
         return remaining
 
+    def check_model_circuit(self):
+        with self.lock:
+            if self.model_circuit is not None:
+                raise ModelCircuitOpen(self.model_circuit)
+
+    def note_model_outcome(self, failure):
+        """Count consecutive matching logical outcomes, across clients and stages."""
+        with self.lock:
+            if self.model_circuit is not None:
+                return
+            if failure is None:
+                self.last_model_failure = None
+                self.consecutive_model_failures = 0
+                return
+            category, reason = failure
+            same = (failure == self.last_model_failure or
+                (category in {"authentication", "connection"} and self.last_model_failure is not None
+                    and category == self.last_model_failure[0]))
+            self.consecutive_model_failures = self.consecutive_model_failures + 1 if same else 1
+            self.last_model_failure = failure
+            if self.consecutive_model_failures >= self.model_failure_threshold:
+                self.model_circuit = {"category": category, "reason": reason, "stage": self.stage,
+                    "threshold": self.model_failure_threshold, "consecutive_failures": self.consecutive_model_failures}
+                self.changed.notify_all()
+                raise ModelCircuitOpen(self.model_circuit)
+
     def check_model_time(self, *, minimum=0):
         remaining = self.check_time(minimum=minimum)
         reserve = min(30, self.limits.get("seconds", 0) * .1) if self.reserve_final_checks else 0
@@ -168,6 +214,7 @@ class RunBudget:
 
     def start_call(self):
         with self.lock:
+            self.check_model_circuit()
             self.check_model_time()
             if self.used["calls"] >= self.cap("calls"):
                 self.deny("calls", "run" if self.used["calls"] >= self.limits["calls"] else "stage")
@@ -179,7 +226,7 @@ class RunBudget:
             attempt = self.reserve_attempt(input_tokens, output_tokens)
             try:
                 self.start_call()
-            except BudgetExhausted:
+            except (BudgetExhausted, ModelCircuitOpen):
                 self.settle(attempt, None)
                 raise
             return attempt
@@ -187,6 +234,7 @@ class RunBudget:
     def reserve_attempt(self, input_tokens, output_tokens, *, shrink=False):
         with self.lock:
             while True:
+                self.check_model_circuit()
                 remaining = self.check_model_time()
                 cap = self.cap("tokens")
                 minimum = 1 if shrink else output_tokens
@@ -214,6 +262,7 @@ class RunBudget:
 
     def dispatch(self, attempt):
         with self.lock:
+            self.check_model_circuit()
             self.check_model_time()
             if attempt.sent or attempt.settled:
                 raise RuntimeError("Attempt reservation was already consumed")
@@ -249,6 +298,7 @@ class RunBudget:
                 "denial_count": self.denial_count, "image_token_reserve": self.image_tokens,
                 "stage_deadlines_seconds": self.stage_deadlines, "stage_output_caps": self.output_caps,
                 "obligation_workers": self.design_workers,
+                "model_failure_threshold": self.model_failure_threshold, "model_circuit": self.model_circuit,
                 "seconds_remaining": max(0, self.remaining_time(run_only=True)) if "seconds" in self.limits else None}
 
 

@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from dotenv import dotenv_values
 
-from infrastructure.utils.budget import ENV
+from infrastructure.utils.budget import ENV, MODEL_FAILURE_LIMIT
 from infrastructure.utils.files import save_json
 
 
@@ -20,7 +20,7 @@ CONTROL_FILES = {"workspace.json", "checkpoint.json", "compilation.json"}
 MODEL_SETTINGS = ("MODEL", "VISUAL_MODEL", "MODEL_REASONING", "VISUAL_REASONING",
     "OPENAI_BASE_URL", "MAX_OUTPUT_TOKENS", "COMPILER_IMAGE_TOKEN_RESERVE",
     "COMPILER_PRICE_TABLE", "MODEL_REPAIR_REASONING", "COMPILER_STAGE_WEIGHTS",
-    "COMPILER_STAGE_OUTPUT_CAPS", "COMPILER_OBLIGATION_WORKERS", *ENV.values())
+    "COMPILER_STAGE_OUTPUT_CAPS", "COMPILER_OBLIGATION_WORKERS", MODEL_FAILURE_LIMIT, *ENV.values())
 
 
 def resolve_workspace(input_dir, output):

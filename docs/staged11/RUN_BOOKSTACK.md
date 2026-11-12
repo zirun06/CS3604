@@ -27,7 +27,7 @@ if (-not (Test-Path '.env')) { Copy-Item '.env.example' '.env' }
 
 当前累计额度约 450 万 token，按 3 次完整运行管理。连接探测、失败请求、诊断和所有重跑都纳入用量记录。分别记上报 token 和无 usage 的保守结算，并按网关账单核对差额。定价表用 `currency: CNY`、`unit_tokens` 和每个模型的 `input`、`cached`（可选）、`output`；用网关确认的价格覆盖随包提供的估算表。
 
-新连接先做文本探测，通过且预算允许时再做单图探测。以下命令分别限制一次实际 HTTP 尝试并保存记录。第 2 次沿用已探测连接时可直接执行下一节。
+新连接先做文本探测，通过且预算允许时再做单图探测。以下命令分别限制一次实际 HTTP 尝试并保存记录。第 3 次沿用已探测连接时，先跑下一节的回环回归。
 
 ```powershell
 $rev = (git rev-parse HEAD).Trim()
@@ -84,9 +84,15 @@ if ($LASTEXITCODE -ne 0) { throw 'Image probe failed; confirm the cause before f
 
 如果同一网关不支持图片，先记录探测原因。当前入口需要视觉阶段产物，整批图像请求会消耗已确认预算。
 
-## 第 2 次运行
+## 第 3 次运行
 
-第 1 次已用同一连接完成文本和图片探测。连接配置一致时，从仓库根目录复制以下命令，用新的输出目录启动。阶段默认配置见 [运行分析](STEP7_RUN1.md)。
+第 2 次在 SDK 进入网络 I/O 前失败。沿用已探测的模型连接和预算，先从仓库根目录跑下面的回环回归，确认本机装的 SDK 可发送请求。该测试只访问本机假服务。[第 2 次分析](STEP7_RUN2.md)
+
+```powershell
+uv run --project compiler --locked --with pytest==9.2.0 python -m pytest -q compiler/tests/test_sdk_loopback.py
+```
+
+回归通过后，从仓库根目录复制以下命令，用新的输出目录启动。阶段预算和推理配置见 [第 1 次分析](STEP7_RUN1.md)。
 
 ```powershell
 $root = (Get-Location).Path
@@ -95,8 +101,8 @@ $env:PATH = (Resolve-Path 'outputs/node22/node_modules/node/bin').Path + ';' + $
 node --version
 $rev = (git rev-parse HEAD).Trim()
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$record = Join-Path $root "compiler/outputs/bookstack-evidence-$stamp-run2"
-$app = Join-Path $root "compiler/outputs/bookstack-app-$stamp-run2"
+$record = Join-Path $root "compiler/outputs/bookstack-evidence-$stamp-run3"
+$app = Join-Path $root "compiler/outputs/bookstack-app-$stamp-run3"
 New-Item -ItemType Directory -Path $record -ErrorAction Stop | Out-Null
 $env:COMPILER_BUDGET_SECONDS = '2400'
 $env:COMPILER_BUDGET_TOKENS = '1500000'
@@ -106,10 +112,11 @@ $env:MAX_OUTPUT_TOKENS = '24000'
 $env:MODEL_REASONING = 'none'
 $env:MODEL_REPAIR_REASONING = 'low'
 $env:VISUAL_REASONING = 'low'
+$env:COMPILER_MODEL_FAILURE_THRESHOLD = '3'
 if (Test-Path $app) { throw 'Choose a new output directory' }
 $encoding = [Text.UTF8Encoding]::new($false)
 [IO.File]::WriteAllText((Join-Path $record 'revision.txt'), $rev + [Environment]::NewLine, $encoding)
-$log = [IO.StreamWriter]::new((Join-Path $record 'run2-console.log'), $false, $encoding)
+$log = [IO.StreamWriter]::new((Join-Path $record 'run3-console.log'), $false, $encoding)
 try {
     uv run --locked python main.py '../requirements/arc-bench-web--bookstack' --output-dir $app 2>&1 |
         ForEach-Object { $line = [string]$_; $log.WriteLine($line); Write-Host $line }
@@ -121,7 +128,7 @@ Write-Host "Compiler exit code $compileExit"
 Get-Content -Encoding UTF8 (Join-Path $app '.arc/compilation.json')
 ```
 
-普通编译失败也可能退出 0，按报告状态判断。保留非完整结果；只有应用已可运行，才继续构建、部署和公开评测：
+普通编译失败与模型熔断均可能退出 0，按报告状态判断。MODEL_CIRCUIT_OPEN 时查看 model_circuit 的失败类别、原因和阶段。保留非完整结果；只有应用已可运行，才继续构建、部署和公开评测：
 
 ```powershell
 Set-Location $root

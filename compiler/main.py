@@ -60,6 +60,9 @@ def main(argv: list[str] | None = None) -> None:
     except Exception as error:
         print(f"Compilation failed at {compiler.current_stage or 'startup'}: {error}", file=sys.stderr)
         raise SystemExit(0)
+    if compiler.report["status"] == "MODEL_CIRCUIT_OPEN":
+        print(f"Model circuit opened. Report: {compiler.arc_dir / 'compilation.json'}", file=sys.stderr)
+        raise SystemExit(0)
     if compiler.report["status"] == "COMPLETED_WITH_FAILURES":
         print(f"All passes completed. Report: {compiler.arc_dir / 'compilation.json'}", file=sys.stderr)
         raise SystemExit(0)

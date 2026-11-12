@@ -53,6 +53,8 @@ class TableCheck:
 def implement_db(arc_dir: Path, pause: bool = False) -> dict:
     output = arc_dir.parent.resolve()
     schema = read_artifact(arc_dir, "db_schema.json")
+    if not schema["entities"] and not schema["requirements"]:
+        return {"status": "MISSING_PREREQUISITES", "missing": ["Accepted schema design in db_schema.json"]}
     for required in ("backend/package.json", "backend/src/db/client.ts", "backend/src/db/initialize.ts"):
         if not (output / required).is_file():
             raise ValueError("Run main.py --stage 00 first to initialize the project structure")

@@ -20,12 +20,12 @@ from infrastructure.utils.presentation.console import show_panel
 from infrastructure.utils.presentation.logging import console_log
 from infrastructure.utils.files import save_json
 from infrastructure.utils.processes import capture_process
-from infrastructure.utils.budget import RunBudget, active_budget, budget_scope, BudgetExhausted
+from infrastructure.utils.budget import RunBudget, active_budget, budget_scope, BudgetExhausted, ModelCircuitOpen
 from infrastructure.shared.project.provenance import (
     COMPLETE_STATES, effective_settings, prepare_workspace, provenance, resolve_workspace,
 )
 from infrastructure.shared.project.git import checkpoint, rollback_before_stage
-from infrastructure.utils.presentation.events import begin_run, finish_run, begin_stage, finish_stage, timestamp, validation_event
+from infrastructure.utils.presentation.events import begin_run, finish_run, begin_stage, finish_stage, timestamp, validation_event, emit
 
 
 def node_preflight(output: Path) -> dict:
@@ -130,6 +130,8 @@ class Compiler:
                     result = function(*arguments, **options)
                 if budget is not None:
                     budget.check_time()
+        except ModelCircuitOpen:
+            result = {}
         except BudgetExhausted as error:
             result = {"status": "BUDGET_EXHAUSTED", "error": str(error),
                 "budget_resource": error.resource, "budget_scope": error.scope}
@@ -151,10 +153,17 @@ class Compiler:
         except BaseException:
             finish_stage(stage_event, "FAILED")
             raise
+        if budget is not None and budget.model_circuit is not None:
+            error = ModelCircuitOpen(budget.model_circuit)
+            result = {"status": "MODEL_CIRCUIT_OPEN", "error": str(error), "error_type": type(error).__name__}
+            self.report["model_circuit"] = error.details
+            emit("model_circuit_open", **{key: value for key, value in error.details.items() if key != "stage"})
         status = result.get("status", "GREEN") if isinstance(result, dict) else "GREEN"
-        if budget is not None and budget.denial_count > denied_before and status != "BUDGET_EXHAUSTED":
+        if (budget is not None and budget.denial_count > denied_before
+                and status not in {"BUDGET_EXHAUSTED", "MODEL_CIRCUIT_OPEN"}):
             status = "BUDGET_EXHAUSTED"
-        if status in {"SKIPPED_TIME", "MISSING_PREREQUISITES", "NO_UI", "NO_APIS", "BUDGET_EXHAUSTED"}:
+        if status in {"SKIPPED_TIME", "MISSING_PREREQUISITES", "NO_UI", "NO_APIS",
+                "BUDGET_EXHAUSTED", "MODEL_CIRCUIT_OPEN"}:
             for kind, source in VALIDATIONS.get(stage[:2], ()):
                 validation_event(kind, 0, "not_run", source=source, reason=status, only_if_absent=True)
         self.report["stages"][stage] = {"status": status, **finish_stage(stage_event, status)}
@@ -224,6 +233,11 @@ class Compiler:
                 else:
                     result = self._run(name, function, self.arc_dir, pause=self.pause)
                 self.artifacts[artifact] = result
+                if "model_circuit" in self.report:
+                    for skipped, _, _ in passes[index + 1:]:
+                        self.report["stages"][skipped] = {"status": "SKIPPED_MODEL_CIRCUIT_OPEN",
+                            "error": result["error"]}
+                    break
 
             # ========================================
             #        final report and exit
@@ -231,7 +245,10 @@ class Compiler:
             self.current_stage = None
             incomplete = [name for name, result in self.report["stages"].items()
                 if result["status"] not in COMPLETE_STATES]
-            self.report["status"] = "COMPLETED_WITH_FAILURES" if incomplete else "GREEN"
+            if "model_circuit" in self.report:
+                self.report["status"] = "MODEL_CIRCUIT_OPEN"
+            else:
+                self.report["status"] = "COMPLETED_WITH_FAILURES" if incomplete else "GREEN"
             show_panel("[DONE] Requirement compilation | " + self.report["status"],
                 f"Application: {self.output_dir}\nReport: {self.arc_dir / 'compilation.json'}"
                 + ("\nIncomplete stages: " + ", ".join(incomplete) if incomplete else ""),

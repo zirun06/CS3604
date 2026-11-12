@@ -5,20 +5,20 @@ from functools import wraps
 from datetime import datetime, timezone
 import json
 import re
+import sys
 import traceback
+import warnings
 from time import monotonic, sleep
 from uuid import uuid4
 from contextvars import ContextVar
 
-import httpcore
-import httpx
-from openai import OpenAI
+from openai import DefaultHttpxClient, OpenAI
 
 from infrastructure.utils.presentation.console import current_activity, preview, show_panel, WaitingStatus
 from infrastructure.utils.presentation.logging import session_info, full_detail
 from infrastructure.utils.presentation.agent import AgentLogger
 from infrastructure.shared.models.pricing import normalize_usage
-from infrastructure.utils.budget import active_budget, BudgetExhausted
+from infrastructure.utils.budget import active_budget, BudgetExhausted, ModelCircuitOpen
 from infrastructure.utils.presentation.events import model_started, model_finished, model_metric, emit
 from rich.console import Group
 from rich.panel import Panel
@@ -38,7 +38,14 @@ class BudgetedOpenAI(OpenAI):
     """Keep the SDK retry policy while bounding its backoff by the run deadline."""
 
     def _sleep_for_retry(self, *, retries_taken, max_retries, options, response):
+        # The SDK invokes this inside its exception handler. Finalize a failed
+        # transport attempt before backoff or another request can consume its slot.
+        call = _call.get()
+        if call is not None and call["pending"]:
+            _failed_attempt(call, sys.exception())
         budget = active_budget()
+        if budget is not None:
+            budget.check_model_circuit()
         if budget is None or "seconds" not in budget.limits:
             return super()._sleep_for_retry(retries_taken=retries_taken, max_retries=max_retries,
                 options=options, response=response)
@@ -91,6 +98,12 @@ def logical_call():
         _admitted_vision.set(None)
     elif budget is not None:
         budget.start_call()
+    if budget is not None:
+        try:
+            budget.check_model_circuit()
+        except ModelCircuitOpen:
+            budget.settle(attempt, None)
+            raise
     state = {"id": uuid4().hex, "first": attempt}
     token = _logical.set(state)
     model_metric("logical_calls")
@@ -98,9 +111,14 @@ def logical_call():
         yield
         if state.get("incomplete_response"):
             model_metric("failed_calls")
-    except BaseException:
+    except BaseException as error:
         model_metric("failed_calls")
+        if budget is not None and isinstance(error, Exception) and "failure" in state:
+            budget.note_model_outcome(state["failure"])
         raise
+    else:
+        if budget is not None and "failure" in state:
+            budget.note_model_outcome(state["failure"])
     finally:
         if budget is not None:
             budget.settle(state["first"], None)
@@ -170,6 +188,32 @@ def _exception_chain(error: BaseException) -> list[dict[str, str]]:
     return chain
 
 
+def _failed_attempt(call, error):
+    """Classify a failure only when there is evidence about the wire boundary."""
+    status = getattr(error, "status_code", None)
+    if status in {401, 403}:
+        failure = ("authentication", f"HTTP {status}")
+    elif not call["pending"] and call["wire_attempts"]:
+        failure = None
+    else:
+        chain = _exception_chain(error)
+        root = chain[-1]["type"] if chain else None
+        write_started = call.get("write_started")
+        connection = next((item["type"] for item in chain
+            if item["type"] in {"ConnectError", "ConnectTimeout", "PoolTimeout"}), None)
+        if write_started is not True and connection:
+            call["unprocessed"] = "connection_not_established"
+            failure = ("connection", connection)
+        elif write_started is False or not call["wire_attempts"]:
+            call["unprocessed"] = "request_not_sent"
+            failure = ("pre_send", root) if isinstance(error, Exception) else None
+        else:
+            failure = None
+    if call["pending"]:
+        _finish_attempt(call)
+    return failure
+
+
 def _record(event: str, **data) -> None:
     """Append untruncated values; never record authentication headers."""
     call = _call.get()
@@ -196,7 +240,7 @@ def record_tool_execution(tool_call: dict, result: dict, *, logger: AgentLogger 
     (logger or AgentLogger("Model")).log_tool_execution(tool_call, result)
 
 
-def _http_request(request: httpx.Request) -> None:
+def _http_request(request) -> None:
     """Capture the actual serialized body on every HTTP attempt, including retries."""
     session, call = session_info(), _call.get()
     if call is not None:
@@ -219,6 +263,7 @@ def _http_request(request: httpx.Request) -> None:
             budget.dispatch(attempt)
         call["wire_attempts"] += 1
         call["pending"] = True
+        call["write_started"] = False if call["tracks_writes"] else None
         model_metric("http_attempts")
         emit("http_attempt_started", logical_call_id=_logical.get()["id"], call_id=call["id"],
             attempt=call["wire_attempts"])
@@ -239,10 +284,12 @@ def _http_request(request: httpx.Request) -> None:
         body=request.content.decode("utf-8"))
 
 
-def _http_response(response: httpx.Response) -> None:
+def _http_response(response) -> None:
     """Read and retain the complete non-streaming response before SDK parsing."""
-    response.read()
     call = _call.get()
+    if call is not None:
+        call["write_started"] = True
+    response.read()
     if call is not None and call["pending"]:
         try:
             body = response.json()
@@ -251,7 +298,9 @@ def _http_response(response: httpx.Response) -> None:
         usage = body.get("usage") if isinstance(body, dict) else None
         error = body.get("error") if isinstance(body, dict) else None
         message = str(error.get("message", "")).lower() if isinstance(error, dict) else ""
-        if response.status_code in {400, 422} and any(
+        if response.status_code in {401, 403}:
+            call["unprocessed"] = "authentication_rejected"
+        elif response.status_code in {400, 422} and any(
                 key in message for key in ("max_completion_tokens", "reasoning_effort", "thinking")) and any(
                 word in message for word in ("unsupported", "unknown", "unrecognized", "not supported", "not allowed", "unexpected")):
             call["unprocessed"] = "request_parameter_rejected"
@@ -286,7 +335,7 @@ def _deadline(timeout):
     return remaining if timeout is None else min(timeout, remaining)
 
 
-class DeadlineStream(httpcore.NetworkStream):
+class DeadlineStream:
     def __init__(self, stream):
         self.stream = stream
 
@@ -294,7 +343,12 @@ class DeadlineStream(httpcore.NetworkStream):
         return self.stream.read(max_bytes, timeout=_deadline(timeout))
 
     def write(self, buffer, timeout=None):
-        return self.stream.write(buffer, timeout=_deadline(timeout))
+        timeout = _deadline(timeout)
+        call = _call.get()
+        if call is not None and buffer:
+            # A failed socket write can still have written part of the request.
+            call["write_started"] = True
+        return self.stream.write(buffer, timeout=timeout)
 
     def start_tls(self, ssl_context, server_hostname=None, timeout=None):
         return DeadlineStream(self.stream.start_tls(ssl_context, server_hostname, timeout=_deadline(timeout)))
@@ -306,31 +360,44 @@ class DeadlineStream(httpcore.NetworkStream):
         self.stream.close()
 
 
-class DeadlineBackend(httpcore.SyncBackend):
+class DeadlineBackend:
+    """Wrap the backend chosen by the SDK's own synchronous HTTP transport."""
+
+    def __init__(self, backend):
+        self.backend = backend
+
     def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
-        return DeadlineStream(super().connect_tcp(host, port, _deadline(timeout), local_address, socket_options))
+        return DeadlineStream(self.backend.connect_tcp(host, port, timeout=_deadline(timeout),
+            local_address=local_address, socket_options=socket_options))
+
+    def connect_unix_socket(self, path, timeout=None, socket_options=None):
+        return DeadlineStream(self.backend.connect_unix_socket(path, timeout=_deadline(timeout),
+            socket_options=socket_options))
+
+    def sleep(self, seconds):
+        budget = active_budget()
+        if budget is not None:
+            budget.check_model_time(minimum=seconds)
+        self.backend.sleep(seconds)
 
 
-class DeadlineTransport(httpx.HTTPTransport):
-    def __init__(self):
-        super().__init__(trust_env=False, limits=httpx.Limits(max_connections=20, max_keepalive_connections=10))
-        self._pool._network_backend = DeadlineBackend()
-
-    def handle_request(self, request):
-        try:
-            return super().handle_request(request)
-        except (httpx.ConnectTimeout, httpx.ConnectError, httpx.PoolTimeout):
-            call = _call.get()
-            if call is not None:
-                call["unprocessed"] = "connection_not_established"
-            raise
-
-
-def http_client() -> httpx.Client:
-    """Connect directly, retaining audit hooks and enforcing a shared I/O deadline."""
-    from openai import DefaultHttpxClient
-    return DefaultHttpxClient(trust_env=False, timeout=httpx.Timeout(600), transport=DeadlineTransport(),
+def http_client():
+    """Keep the SDK's HTTP client and transport paired, with a native backend wrapper."""
+    client = DefaultHttpxClient(trust_env=False, timeout=600,
         event_hooks={"request": [_http_request], "response": [_http_response]})
+    try:
+        pool = client._transport._pool
+        backend = pool._network_backend
+        if not callable(getattr(backend, "connect_tcp", None)):
+            raise TypeError("synchronous TCP backend unavailable")
+        pool._network_backend = DeadlineBackend(backend)
+        client._compiler_tracks_writes = True
+    except (AttributeError, TypeError) as error:
+        message = (f"SDK HTTP backend cannot be wrapped ({type(error).__name__}); using native transport "
+            "with per-operation timeouts and limited pre-send detection.")
+        warnings.warn(message, RuntimeWarning, stacklevel=2)
+        emit("model_transport_fallback", reason=message)
+    return client
 
 
 def _input_summary(arguments: dict) -> str:
@@ -508,6 +575,7 @@ def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
     arguments, reservation = _reserve_request(arguments)
     call = {"id": call_id, "activity": activity, "logger": logger, "model": arguments.get("model"),
         "reservation": reservation, "wire_attempts": 0, "pending": False,
+        "tracks_writes": getattr(getattr(client, "_client", None), "_compiler_tracks_writes", False) is True,
         "input_tokens": reservation.input_tokens if reservation else 0,
         "output_tokens": reservation.output_tokens if reservation else 0}
     token = _call.set(call)
@@ -526,6 +594,7 @@ def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
         _record("request", arguments=arguments)
         started = monotonic()
         response = client.chat.completions.create(**arguments)
+        _logical.get()["failure"] = None
         elapsed = monotonic() - started
         # Preserve the SDK envelope and untouched message content before any JSON repair.
         raw = response.model_dump(mode="json")
@@ -551,6 +620,9 @@ def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
                 budget.deny("tokens", "run")
         return response
     except BaseException as error:
+        failure = _failed_attempt(call, error)
+        if not isinstance(error, (BudgetExhausted, ModelCircuitOpen)):
+            _logical.get()["failure"] = failure
         elapsed = monotonic() - started
         if not usage_recorded:
             model_finished(call_id, arguments.get("model"), {}, elapsed, status="FAILED", error=str(error))

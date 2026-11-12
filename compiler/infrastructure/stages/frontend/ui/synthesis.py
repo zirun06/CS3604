@@ -49,7 +49,6 @@ def synthesize_ui(arc_dir, tree, images, contexts, model, console, top_k=3, max_
             for sid in tree.own_steps[rid]:
                 design["steps"][sid] = []
     path = arc_dir / "ui_design.json"
-    save_json(path, design)
     batches = DesignBatches(arc_dir, "07_design_ui", console)
 
     def process(batch):
