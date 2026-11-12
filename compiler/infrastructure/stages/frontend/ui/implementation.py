@@ -4,6 +4,7 @@ from pathlib import Path
 
 from infrastructure.shared.agent.tools import FileTools
 from infrastructure.shared.agent.loop import run_file_agent
+from infrastructure.shared.agent.type_repair import recheck_types
 from infrastructure.shared.agent.implementation_batches import ImplementationBatches, passing_checks, require_any
 from infrastructure.shared.agent.feedback import CheckFailure
 from infrastructure.shared.agent.recovery import reject_paths, final_checks, complete_report
@@ -43,6 +44,8 @@ input synchronization; no such host is generated.
 
 Render real layout, labels, controls and conditional content with original text and stable
 data-testid=ELEMENT_ID selectors. Use the installed dependencies and configured styles.
+Render required button roles as native buttons (submit only when appropriate), link
+roles as real links, and each shared navigation entry once per screen.
 Preserve every explicitly required UI name and role verbatim, including language, spelling
 and case. Do not rename "Name" to "Shelf name", translate captions, or combine aliases.
 Keep visible labels and computed accessible names consistent: associate labels correctly,
@@ -107,8 +110,10 @@ def implement_ui(arc_dir: Path, design: dict, model, console, report: dict, max_
         for pid, relative in relatives.items():
             save_text(output / relative, existence_suite(design, pid))
 
+        workspace = None
+
         def gate():
-            compiled = checks.typecheck([*relatives.values(), *reg])
+            compiled = recheck_types(lambda: checks.typecheck([*relatives.values(), *reg]), workspace)
             if compiled["returncode"]:
                 raise CheckFailure("Frontend TypeScript failed", compiled)
             if reg:
@@ -159,6 +164,8 @@ def implement_ui(arc_dir: Path, design: dict, model, console, report: dict, max_
     commands = {"typecheck": (lambda: checks.typecheck(files), None), "build": (checks.build, None)}
     if files:
         commands["tests"] = (lambda: checks.tests(files), require_green)
+    if pages:
+        commands["render"] = (lambda: checks.render(design["pages"]), require_green)
     verification = final_checks(console, **commands)
     final = verification.get("tests", {}).get("result") or {}
     report["summary"] = {"requirements": len(tree.leaves),

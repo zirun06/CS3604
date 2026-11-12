@@ -11,7 +11,15 @@ from infrastructure.shared.project.git import checkpoint
 from infrastructure.utils.presentation.events import task_scope
 
 
-def _snapshot(output):
+class CandidateProgress(ValueError):
+    """Retain an independently checked intermediate candidate and continue repair."""
+
+    def __init__(self, feedback):
+        self.feedback = feedback
+        super().__init__(feedback["reason"])
+
+
+def snapshot(output):
     paths = {path.relative_to(output).as_posix()
         for root in ("backend/src", "backend/tests", "frontend/src", "frontend/tests")
         for path in (output / root).rglob("*") if path.is_file() and not path.is_symlink()
@@ -35,6 +43,24 @@ def _archive(output, label, before, after, status, details):
     return result
 
 
+def restore_snapshot(output, before, changed):
+    for path in changed:
+        if path in before:
+            save_bytes(output / path, before[path])
+        else:
+            (output / path).unlink(missing_ok=True)
+
+
+def reject_candidate(output, label, before, error):
+    after = snapshot(output)
+    if before == after:
+        return None
+    failure = _archive(output, label, before, after, "REJECTED_CANDIDATE", {
+        "error": str(error), "feedback": getattr(error, "feedback", None)})
+    restore_snapshot(output, before, failure["changed_files"])
+    return failure["archive"]
+
+
 def reject_paths(output, label, baseline, paths):
     """Archive and restore failed unit-owned paths without reverting shared accepted edits."""
     before = {path: baseline[path] for path in paths if path in baseline}
@@ -42,11 +68,7 @@ def reject_paths(output, label, baseline, paths):
     if before == after:
         return None
     archive = _archive(output, label, before, after, "REJECTED_UNIT_FILES", {})
-    for path in archive["changed_files"]:
-        if path in before:
-            save_bytes(output / path, before[path])
-        else:
-            (output / path).unlink(missing_ok=True)
+    restore_snapshot(output, before, archive["changed_files"])
     return archive["archive"]
 
 
@@ -58,20 +80,16 @@ def implementation_task(output, entry, console, label, *, batch_id=None):
     and unexpected compiler exceptions propagate; they are not business failures.
     """
     with task_scope(label, entry.get("requirements"), result=entry, batch_id=batch_id):
-        before = _snapshot(output)
+        before = snapshot(output)
         try:
             yield
         except (ValueError, BudgetExhausted) as error:
-            after = _snapshot(output)
+            after = snapshot(output)
             status = "BUDGET_EXHAUSTED" if isinstance(error, BudgetExhausted) else "FAILED"
             failure = _archive(output, label, before, after, status, {
                 "phase": entry.get("status"), "error": str(error), "error_type": type(error).__name__,
                 "turns": getattr(error, "turns", 0), "feedback": getattr(error, "feedback", None)})
-            for path in failure["changed_files"]:
-                if path in before:
-                    save_bytes(output / path, before[path])
-                else:
-                    (output / path).unlink(missing_ok=True)
+            restore_snapshot(output, before, failure["changed_files"])
             entry.update(failure)
             console.show(label + " | " + status, str(error) + "\nBaseline restored. Failure archive: " + failure["archive"])
             checkpoint(output, task=label, action="Archive failed attempt and restore task baseline",
@@ -85,7 +103,7 @@ def implementation_task(output, entry, console, label, *, batch_id=None):
             raise
         else:
             if entry.get("status") == "PARTIAL":
-                archive = _archive(output, label, before, _snapshot(output), "PARTIAL", {
+                archive = _archive(output, label, before, snapshot(output), "PARTIAL", {
                     "accepted": entry["accepted"], "pending": entry["pending"],
                     "feedback": entry.get("rejected_checks", {})})
                 entry["archive"] = archive["archive"]

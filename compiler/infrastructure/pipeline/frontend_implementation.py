@@ -4,6 +4,9 @@ from pathlib import Path
 
 from infrastructure.stages.frontend.triggers.context import load_e2e_context
 from infrastructure.stages.frontend.triggers.implementation import run_trigger_tdd
+from infrastructure.stages.frontend.triggers.acceptance_gate import coverage_matrix
+from infrastructure.stages.requirements.batching import DesignPlan
+from infrastructure.utils.files import read_artifact
 from infrastructure.shared.models.text import TextModel
 from infrastructure.shared.agent.implementation_batches import ImplementationBatches
 from infrastructure.utils.presentation.console import DemoConsole
@@ -21,6 +24,9 @@ def implement_frontend_triggers(input_dir: Path, arc_dir: Path, pause: bool = Fa
     save_json(arc_dir / "frontend_e2e.json", report)
     try:
         if not ui["pages"]:
+            plan = DesignPlan(read_artifact(arc_dir, "requirements.json"))
+            save_json(arc_dir / "acceptance" / "coverage.json", coverage_matrix(plan, tree, ui, interactions, {},
+                read_artifact(arc_dir, "db_obligations.json")))
             ImplementationBatches(arc_dir, "10", DemoConsole(pause)).register({}, {}, {}).publish()
             report.update({"status": "NO_UI", "summary": {"requirements": 0, "triggers": 0, "e2e_tests": 0, "ui_tests": 0, "failed": 0}})
             save_json(arc_dir / "frontend_e2e.json", report)

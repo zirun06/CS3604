@@ -1,0 +1,222 @@
+{
+  "mode": "mock model and replacement local checks; not real browser",
+  "synthetic_cases": [
+    {
+      "input": "original",
+      "stage_statuses": {
+        "00_project_initialization": "GREEN",
+        "01_explore_requirement": "GREEN",
+        "02_build_db_schema": "GREEN",
+        "03_infer_db_obligations": "GREEN",
+        "04_implement_db": "GREEN",
+        "05_design_backend_apis": "GREEN",
+        "06_implement_backend_tdd": "GREEN",
+        "07_design_ui": "GREEN",
+        "08_implement_ui": "GREEN",
+        "09_design_frontend_triggers": "GREEN",
+        "10_implement_frontend_tdd": "GREEN"
+      }
+    },
+    {
+      "input": "unseen-project",
+      "stage_statuses": {
+        "00_project_initialization": "GREEN",
+        "01_explore_requirement": "GREEN",
+        "02_build_db_schema": "GREEN",
+        "03_infer_db_obligations": "GREEN",
+        "04_implement_db": "GREEN",
+        "05_design_backend_apis": "GREEN",
+        "06_implement_backend_tdd": "GREEN",
+        "07_design_ui": "GREEN",
+        "08_implement_ui": "GREEN",
+        "09_design_frontend_triggers": "GREEN",
+        "10_implement_frontend_tdd": "GREEN"
+      }
+    },
+    {
+      "input": "multi-leaf",
+      "stage_statuses": {
+        "00_project_initialization": "GREEN",
+        "01_explore_requirement": "GREEN",
+        "02_build_db_schema": "GREEN",
+        "03_infer_db_obligations": "GREEN",
+        "04_implement_db": "GREEN",
+        "05_design_backend_apis": "GREEN",
+        "06_implement_backend_tdd": "GREEN",
+        "07_design_ui": "GREEN",
+        "08_implement_ui": "GREEN",
+        "09_design_frontend_triggers": "GREEN",
+        "10_implement_frontend_tdd": "GREEN"
+      }
+    },
+    {
+      "input": "artifact-groups",
+      "stage_statuses": {
+        "00_project_initialization": "GREEN",
+        "01_explore_requirement": "GREEN",
+        "02_build_db_schema": "GREEN",
+        "03_infer_db_obligations": "GREEN",
+        "04_implement_db": "GREEN",
+        "05_design_backend_apis": "GREEN",
+        "06_implement_backend_tdd": "GREEN",
+        "07_design_ui": "GREEN",
+        "08_implement_ui": "GREEN",
+        "09_design_frontend_triggers": "GREEN",
+        "10_implement_frontend_tdd": "GREEN"
+      }
+    }
+  ],
+  "coverage": {
+    "R-COUNT": {
+      "suite": "frontend/tests/e2e/R-COUNT.spec.ts",
+      "scenarios": {
+        "scenario-R-COUNT": {
+          "name": "Count notes",
+          "steps": {
+            "S-COUNT": {
+              "Given": "Note 11 already exists",
+              "When": "Click Count notes",
+              "Then": "Show 1",
+              "ui_evidence": [
+                {
+                  "id": "UI-button",
+                  "role": "button",
+                  "names": {
+                    "text": "Count notes"
+                  }
+                }
+              ],
+              "triggers": [
+                "TR-COUNT"
+              ],
+              "db_writes": [],
+              "wired_db_writes": [],
+              "acceptance_item": "R-COUNT/scenario-R-COUNT/S-COUNT"
+            }
+          },
+          "acceptance_item": "R-COUNT/scenario-R-COUNT"
+        }
+      },
+      "requirement_evidence": {
+        "image": [
+          {
+            "id": "IMG-notes",
+            "page": "notes",
+            "reference": "reference.png"
+          }
+        ],
+        "text": "On the Notes page, count records on request."
+      }
+    },
+    "R-SECOND": {
+      "suite": "frontend/tests/e2e/R-SECOND.spec.ts",
+      "scenarios": {
+        "scenario-R-SECOND": {
+          "name": "Count notes",
+          "steps": {
+            "S-SECOND": {
+              "Given": "Entry 7 already exists",
+              "When": "Click Count entries",
+              "Then": "Show 1",
+              "ui_evidence": [
+                {
+                  "id": "UI-entry-button",
+                  "role": "button",
+                  "names": {
+                    "text": "Count entries"
+                  }
+                }
+              ],
+              "triggers": [
+                "TR-ENTRY"
+              ],
+              "db_writes": [],
+              "wired_db_writes": [],
+              "acceptance_item": "R-SECOND/scenario-R-SECOND/S-SECOND"
+            }
+          },
+          "acceptance_item": "R-SECOND/scenario-R-SECOND"
+        }
+      },
+      "requirement_evidence": {
+        "image": [],
+        "text": "Show the same count as \\ref[requirement](R-COUNT)."
+      }
+    }
+  },
+  "accepted_candidate": {
+    "batch": "10-main-001",
+    "files": {
+      "frontend/tests/e2e/R-COUNT.spec.ts": "205a095d702563d8dbc5f602d14af3f9a6c0bd3d3cfdb9821c586235b2e64af3",
+      "frontend/tests/e2e/R-SECOND.spec.ts": "5e136e3e8384bfa89f16c0e57409a6fe353aabdca58e3b0a29861c6476b7f42c"
+    },
+    "attempts": [
+      {
+        "decision": "ACCEPTED",
+        "reason": "New fixed cases pass",
+        "cases": {
+          "R-COUNT": {
+            "cases": {
+              "frontend/tests/e2e/R-COUNT.spec.ts": {
+                "status": "passed",
+                "failure": ""
+              }
+            },
+            "errors": false,
+            "unstable": false,
+            "started": true
+          },
+          "R-SECOND": {
+            "cases": {
+              "frontend/tests/e2e/R-SECOND.spec.ts": {
+                "status": "passed",
+                "failure": ""
+              }
+            },
+            "errors": false,
+            "unstable": false,
+            "started": true
+          }
+        },
+        "passing": [
+          [
+            "R-COUNT",
+            "frontend/tests/e2e/R-COUNT.spec.ts"
+          ],
+          [
+            "R-SECOND",
+            "frontend/tests/e2e/R-SECOND.spec.ts"
+          ]
+        ]
+      }
+    ]
+  },
+  "rejected_candidates_rollback_test": [
+    {
+      "status": "REJECTED_CANDIDATE",
+      "changed_files": [
+        "frontend/src/new.ts",
+        "frontend/src/old.ts"
+      ],
+      "deleted_files": [
+        "frontend/src/old.ts"
+      ],
+      "error": "candidate lost accepted behavior"
+    },
+    {
+      "status": "REJECTED_CANDIDATE",
+      "changed_files": [
+        "frontend/src/new.ts",
+        "frontend/src/old.ts"
+      ],
+      "deleted_files": [
+        "frontend/src/old.ts"
+      ],
+      "error": "candidate lost accepted behavior"
+    }
+  ],
+  "render_wiring": {
+    "08": "GREEN",
+    "10": "GREEN"
+  }
+}

@@ -5,6 +5,7 @@ by prepare_e2e(). Each browser run owns temporary database files; test cases res
 their data. Business handlers and scenario assertions are generated separately."""
 
 import json
+from pathlib import Path
 
 from infrastructure.utils.files import save_text
 
@@ -80,6 +81,9 @@ import type Database from "better-sqlite3";
 import { basename, dirname } from "node:path";
 import { createDatabaseClient } from "../../../../backend/src/db/client.js";
 import { initializeDatabase } from "../../../../backend/src/db/initialize.js";
+import { readFileSync } from "node:fs";
+import { wireError } from "./wire_contract.mjs";
+const contracts = JSON.parse(readFileSync(new URL("./api_contracts.json", import.meta.url), "utf8"));
 export { fixturePasswordHash } from "../../../../backend/tests/support/context.js";
 export const test = base.extend<{ database: Database.Database; applicationErrors: void }>({
   database: [async ({}, use) => {
@@ -102,11 +106,25 @@ export const test = base.extend<{ database: Database.Database; applicationErrors
   applicationErrors: [async ({ page, database }, use) => {
     void database;
     const errors: string[] = [];
+    const pending: Promise<void>[] = [];
     page.on("pageerror", error => errors.push("E2E_RUNTIME_ERROR: " + error.message));
     page.on("requestfailed", request => {
       if (new URL(request.url()).pathname.startsWith("/api/")) errors.push("E2E_NETWORK_ERROR: " + request.url());
     });
+    page.on("response", response => {
+      const url = new URL(response.url());
+      if (!url.pathname.startsWith("/api/") || url.origin !== new URL(page.url()).origin) return;
+      pending.push((async () => {
+        const status = response.status();
+        const content = response.headers()["content-type"] ?? "";
+        const body = content.includes("json") && status !== 204 && status !== 304
+          ? await response.json() : null;
+        const mismatch = wireError(contracts, response.request().method(), url.pathname, status, body);
+        if (mismatch) errors.push("E2E_API_CONTRACT: " + mismatch);
+      })().catch(error => { errors.push("E2E_API_CONTRACT: " + String(error)); }));
+    });
     await use();
+    await Promise.all(pending);
     if (errors.length) throw new Error(errors.join("\\n"));
   }, { auto: true }],
 });
@@ -118,7 +136,11 @@ def prepare_e2e(output, backend):
     """Write E2E configuration, real-server launchers, isolated database fixtures, and the npm test command."""
     sources = {CONFIG: CONFIG_SOURCE, RUNNER: RUNNER_SOURCE,
         VITE_CONFIG: 'import { defineConfig, mergeConfig } from "vite";\nimport base from "./vite.config";\nexport default mergeConfig(base, defineConfig({ server: { proxy: { "/api": process.env.ARC_BACKEND_URL! } } }));\n',
-        FIXTURE: FIXTURE_SOURCE}
+        FIXTURE: FIXTURE_SOURCE,
+        "frontend/tests/e2e/support/wire_contract.mjs": Path(__file__).with_name("wire_contract.mjs").read_text(encoding="utf-8"),
+        "frontend/tests/e2e/support/wire_contract.d.mts":
+            "export function wireError(apis: unknown, method: string, pathname: string, status: number, body: unknown): string | null;\n",
+        "frontend/tests/e2e/support/api_contracts.json": json.dumps(backend["apis"], ensure_ascii=False)}
     for relative, source in sources.items():
         save_text(output / relative, source)
     path = output / "package.json"

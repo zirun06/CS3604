@@ -1,12 +1,13 @@
 """Generate and review grouped acceptance suites, then integrate their interactions."""
 
 from infrastructure.shared.agent.files import editable_application_path
-from infrastructure.shared.agent.loop import run_file_agent
+from infrastructure.shared.agent.loop import AgentExhausted, run_file_agent
+from infrastructure.shared.agent.type_repair import recheck_types
 from infrastructure.shared.agent.implementation_batches import ImplementationBatches, passing_checks, require_any
 from infrastructure.stages.frontend.ui.implementation import page_layout_signals
 from infrastructure.shared.agent.tools import FileTools
 from infrastructure.stages.frontend.triggers.acceptance import INSTRUCTIONS as TEST_INSTRUCTIONS, REVIEW_INSTRUCTIONS
-from infrastructure.shared.agent.recovery import implementation_task, reject_paths, final_checks, complete_report
+from infrastructure.shared.agent.recovery import CandidateProgress, implementation_task, reject_paths, final_checks, complete_report
 from infrastructure.stages.frontend.triggers.e2e_runtime import CONFIG, FIXTURE, prepare_e2e
 from infrastructure.stages.frontend.triggers.testing import E2EChecks, test_path
 from infrastructure.stages.frontend.ui.runtime import APPLICATION_ENTRYPOINTS, prepare_frontend
@@ -16,6 +17,11 @@ from infrastructure.stages.backend.runtime import api_test_paths
 from infrastructure.stages.backend.testing import BackendChecks, require_green as require_backend_green
 from infrastructure.stages.frontend.triggers.design import api_ids, trigger_obligations
 from infrastructure.stages.frontend.triggers.scope import TriggerCheckFailure, model_context
+from infrastructure.stages.frontend.triggers.acceptance_gate import (
+    coverage_matrix, FrozenAcceptance, snapshot_tests, write_revision,
+)
+from infrastructure.stages.requirements.batching import DesignPlan
+from infrastructure.utils.files import read_artifact
 from infrastructure.shared.project.dependencies import install_dependencies
 from infrastructure.utils.files import save_json
 from infrastructure.stages.frontend.ui.design import page_context, page_elements
@@ -100,7 +106,10 @@ URL-based deduplication cache to hide duplicate wiring or suppress legitimate op
 
 For dynamic routes, use the actual router or application routing code to construct and
 parse concrete parameters. Support direct entry, reload, navigation and back/forward as
-required. Identify a clicked row from that row's actual data/callback, not a shared global
+required. On a protected route, when the original behavior requires session restoration,
+await the session query before redirecting; anonymous routes stay usable when required.
+Validate the load response and wait for required saved values before enabling an editor
+so an in-flight load cannot overwrite a user's edits. Identify a clicked row from that row's actual data/callback, not a shared global
 example object or event.target.value from an arbitrary nested icon/span. Carry the selected
 identity through the URL/request/state consistently; encode URL values correctly.
 
@@ -112,7 +121,10 @@ automatic compiler input/change handler or require defaultValue/defaultChecked e
 
 Call the canonical backend interfaces with real HTTP, using existing request helpers or
 new shared application helpers as appropriate. Preserve previous API request cases.
-Respect response status/body/headers, empty bodies and browser-managed cookies. Do not
+Respect response status/body/headers, empty bodies and browser-managed cookies.
+Type response collections and handle missing optional fields before using array methods.
+Use the accepted result or reload affected data after saving; cancel returns to its specified
+destination without persisting edits. Do not
 manually set browser Cookie headers or read HttpOnly credentials. Register event handling
 only once; preserve action ordering, guards, rejection behavior and failure-without-writes.
 Keep actual loaded data associated with the requested object. Initialize safe unloaded
@@ -158,6 +170,11 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
         model, console, report, max_turns=10):
     """Implement page- and capability-related requirements as real-app TDD groups."""
     output = arc_dir.parent.resolve()
+    plan = DesignPlan(read_artifact(arc_dir, "requirements.json"))
+    matrix = coverage_matrix(plan, tree, ui, design, {
+        tid: trigger_obligations(trigger, backend) for tid, trigger in design["triggers"].items()},
+        read_artifact(arc_dir, "db_obligations.json"))
+    save_json(arc_dir / "acceptance" / "coverage.json", matrix)
     prepare_frontend(output)
     prepare_e2e(output, backend)
     console.show("E2E preparation | Dependencies", "Install workspace dependencies and Chromium. Each browser run owns a new real test database; production data is not used.")
@@ -223,7 +240,7 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
             obligations={tid: trigger_obligations(trigger, backend) for tid, trigger in context["triggers"].items()},
             backend_apis={aid: backend["apis"][aid] for aid in sorted(called)})
         values[rid] = {**model_context(context), "test_path": test_path(rid),
-            "schema": related_schema(schema, context["backend_apis"].values())}
+            "schema": related_schema(schema, context["backend_apis"].values()), "acceptance_items": matrix[rid]["scenarios"]}
         signals[rid] = {*(f"page:{pid}" for pid in pages), *(f"trigger:{tid}" for tid in tids),
             *(f"api:{aid}" for aid in called),
             *(key for pid in pages for key in page_layout_signals(ui, pid))}
@@ -282,25 +299,33 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
         needs_review = tuple(rid for rid, record in candidate.items() if record["status"] != "GREEN")
         review = None
         if needs_review:
+            reviewed_paths = [test_path(rid) for rid in needs_review]
+            before = snapshot_tests(output, reviewed_paths)
+            diagnostics = {rid: candidate[rid]["behavior"] for rid in needs_review}
             review = author(needs_review, REVIEW_INSTRUCTIONS, "review",
-                {rid: candidate[rid]["behavior"] for rid in needs_review})
+                diagnostics)
+            write_revision(output, batch.id, before, snapshot_tests(output, reviewed_paths),
+                {rid: matrix[rid] for rid in needs_review}, diagnostics)
             for rid in needs_review:
                 candidate.pop(rid)
             candidate.update(review["checks"]["passed"])
             rejected.update(review["checks"]["rejected"])
         require_any(candidate, rejected)
+        frozen = FrozenAcceptance(output, batch.id, [*regression, *[test_path(rid) for rid in candidate]],
+            {rid: data["behavior"] for rid, data in candidate.items()})
 
         workspace = FileTools(output, ["frontend", "backend"], requirements=batches.requirement_ids(candidate),
             stage="frontend", files=[*paths, *ui_files, *reference, *db_files, *api_test_paths(output, called)],
             allow_write=lambda path: editable_runtime_path(output, path))
 
-        def implementation_gate():
-            compiled = checks.typecheck([*[test_path(rid) for rid in candidate], *regression])
+        def implementation_gate(*, existing=False):
+            frozen.verify_files()
+            compiled = recheck_types(lambda: checks.typecheck([*[test_path(rid) for rid in candidate], *regression]), workspace)
             if compiled["returncode"]:
                 raise TriggerCheckFailure("Application compilation failed", compiled)
             if any(path.startswith("backend/src/") for path in workspace.changed_paths):
                 api_checks = BackendChecks(output)
-                checked = api_checks.typecheck()
+                checked = recheck_types(api_checks.typecheck, workspace)
                 if checked["returncode"]:
                     raise TriggerCheckFailure("Backend compilation failed", checked)
                 suites = api_test_paths(output, backend["apis"])
@@ -310,21 +335,32 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
                 require_stable_acceptance(checks.tests(regression))
             if ui_files:
                 require_green(ui_checks.tests(ui_files))
-            passed, failed = passing_checks(candidate, lambda rid: checks.tests([test_path(rid)]), require_stable_acceptance)
-            require_any(passed, failed)
+            observed = {rid: checks.tests([test_path(rid)]) for rid in candidate}
+            decision = frozen.evaluate(observed, checks.build, existing=existing)
+            passed, failed = passing_checks(candidate, observed.__getitem__, require_stable_acceptance)
+            if not passed:
+                raise CandidateProgress(decision)
             return {"typecheck": compiled, "passed": passed, "rejected": failed}
 
         implemented = None
         if all(record["status"] == "GREEN" for record in candidate.values()):
             try:
-                implemented = {"turns": 0, "checks": implementation_gate()}
+                implemented = {"turns": 0, "checks": implementation_gate(existing=True)}
             except (ValueError, RuntimeError):
                 pass
         if implemented is None:
             scoped = {**task, "units": list(candidate), "scenarios": {rid: scenarios[rid] for rid in candidate}}
-            implemented = run_file_agent(model, IMPLEMENT_INSTRUCTIONS, scoped, workspace, implementation_gate,
-                max_turns, console, batch.id + " / interaction implementation",
-                feedback={rid: data["behavior"] for rid, data in candidate.items()}, batch_limits=True)
+            try:
+                implemented = run_file_agent(model, IMPLEMENT_INSTRUCTIONS, scoped, workspace, implementation_gate,
+                    max_turns, console, batch.id + " / interaction implementation",
+                    feedback={rid: data["behavior"] for rid, data in candidate.items()},
+                    batch_limits=True, protect_candidates=True)
+            except AgentExhausted as error:
+                # A failed repair must not discard requirements that were already green.
+                if not any(record["status"] == "GREEN" for record in candidate.values()):
+                    raise
+                retained = implementation_gate(existing=True)
+                implemented = {"turns": error.turns, "checks": retained}
         results = implemented["checks"]
         rejected.update(results["rejected"])
         for rid in rejected:
@@ -358,6 +394,8 @@ def verify_frontend(arc_dir, tree, backend, ui, console, report):
             typecheck=(lambda: checks.typecheck([]), None))
     if ui_files:
         verification.update(final_checks(console, ui=(lambda: ui_checks.tests(ui_files), require_green)))
+    if ui["pages"]:
+        verification.update(final_checks(console, render=(lambda: checks.render(ui["pages"]), require_green)))
     verification.update(final_checks(console,
         backend_typecheck=(api_checks.typecheck, None),
         backend_tests=(lambda: api_checks.tests(api_files), require_backend_green if api_files else None),

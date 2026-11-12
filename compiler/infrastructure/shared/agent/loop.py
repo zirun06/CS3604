@@ -6,6 +6,7 @@ import json
 from infrastructure.shared.agent.conventions import task_conventions
 from infrastructure.shared.agent.design_batches import DesignInputTooLarge, check_request_size
 from infrastructure.shared.agent.feedback import compact_feedback
+from infrastructure.shared.agent.recovery import CandidateProgress, reject_candidate, snapshot
 
 from infrastructure.shared.agent.tools import FileTools, FileToolError
 from infrastructure.shared.agent.tools.protocol import FILE_TOOL_RULES
@@ -26,7 +27,7 @@ class AgentExhausted(ValueError):
 
 
 def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
-        max_turns: int, console, label: str, feedback=None, feedback_filter=None, *, test_phase=None, batch_limits=False) -> dict:
+        max_turns: int, console, label: str, feedback=None, feedback_filter=None, *, test_phase=None, batch_limits=False, protect_candidates=False) -> dict:
     """Refresh files and paths; optionally select failure-related files before repair.
 
     The stage-owned feedback filter may add writable sources/read-only references
@@ -44,10 +45,14 @@ def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
     last_acceptance = {"origin": "initial_observation" if initial is not None else "not_run",
         "round": None, "stale": False, "checks": initial}
     feedback = []
+    if protect_candidates:
+        instructions += ("\nRepair the earliest shared blocker supported by check evidence. "
+            "Rejected edits are restored to the last verified candidate; read current files before retrying.")
     for turn in range(1, max_turns + 1):
         console.show(f"{label} | Edit round {turn}/{max_turns}",
             "Generate file edits, then run the stage's compilation and test acceptance checks.")
         response, applied, checking = None, False, False
+        before, prior_paths = None, None
         try:
             def request_model():
                 # Gates may regenerate wiring outside edit_file; discard stale excerpts too.
@@ -121,6 +126,8 @@ def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
             if isinstance(response, dict) and response.get("diagnosis"):
                 console.show(label + " | Failure diagnosis", json.dumps(response["diagnosis"], ensure_ascii=False, indent=2))
             calls = response["tool_calls"]
+            if protect_candidates:
+                before, prior_paths = snapshot(files.output), set(files.changed_paths)
             results = files.execute(calls)
             for change in files.last_changes:
                 read_files.pop(change["path"], None)
@@ -147,6 +154,14 @@ def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
                 details={"round": turn, "checks": checks})
             return {"turns": turn, "checks": checks, "files": sorted(files.changed_paths)}
         except (*RESPONSE_ERRORS, RuntimeError, OSError) as error:
+            intermediate = isinstance(error, CandidateProgress)
+            archive = None
+            if before is not None and not intermediate:
+                archive = reject_candidate(files.output, label + f" / round {turn}", before, error)
+                if archive:
+                    read_files.clear()
+                    files.changed_paths = prior_paths
+                    context_result = None
             if batch_limits and isinstance(error, (ModelOutputTruncated, DesignInputTooLarge)):
                 raise
             message = str(error)
@@ -165,10 +180,11 @@ def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
             if checking:
                 last_acceptance = {"origin": "agent_gate", "round": turn, "stale": False, "checks": rejected}
             feedback = [{"phase": phase, "round": turn, "acceptance_ran": checking,
-                "error": message, "details": rejected,
+                "error": message, "details": rejected, "restored_candidate_archive": archive,
                 "next_action": "Repair the code or evidenced test issue using these fresh check results." if checking
                     else "Resolve this tool/path/target error first. No new compilation or tests ran in this round; do not infer a new business failure from stale checks."}]
-            checkpoint(files.output, task=label, action=f"Reject edit round {turn}", status="REJECTED",
+            checkpoint(files.output, task=label, action=f"Record edit round {turn}",
+                status="INTERMEDIATE" if intermediate else "REJECTED",
                 details={"round": turn, "applied": applied, "phase": phase,
                     "acceptance_ran": checking, "last_acceptance_stale": last_acceptance["stale"], "feedback": feedback})
     raise AgentExhausted(label, max_turns, feedback)

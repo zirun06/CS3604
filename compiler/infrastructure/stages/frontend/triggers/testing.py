@@ -18,6 +18,8 @@ def test_path(rid):
 
 class E2EChecks(FrontendChecks):
     """Real-app Playwright checks with isolated test data."""
+    render_path = "frontend/tests/e2e/__arc_render.spec.ts"
+
     def typecheck(self, files, full_source=True):
         """Compile UI and E2E tests, optionally restricting application sources during test generation."""
         return super().typecheck(files, test_roots=("frontend/tests/ui", "frontend/tests/e2e"),
@@ -26,6 +28,9 @@ class E2EChecks(FrontendChecks):
     @validation("browser_e2e", source="model", selected_files=True)
     def tests(self, files):
         """Run selected E2E specs and keep startup/runner failures available for repair."""
+        return self._run_suites(files)
+
+    def _run_suites(self, files):
         if not files:
             raise ValueError("Do not run empty E2E suites")
         for relative in files:

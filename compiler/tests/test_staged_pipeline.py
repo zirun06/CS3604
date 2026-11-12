@@ -65,7 +65,7 @@ test("counts persisted notes", async () => {
   assert.deepEqual(await response.json(), { count: 0 });
 });
 """
-E2E_TEST = """import { test, expect } from "@playwright/test";
+E2E_TEST = """import { test, expect } from "./support/context.js";
 test("count notes", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByTestId("UI-count")).toBeVisible();
@@ -286,6 +286,7 @@ def mock_local_checks(stack):
         for method in ("typecheck", "build"):
             stack.enter_context(patch.object(cls, method, return_value=ok))
     stack.enter_context(patch.object(FrontendChecks, "install_browser", return_value=None))
+    stack.enter_context(patch.object(FrontendChecks, "render", return_value={**ok, "passed": 1, "failed": 0}))
 
     def backend_test(checks, files):
         assert all((checks.output / path).is_file() for path in files)
@@ -308,7 +309,9 @@ def mock_local_checks(stack):
         return {**ok, "returncode": int(not passed), "passed": int(passed), "failed": int(not passed),
             "skipped": 0, "flaky": 0, "errors": [],
             "failures": [] if passed else ["AssertionError: expect(button or count)"],
-            "files": {path: {"passed": int(passed), "failed": int(not passed)} for path in files}}
+            "files": {path: {"passed": int(passed), "failed": int(not passed)} for path in files},
+            "cases": {path: {"status": "passed" if passed else "failed", "failure": "Count not visible" if not passed else ""}
+                for path in files}}
 
     stack.enter_context(patch.object(BackendChecks, "tests", backend_test))
     stack.enter_context(patch.object(FrontendChecks, "tests", browser_test))

@@ -43,6 +43,25 @@ function inspect(filename, marker = false) {
       throw new Error("Initialization changed existing data");
   } finally { db.close(); }
 }
+function tableRows(filename) {
+  const db = new Database(filename, { readonly: true });
+  db.defaultSafeIntegers(true);
+  try {
+    return Object.keys(plan.tables).map(table => db.prepare("SELECT * FROM " + quote(table)).all()
+      .map(row => JSON.stringify(row, (_key, value) =>
+        typeof value === "bigint" ? { integer: value.toString() } : value)).sort());
+  } finally { db.close(); }
+}
+function verifyPersistence(filename, expected, phaseName) {
+  phase = phaseName;
+  const started = performance.now();
+  try {
+    inspect(filename, true);
+    if (JSON.stringify(tableRows(filename)) !== JSON.stringify(expected))
+      throw new Error("File database business rows changed after reopening: " + phaseName);
+    completed.push(phase);
+  } finally { record("persistence_check", started); }
+}
 function seedMarker(filename) {
   const db = new Database(filename);
   try { db.exec('CREATE TABLE "__arc_startup_probe" (value TEXT); INSERT INTO "__arc_startup_probe" VALUES (\'preserve\');'); }
@@ -110,8 +129,10 @@ async function startup(filename, marker = false) {
 try {
   const database = join(plan.directory, "setup.db");
   phase = "fresh initialization"; setup(plan.setup, database);
+  const initialRows = tableRows(database);
   seedMarker(database);
-  phase = "repeated initialization"; setup(plan.setup, database, true);
+  phase = "repeated initialization"; setup(plan.setup, database);
+  verifyPersistence(database, initialRows, "idempotent file database");
   const first = Object.keys(plan.tables)[0];
   if (first) {
     const db = new Database(database);
@@ -122,8 +143,10 @@ try {
   phase = "compiled initialization"; setup([process.execPath, "backend/dist/db/setup.js"], database, true);
   const startupDatabase = join(plan.directory, "startup.db");
   phase = "fresh server startup"; await startup(startupDatabase);
+  const serverRows = tableRows(startupDatabase);
   seedMarker(startupDatabase);
-  phase = "server restart"; await startup(startupDatabase, true);
+  phase = "server restart"; await startup(startupDatabase);
+  verifyPersistence(startupDatabase, serverRows, "file database after server restart");
   phase = "output database initialization"; setup(plan.setup, plan.database);
   console.log(JSON.stringify({ status: "GREEN", completed, validations, database_path: plan.database }));
 } catch (error) {
@@ -153,7 +176,7 @@ class DatabaseChecks:
             except BudgetExhausted as error:
                 validation_event("build", monotonic() - started,
                     "failed" if getattr(error, "process_started", False) else "not_run")
-                for kind in ("database_check", "startup_check"):
+                for kind in ("database_check", "startup_check", "persistence_check"):
                     validation_event(kind, 0, "not_run", reason=str(error))
                 raise
             except Exception:
@@ -161,7 +184,7 @@ class DatabaseChecks:
                 raise
             validation_event("build", monotonic() - started, "failed" if build["returncode"] else "passed")
             if build["returncode"]:
-                for kind in ("database_check", "startup_check"):
+                for kind in ("database_check", "startup_check", "persistence_check"):
                     validation_event(kind, 0, "not_run", reason="backend build failed")
                 return {**build, "phase": "backend build"}
             with TemporaryDirectory(prefix="arc-db-check-") as temporary:
@@ -190,7 +213,7 @@ class DatabaseChecks:
                     if isinstance(detail, dict):
                         for check in detail.get("validations", []):
                             kind = check.get("type")
-                            if kind in {"database_check", "startup_check"} and check.get("result") in {"passed", "failed"}:
+                            if kind in {"database_check", "startup_check", "persistence_check"} and check.get("result") in {"passed", "failed"}:
                                 observed.add(kind)
                                 validation_event(kind, check["seconds"], check["result"], check_phase=check["phase"])
                         result.update({key: detail[key] for key in ("phase", "completed", "error", "status", "database_path") if key in detail})
@@ -199,6 +222,8 @@ class DatabaseChecks:
                     "failed" if result["returncode"] else "passed")
             if "startup_check" not in observed:
                 validation_event("startup_check", 0, "not_run", reason="startup was not reached")
+            if "persistence_check" not in observed:
+                validation_event("persistence_check", 0, "not_run", reason="file database was not reopened")
             return result
         except subprocess.TimeoutExpired as error:
             return {"returncode": 1, "phase": "database initialization", "output": str(error), "error": "Database checks timed out"}

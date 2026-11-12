@@ -12,6 +12,11 @@ the application; they are not authority for expected business behavior. Derive a
 from the original requirement, not the current implementation or process smoke tests.
 Only the selected test_paths are writable. Reading a file does not grant permission to modify it.
 
+Use each acceptance item's original Given, When, and Then as evidence. If a
+scenario requires session restoration, reload the protected route in the same
+browser context and assert the authorized result after reload. Assert isolation
+or rejected access only for source requirements that specify it.
+
 Write a small Playwright suite at test_path using the supplied test/expect/database
 fixture. Drive When actions through the real browser without mocks or injected state.
 Import test and expect from frontend/tests/e2e/support/context.ts with a relative .js import.

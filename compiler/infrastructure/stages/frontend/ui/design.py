@@ -28,6 +28,9 @@ or heading level. Optional prop.visible is a boolean or {var:VARIABLE_NAME, equa
 A status dependency controls visibility without requiring its raw value as display text.
 
 Treat explicit UI names and roles in the original requirement as interface contracts.
+Use distinct link and button roles according to the required interaction, and route
+destinations with enough parent/item identity to make direct navigation possible.
+Represent shared navigation once in the page hierarchy.
 Preserve required labels, action names, region names and placeholders verbatim, including
 language, spelling and case. Do not paraphrase, add object-type prefixes, translate or
 concatenate aliases: a required "Name" field must not become "Shelf name". Record the

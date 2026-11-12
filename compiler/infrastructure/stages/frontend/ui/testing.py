@@ -2,6 +2,7 @@
 
 from infrastructure.utils.presentation.events import validation
 from infrastructure.shared.agent.feedback import CheckFailure
+from infrastructure.utils.files import save_text
 
 import json
 import os
@@ -129,19 +130,37 @@ def parse_playwright_result(result: dict, include_files: bool = False) -> dict:
     except (ValueError, KeyError) as error:
         raise ValueError(f"Playwright did not return its JSON report: {result['output']}") from error
     failures = []
-    files = {}
+    files, cases = {}, {}
 
-    def visit(suite):
+    def visit(suite, parents=()):
         """Accumulate nested Playwright suite/spec results into the normalized browser-check report."""
+        parents = (*parents, suite.get("title", ""))
         for spec in suite.get("specs", []):
             filename = spec.get("file", suite.get("file", ""))
             files[filename] = files.get(filename, 0) + len(spec.get("tests", []))
-            for test in spec.get("tests", []):
+            for index, test in enumerate(spec.get("tests", [])):
+                if include_files:
+                    runs = test.get("results", [])
+                    outcome = test.get("status")
+                    last = runs[-1] if runs else {}
+                    raw = last.get("status")
+                    if test.get("expectedStatus", "passed") != "passed" or not runs:
+                        status = "skipped" if raw == "skipped" else "invalid"
+                    elif outcome == "flaky" or len(runs) != 1:
+                        status = "flaky"
+                    elif raw in {"passed", "skipped", "failed", "timedOut", "interrupted"}:
+                        status = raw if raw in {"passed", "skipped"} else "failed"
+                    else:
+                        status = "invalid"
+                    identity = json.dumps([filename, spec.get("id") or [*parents, spec.get("title"), spec.get("line")],
+                        test.get("projectName"), index], ensure_ascii=False)
+                    message = (last.get("errors") or [{}])[0].get("message", "")
+                    cases[identity] = {"status": status, "failure": message.partition("Call log:")[0].strip()[:600]}
                 for run in test.get("results", []):
                     if run.get("status") not in {"passed", "skipped"}:
                         failures.append("\n".join(item.get("message", "") for item in run.get("errors", [])) + "\nTest file: " + filename)
         for child in suite.get("suites", []):
-            visit(child)
+            visit(child, parents)
 
     for suite in report.get("suites", []):
         visit(suite)
@@ -153,11 +172,55 @@ def parse_playwright_result(result: dict, include_files: bool = False) -> dict:
         "errors": report.get("errors", []), "failures": failures})
     if include_files:
         result["files"] = files
+        result["cases"] = cases
     result["output"] = json.dumps({key: value for key, value in result.items() if key != "output"}, ensure_ascii=False, indent=2)[-24000:]
     return result
 
 
+def render_routes(pages):
+    """Probe concrete routes only; dynamic routes need a business fixture with actual IDs."""
+    concrete, dynamic = [], []
+    for page in pages.values():
+        route = page["route"]
+        if not route.startswith("/") or route.startswith("//") or re.search(r"[{}*<>\[\]]|:\w", route):
+            dynamic.append(route)
+        else:
+            concrete.append(route)
+    return list(dict.fromkeys(concrete)) or ["/"], sorted(set(dynamic))
+
+
+def render_spec(routes):
+    return """import { test, expect } from "@playwright/test";
+const routes = """ + json.dumps(routes, ensure_ascii=False) + """;
+for (const route of routes) test("application renders " + route, async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("requestfailed", request => {
+    if (["document", "script"].includes(request.resourceType()))
+      errors.push(request.resourceType() + " failed: " + request.url());
+  });
+  const response = await page.goto(route, { waitUntil: "load" });
+  expect(response?.ok(), "Document did not load").toBe(true);
+  await expect.poll(() => page.evaluate(() => {
+    const root = document.querySelector("#root") ?? document.body;
+    const visible = (node: Element) => {
+      const style = getComputedStyle(node);
+      return node.getClientRects().length > 0 && style.visibility === "visible" && style.opacity !== "0";
+    };
+    if (!visible(root)) return false;
+    return Boolean((root as HTMLElement).innerText?.trim()) ||
+      Array.from(root.querySelectorAll("input,textarea,select,button,img,svg,canvas")).some(visible);
+  }), { message: "Page rendered no visible content" }).toBe(true);
+  await page.evaluate(() => new Promise<void>(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  expect(errors, "Page runtime errors").toEqual([]);
+});
+"""
+
+
 class FrontendChecks:
+    render_path = "frontend/tests/ui/__arc_render.spec.ts"
+
     """Compiler-owned browser installation, TypeScript, Playwright, and workspace build commands."""
     def __init__(self, output: Path, timeout: int = 600) -> None:
         """Bind browser/build checks to the generated workspace and locate Node.js and npm."""
@@ -205,6 +268,21 @@ class FrontendChecks:
     @validation("ui_presence", selected_files=True)
     def tests(self, files: list[str]) -> dict:
         """Run selected UI-existence specs with Playwright and normalize the reporter output."""
+        return self._run_suites(files)
+
+    @validation("browser_render")
+    def render(self, pages):
+        """Check rendered content and runtime errors without model-authored assertions."""
+        routes, deferred = render_routes(pages)
+        target = self.output / self.render_path
+        save_text(target, render_spec(routes))
+        try:
+            result = self._run_suites([self.render_path])
+            return {**result, "routes": routes, "dynamic_routes_requiring_scenarios": deferred}
+        finally:
+            target.unlink(missing_ok=True)
+
+    def _run_suites(self, files):
         if not files:
             raise ValueError("Do not run an empty UI suite")
         with socket.socket() as listener:

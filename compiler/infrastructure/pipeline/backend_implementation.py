@@ -4,6 +4,7 @@ from pathlib import Path
 
 from infrastructure.shared.agent.tools import FileTools
 from infrastructure.shared.agent.loop import run_file_agent
+from infrastructure.shared.agent.type_repair import recheck_types
 from infrastructure.shared.agent.recovery import reject_paths, final_checks, complete_report
 from infrastructure.shared.agent.files import editable_application_path
 from infrastructure.stages.backend.context import load_context, supplied_sources, related_schema
@@ -48,6 +49,9 @@ required cookies from real responses using headers.getSetCookie(), strip attribu
 send them in a Cookie header for subsequent requests when this API requires it. Supply
 only contract-required authentication; do not test another requirement's login flow as
 an incidental dependency. Necessary existing sessions/accounts can be prepared via SQL.
+For requirement-defined authentication, assert real Set-Cookie/Cookie round-trips,
+bootstrap with the same credential and rejection of another identity's records when required.
+Exercise declared JSON field names, parameter names and rejection response shapes.
 
 Seed only required Given state directly through database with parameterized SQL and valid
 values; use 0/1 booleans. Read the actual shared helper/SQL definitions rather than guessing
@@ -167,8 +171,8 @@ def implement_backend_tdd(arc_dir: Path, pause: bool = False, max_turns: int = 1
             "api_wiring": {"registry": REGISTER_PATH, "app": "backend/src/app.ts", "server": "backend/src/server.ts"}})
         existing = {path: (output / path).read_bytes() for path in tests if (output / path).is_file()}
 
-        def compile_tests(files):
-            compiled = checks.typecheck(files)
+        def compile_tests(files, workspace=None):
+            compiled = recheck_types(lambda: checks.typecheck(files), workspace)
             if compiled["returncode"]:
                 raise CheckFailure("Test TypeScript compilation failed", compiled)
             return compiled
@@ -197,7 +201,7 @@ def implement_backend_tdd(arc_dir: Path, pause: bool = False, max_turns: int = 1
         active_files = [paths[aid] for aid in candidates]
 
         def implementation_gate():
-            compiled = compile_tests([*active_files, *regression])
+            compiled = compile_tests([*active_files, *regression], workspace)
             if regression:
                 require_green(checks.tests(regression))
             passed, rejected = passing_checks(candidates, lambda aid: checks.tests([paths[aid]]), require_green)
@@ -209,7 +213,7 @@ def implement_backend_tdd(arc_dir: Path, pause: bool = False, max_turns: int = 1
             allow_write=lambda relative: "/tests/" not in relative and editable_application_path(output, relative))
         task = {**context, "units": list(candidates), "apis": {aid: context["apis"][aid] for aid in candidates}}
         implemented = run_file_agent(model, IMPLEMENT_INSTRUCTIONS, task, workspace, implementation_gate,
-            max_turns, console, batch.id + " / implementation", feedback=generated_checks, batch_limits=True)
+            max_turns, console, batch.id + " / implementation", feedback=generated_checks, batch_limits=True, protect_candidates=True)
         results = implemented["checks"]
         for aid, evidence in results["rejected"].items():
             evidence["test_archive"] = reject_paths(output, batch.id + " / " + aid, existing, [paths[aid]])

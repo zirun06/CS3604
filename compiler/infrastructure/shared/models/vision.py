@@ -118,6 +118,8 @@ class VisualModel:
                     print("Provider rejected reasoning controls; using provider defaults.", flush=True)
         except OpenAIError as error:
             raise RuntimeError(f"Visual model request failed: {error}") from error
+        if response.choices and getattr(response.choices[0], "finish_reason", None) == "length":
+            raise ValueError("Single-image analysis was truncated. Return a shorter complete visual description.")
         if not response.choices or not response.choices[0].message.content:
             raise ValueError("Visual model returned empty content")
         return json.loads(response.choices[0].message.content)

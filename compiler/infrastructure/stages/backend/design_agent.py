@@ -77,8 +77,10 @@ Do not create an HTML-rendering API or incidental UI formatting modules to imple
 page requirement. A requirement about a page is not permission to move rendering server-side.
 
 Design API interfaces around data and actions needed by frontend scenarios.
-Keep credential transport consistent and never expose stored password hashes or session
-secrets in business response bodies. Describe only requirement-supported success and
+Declare the exact wire path, route-parameter names, and JSON success/error fields consumed
+by callers. When required by the source, define one session bootstrap/refresh contract,
+stable credential transport and owner-scoped access; preserve explicitly public reads.
+Never expose stored password hashes or session secrets in business responses. Describe only requirement-supported success and
 rejection branches. Preconditions and postconditions must connect interface behavior
 to observable outcomes, including unchanged data on rejection where required.
 
