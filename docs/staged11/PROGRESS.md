@@ -21,3 +21,20 @@
 离线回归 114 通过、1 跳过、1 未选择。补测最终验证时间预留的相关套件 36 通过。两种续跑的 schema 字节一致，预算停止后报告非 GREEN，产物保留。无真实模型请求。详情见 [第 3 步记录](STEP3.md) 和 [离线证据](step3-evidence.json)。
 
 本轮结束于第 3 步。真实 Windows 进程清理、数据库重启及完整 Playwright 留待沙箱外复验，执行目录和命令见第 3 步记录。
+
+
+## 第 4a 步前置修复：合成夹具和 Node 预检
+
+- 08 和 10 的合成页面都保留 `UI-count` 根与 `UI-button`。10 的端到端测试点击按钮、等待 `/api/note-count` 返回 HTTP 200，并确认状态从 Ready 变成 0。mock 编辑识别已经应用的内容，避免重放失效的旧文本。
+- 编译开始记录 `node --version`；模板依赖不兼容时写入 `compiler.log` 和 `.arc/compilation.json` 的 `node_preflight.warning`，不中止。
+- 替换本地检查（`STAGED11_REAL_CHECKS=0`）：`tests/test_staged_pipeline.py` 5 通过、退出码 0；两份合成输入均断言 11 阶段 GREEN。
+- 真实检查：组长报告修复前 Node 22 下 08、10 失败；修复后未在沙箱内运行。请在 `compiler/` 用 PowerShell 执行：
+
+  ```powershell
+  $env:PATH = (Resolve-Path 'outputs/node22/node_modules/node/bin').Path + ';' + $env:PATH
+  node --version
+  $env:STAGED11_REAL_CHECKS = '1'
+  uv run --locked --with pytest==9.2.0 python -m pytest -p no:cacheprovider -q tests/test_staged_pipeline.py -k original
+  ```
+
+  真实检查仍使用 mock 模型。移除 `-k original` 可复验两份合成输入。

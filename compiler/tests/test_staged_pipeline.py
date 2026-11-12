@@ -3,6 +3,7 @@
 from contextlib import ExitStack
 import json
 import os
+import re
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -37,12 +38,12 @@ SQL = "CREATE TABLE IF NOT EXISTS Note (id INTEGER PRIMARY KEY);\n"
 REGISTER = "backend/src/api/register.ts"
 APP = "frontend/src/App.tsx"
 PAGE_BODY = '''  presentationData("notes", {});
-  return <main><h1>Notes</h1><button data-testid="UI-button">Count notes</button><p role="status">Ready</p></main>;'''
+  return <main data-testid="UI-count"><h1>Notes</h1><button data-testid="UI-button">Count notes</button><p role="status">Ready</p></main>;'''
 INTERACTIVE_PAGE = """import { useState } from "react";
 export function App() {
   const [status, setStatus] = useState("Ready");
   presentationData("notes", {});
-  return <main><h1>Notes</h1><button data-testid="UI-button" onClick={async () => {
+  return <main data-testid="UI-count"><h1>Notes</h1><button data-testid="UI-button" onClick={async () => {
     const response = await fetch("/api/note-count");
     const result = await response.json() as { count: number };
     setStatus(String(result.count));
@@ -67,7 +68,13 @@ test("counts persisted notes", async () => {
 E2E_TEST = """import { test, expect } from "@playwright/test";
 test("count notes", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Count notes" }).click();
+  await expect(page.getByTestId("UI-count")).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("Ready");
+  const [response] = await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/note-count"),
+    page.getByTestId("UI-button").click(),
+  ]);
+  expect(response.status()).toBe(200);
   await expect(page.getByRole("status")).toHaveText("0");
 });
 """
@@ -86,6 +93,15 @@ def response(payload=None, *, tools=()):
 def edit(output, path, content):
     assert not (output / path).exists()
     return {"path": path, "operation": "create", "new_content": content}
+
+
+def replace_once(output, path, old, new):
+    source = (output / path).read_text(encoding="utf-8")
+    if new in source:
+        return response({"tool_calls": []})
+    assert source.count(old) == 1, path
+    return response({"tool_calls": [{"tool": "edit_file", "path": path, "operation": "replace",
+        "old_content": old, "new_content": new}]})
 
 
 def fixture_model(output, rid, sid, calls):
@@ -148,17 +164,15 @@ def fixture_model(output, rid, sid, calls):
             assert task["api_id"] == "API-COUNT"
             if "test_path" in task:
                 return response({"tool_calls": [{"tool": "edit_file", **edit(output, task["test_path"], HTTP_TEST)}]})
-            return response({"tool_calls": [{"tool": "edit_file", "path": REGISTER, "operation": "replace",
-                "old_content": "export function registerApis(_app: Express, _connection: Database.Database): void {}",
-                "new_content": API_IMPLEMENTATION.rstrip()}]})
+            return replace_once(output, REGISTER,
+                "export function registerApis(_app: Express, _connection: Database.Database): void {}",
+                API_IMPLEMENTATION.rstrip())
         elif number == "08":
             assert task["page"]["root"] == "UI-count"
-            return response({"tool_calls": [
-                {"tool": "edit_file", "path": APP, "operation": "prepend",
-                    "new_content": 'import { presentationData } from "./ui-runtime";\n'},
-                {"tool": "edit_file", "path": APP, "operation": "replace",
-                    "old_content": '  return <main><h1>Application</h1><p>The project is ready for requirement implementation.</p></main>;',
-                    "new_content": PAGE_BODY}]})
+            old = ('export function App() {\n'
+                '  return <main><h1>Application</h1><p>The project is ready for requirement implementation.</p></main>;')
+            new = 'import { presentationData } from "./ui-runtime";\nexport function App() {\n' + PAGE_BODY
+            return replace_once(output, APP, old, new)
         elif number == "10":
             assert "TR-COUNT" in task["triggers"]
             if "test_path" in task:
@@ -167,11 +181,8 @@ def fixture_model(output, rid, sid, calls):
                     return response({"tool_calls": []})  # Review keeps the original business assertion.
                 content = E2E_TEST
             else:
-                return response({"tool_calls": [
-                    {"tool": "edit_file", "path": APP, "operation": "prepend",
-                        "new_content": 'import { useState } from "react";\n'},
-                    {"tool": "edit_file", "path": APP, "operation": "replace",
-                        "old_content": PAGE_BODY, "new_content": INTERACTIVE_PAGE.split("\n", 2)[2].rsplit("}", 1)[0].rstrip()}]})
+                return replace_once(output, APP, "export function App() {\n" + PAGE_BODY + "\n}",
+                    INTERACTIVE_PAGE.rstrip())
         else:
             raise AssertionError(f"Unexpected mock request in {number}")
         return response({"tool_calls": [{"tool": "edit_file", **edit(output, path, content)}]})
@@ -204,7 +215,11 @@ def mock_local_checks(stack):
     def browser_test(checks, files):
         assert all((checks.output / path).is_file() for path in files)
         source = (checks.output / APP).read_text(encoding="utf-8")
-        passed = ("fetch(" if isinstance(checks, E2EChecks) else "Count notes") in source
+        spec = "\n".join((checks.output / path).read_text(encoding="utf-8") for path in files)
+        ids = re.findall(r'getByTestId\(["\']([^"\']+)', spec)
+        passed = bool(ids) and all(f'data-testid="{element_id}"' in source for element_id in ids)
+        if isinstance(checks, E2EChecks):
+            passed &= 'fetch("/api/note-count")' in source and "onClick=" in source
         return {**ok, "returncode": int(not passed), "passed": int(passed), "failed": int(not passed),
             "skipped": 0, "flaky": 0, "errors": [],
             "failures": [] if passed else ["AssertionError: expect(button or count)"],
@@ -247,6 +262,8 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
         return json.loads((output / ".arc" / (name + ".json")).read_text(encoding="utf-8"))
 
     report = read("compilation")
+    assert "version" in report["node_preflight"]
+    assert "[PREFLIGHT] node --version:" in (output / "compiler.log").read_text(encoding="utf-8")
     assert tuple(name for name, _, _ in PIPELINE) == STAGES
     assert tuple(report["stages"]) == STAGES
     assert report["status"] == "GREEN", {k: v for k, v in report["stages"].items() if v["status"] != "GREEN"}
@@ -268,3 +285,17 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
     assert set(calls) == {"01", "02", "03", "04", "05", "06", "07", "08", "09", "10"}
     assert "fetch(" in (output / APP).read_text(encoding="utf-8")
     assert (output / "deploy.sh").is_file()
+
+@pytest.mark.parametrize("version, warning", [("v26.13.0", True), ("v22.23.5", False), ("v22.11.0", True)])
+def test_node_preflight_records_version_and_compatibility(tmp_path, version, warning):
+    from infrastructure.compiler import node_preflight
+
+    with patch("infrastructure.compiler.capture_process",
+            return_value={"returncode": 0, "stdout": version + "\n"}) as probe:
+        result = node_preflight(tmp_path)
+    probe.assert_called_once_with(["node", "--version"], cwd=tmp_path, timeout=5)
+    assert result["version"] == version
+    assert bool(result["warning"]) == warning
+    log = (tmp_path / "compiler.log").read_text(encoding="utf-8")
+    assert version in log
+    assert ("[WARNING]" in log) == warning

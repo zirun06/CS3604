@@ -1,7 +1,9 @@
 """Run all compilation passes or one selected pass in the same pipeline."""
 
 from pathlib import Path
+import re
 import traceback
+from subprocess import TimeoutExpired
 
 from infrastructure.pipeline.project_initialization import project_initialization
 from infrastructure.pipeline.requirements import explore_requirement
@@ -17,12 +19,41 @@ from infrastructure.pipeline.frontend_implementation import implement_frontend_t
 from infrastructure.utils.presentation.console import show_panel
 from infrastructure.utils.presentation.logging import console_log
 from infrastructure.utils.files import save_json
+from infrastructure.utils.processes import capture_process
 from infrastructure.utils.budget import RunBudget, active_budget, budget_scope, BudgetExhausted
 from infrastructure.shared.project.provenance import (
     COMPLETE_STATES, effective_settings, prepare_workspace, provenance, resolve_workspace,
 )
 from infrastructure.shared.project.git import checkpoint, rollback_before_stage
 from infrastructure.utils.presentation.events import begin_run, finish_run, begin_stage, finish_stage, timestamp, validation_event
+
+
+def node_preflight(output: Path) -> dict:
+    """Record the template's Node compatibility without blocking compilation."""
+    version = None
+    warning = None
+    try:
+        result = capture_process(["node", "--version"], cwd=output, timeout=5)
+        match = re.fullmatch(r"v(\d+)\.(\d+)\.\d+(?:[-+].*)?", result["stdout"].strip())
+        if result["returncode"] != 0 or not match:
+            warning = "Could not read the Node version from node --version."
+        else:
+            version = match[0]
+            major, minor = map(int, match.groups())
+            # Vite 7 and the locked better-sqlite3 12.2.0 must both support Node.
+            if major not in (22, 23, 24) or (major == 22 and minor < 12):
+                warning = (f"Node {version} is outside the template dependency range. "
+                    "Use Node 22.12+ on major 22 (recommended) or Node 24; "
+                    "native SQLite dependency installation may fail.")
+    except (OSError, TimeoutExpired, BudgetExhausted) as error:
+        warning = f"Could not run node --version ({type(error).__name__})."
+    line = f"[PREFLIGHT] node --version: {version or 'unavailable'}"
+    if warning:
+        line += "\n[WARNING] " + warning
+    print(line, flush=True)
+    with (output / "compiler.log").open("a", encoding="utf-8") as log:
+        log.write(line + "\n")
+    return {"version": version, "warning": warning}
 
 
 PIPELINE = (
@@ -178,6 +209,7 @@ class Compiler:
         self.report.update(run_id=run_id, workspace_id=self.workspace["workspace_id"],
             provenance=self.source, started_at=timestamp())
         try:
+            self.report["node_preflight"] = node_preflight(self.output_dir)
             # =========================================
             # main loop over all passes in the pipeline
             # =========================================
