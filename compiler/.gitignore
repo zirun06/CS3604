@@ -9,3 +9,7 @@ docs/
 !/scripts/package.py
 
 AGENTS.md
+
+# Python verification and local outputs stay outside runtime packages.
+/.pytest_cache/
+/tests/

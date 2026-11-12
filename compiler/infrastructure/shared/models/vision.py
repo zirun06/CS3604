@@ -50,13 +50,13 @@ def compress_image(data: bytes, mime: str) -> tuple[bytes, str]:
 class VisualModel:
     """Extract visible image evidence without inferring hidden business behavior."""
     def __init__(self) -> None:
-        """Read compiler/.env and configure the image-capable model, falling back to text-model settings."""
-        load_dotenv(Path(__file__).resolve().parents[3] / ".env", encoding="utf-8-sig")
+        """Read compiler/.env and configure the image-capable model, using the same connection as the text model."""
+        load_dotenv(Path(__file__).resolve().parents[3] / ".env", encoding="utf-8-sig", override=False)
         self.name = os.getenv("VISUAL_MODEL") or os.getenv("MODEL") or DEFAULT_MODEL
-        api_key = os.getenv("VISUAL_API_KEY") or os.getenv("OPENAI_API_KEY")
-        base_url = os.getenv("VISUAL_BASE_URL") or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1"
-        if not api_key:
-            raise ValueError("Set VISUAL_API_KEY or OPENAI_API_KEY in compiler/.env; the model must accept images")
+        api_key = os.getenv("OPENAI_API_KEY")
+        base_url = os.getenv("OPENAI_BASE_URL")
+        if not api_key or not base_url:
+            raise ValueError("Set OPENAI_API_KEY and OPENAI_BASE_URL for the model connection")
         self.reasoning = os.getenv("VISUAL_REASONING", os.getenv("MODEL_REASONING", "low")).lower()
         if self.reasoning not in {"auto", "provider", "none", "low", "high", "max"}:
             raise ValueError("VISUAL_REASONING must be auto, provider, none, low, high or max")

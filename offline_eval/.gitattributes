@@ -1,0 +1,3 @@
+# Preserve original archived fixtures and sources byte for byte.
+legacy/** -text
+public/** -text

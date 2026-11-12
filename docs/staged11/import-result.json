@@ -1,0 +1,62 @@
+{
+  "import_commit": "6e0296d",
+  "exact_import_blobs": 156,
+  "obsolete_paths_removed_at_import": 19,
+  "archived_group_blobs_byte_identical": 418,
+  "archived_upstream_test_blobs": 22,
+  "runtime_python_files_imported": 99,
+  "forbidden_runtime_edges": 0,
+  "runtime_dependencies": [
+    "PyYAML",
+    "openai",
+    "python-dotenv",
+    "httpx",
+    "rich>=13,<15",
+    "Pillow>=11,<13"
+  ],
+  "template_group_restored": [
+    "compiler/infrastructure/shared/project/templates/.gitignore",
+    "compiler/infrastructure/shared/project/templates/frontend/package.json",
+    "compiler/infrastructure/shared/project/templates/backend/scripts/copy-db.mjs"
+  ],
+  "deploy_matches_both": true,
+  "package_script_matches_group": true,
+  "input_sizes": {
+    "arc-bench-web--12306": {
+      "yaml_chars": 404633,
+      "leaves": 93,
+      "scenarios": 142,
+      "references": 26
+    },
+    "arc-bench-web--bookstack": {
+      "yaml_chars": 51599,
+      "leaves": 24,
+      "scenarios": 35,
+      "references": 19
+    },
+    "arc-bench-web--ctrip": {
+      "yaml_chars": 302034,
+      "leaves": 97,
+      "scenarios": 152,
+      "references": 46
+    },
+    "arc-bench-web--keep": {
+      "yaml_chars": 50168,
+      "leaves": 16,
+      "scenarios": 33,
+      "references": 20
+    },
+    "arc-bench-web--prestashop": {
+      "yaml_chars": 185034,
+      "leaves": 55,
+      "scenarios": 86,
+      "references": 22
+    },
+    "arc-bench-web--stackoverflow": {
+      "yaml_chars": 187708,
+      "leaves": 52,
+      "scenarios": 66,
+      "references": 15
+    }
+  }
+}

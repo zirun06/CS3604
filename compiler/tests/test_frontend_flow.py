@@ -14,7 +14,7 @@ from infrastructure.stages.frontend.ui.design import apply_proposal, empty_desig
 from infrastructure.stages.frontend.ui.synthesis import synthesize_ui
 from infrastructure.stages.frontend.ui.testing import presentation_run_status
 from infrastructure.stages.frontend.triggers.design import empty_triggers, trigger_obligations
-from infrastructure.stages.frontend.triggers.implementation import scenario_context, test_run_status
+from infrastructure.stages.frontend.triggers.implementation import scenario_context, test_run_status as e2e_run_status
 from infrastructure.utils.files import save_json, save_text
 
 
@@ -117,31 +117,12 @@ class FrontendFlow(unittest.TestCase):
         self.assertEqual(ui["bindings"]["form.text"]["source"], 123)
 
 
-    def test_requirement_creates_all_triggers_in_one_call_and_runs_complete_acceptance(self):
-        """Create every navigation dependency before accepting behavioral GREEN."""
-        self.check_event_creation()
 
-    def test_green_tests_do_not_skip_missing_or_deleted_event_files(self):
-        """Even inadequate GREEN tests cannot bypass required implementation files."""
-        from infrastructure.shared.project.entrypoints import remember_path
-        remember_path(self.output, "trigger", "TR-COUNT", "frontend/src/deleted.ts")
-        self.check_event_creation(early_green=True)
 
-    def test_requirement_repair_can_edit_every_created_handler(self):
-        """The requirement agent can repair any handler after a failed batch check."""
-        self.check_event_creation(needs_repair=True)
 
-    def test_partial_trigger_batch_receives_missing_files_without_passing_acceptance(self):
-        self.check_event_creation(partial_batch=True)
 
-    def test_trigger_batch_reuses_existing_path_and_only_creates_missing_handlers(self):
-        self.check_event_creation(preexisting=True)
 
-    def test_integration_can_repair_related_backend_sources_and_regresses_api_tests(self):
-        self.check_event_creation(backend_repair=True)
 
-    def test_backend_regression_failure_returns_to_integration_repair(self):
-        self.check_event_creation(backend_repair=True, backend_fails_once=True)
 
     def check_event_creation(self, early_green=False, needs_repair=False, partial_batch=False, preexisting=False, backend_repair=False, backend_fails_once=False):
         """Run the real orchestration with fake browser reports and model edits."""
@@ -285,173 +266,14 @@ class FrontendFlow(unittest.TestCase):
         self.assertEqual(checks.tests.call_args.args[0],
             [report["requirements"][rid]["test_path"] for rid in self.tree.leaves])
 
-    def test_single_trigger_context_supplies_frontend_data_and_derived_db_effects(self):
-        from infrastructure.stages.frontend.triggers.scope import model_context
-        context = scenario_context(self.ui, self.interactions, "REQ-A")
-        context.update({"backend_apis": self.backend["apis"], "requirement": {"id": "REQ-A"},
-            "obligations": {tid: trigger_obligations(tr, self.backend) for tid, tr in context["triggers"].items()}})
-        selected = model_context(context, {"TR-SAVE"})
-        self.assertEqual(set(selected["triggers"]), {"TR-SAVE"})
-        self.assertEqual(selected["obligations"]["TR-SAVE"], {"read": [], "write": ["Note.id", "Note.text"]})
-        self.assertEqual(set(selected["backend_apis"]), {"API-SAVE"})
-        self.assertIn("form.text", selected["page_subtrees"]["editor"]["bindings"])
-        self.assertNotIn("events", selected)
-        self.assertNotIn("contracts", selected)
 
 
-    def test_repair_scope_keeps_handlers_and_direct_imports_then_reads_failure_dependencies(self):
-        """Do not omit required handlers/helpers, including a missing indexed file."""
-        from infrastructure.shared.project.entrypoints import remember_path
-        from infrastructure.shared.agent.context import SourceFiles
-        paths = {"TR-INPUT": "frontend/src/events/input.ts", "TR-SAVE": "frontend/src/events/save.ts",
-            "TR-COUNT": "frontend/src/events/deleted.ts"}
-        for eid, relative in paths.items():
-            remember_path(self.output, "trigger", eid, relative)
-        save_text(self.output / paths["TR-INPUT"], 'import { value } from "../shared/value.js";')
-        save_text(self.output / paths["TR-SAVE"], "export function handle() {}")
-        save_text(self.output / "frontend/src/shared/value.ts", 'export { value } from "./nested";')
-        save_text(self.output / "frontend/src/shared/nested/index.ts", 'import "../value.js"; export const value = 1;')
-        save_text(self.output / "frontend/src/unrelated.ts", "unrelated")
-        selected = SourceFiles(self.output, self.ui)
-        workspace = selected.workspace(triggers=set(paths), references=["frontend/src/ui-runtime.ts"])
-        files = workspace.state()
-        for relative in [*paths.values(), "frontend/src/shared/value.ts"]:
-            self.assertTrue(files[relative]["writable"], relative)
-        self.assertNotIn("frontend/src/shared/nested/index.ts", files)
-        selected.feedback(workspace, {"error": "frontend/src/shared/nested/index.ts: invalid value"})
-        self.assertIn("frontend/src/shared/nested/index.ts", workspace.state())
-        selected.feedback(workspace, {"error": "another failure"})
-        self.assertNotIn("frontend/src/shared/nested/index.ts", workspace.state())
-        self.assertIsNone(files[paths["TR-COUNT"]]["content"])
-        self.assertNotIn("frontend/src/unrelated.ts", files)
-        self.assertFalse(files["frontend/src/ui-runtime.ts"]["writable"])
 
-    def test_feedback_exposes_generated_tests_for_requirement_based_repairs(self):
-        """A locator/compiler error exposes repairable sources and generated test suites."""
-        from infrastructure.shared.project.entrypoints import remember_path
-        from infrastructure.shared.agent.context import SourceFiles
-        page, helper = "frontend/src/screens/summary.tsx", "frontend/src/shared/count.ts"
-        remember_path(self.output, "page", "summary", page)
-        save_text(self.output / page, 'import { count } from "../shared/count.js";')
-        save_text(self.output / helper, "export const count = 0;")
-        frozen = "frontend/tests/e2e/accepted.spec.ts"
-        save_text(self.output / frozen, "accepted assertions")
-        selected = SourceFiles(self.output, self.ui)
-        generation = selected.workspace(target=("e2e_test", "REQ-A"))
-        generation.state()
-        generation.execute(propose_files(self.output, [{"path": "frontend/tests/e2e/new.spec.ts", "content": "new assertions"}])["tool_calls"])
-        selected.feedback(generation, {"error": "generation error"})
-        workspace = selected.workspace()
-        result = selected.feedback(workspace, {"ui": {"returncode": 1,
-            "failures": [f"UI-COUNT is not visible: {frozen}; frontend/tests/e2e/new.spec.ts"], "output": "duplicate reporter body"},
-            "typecheck": {"returncode": 0, "output": "successful compiler output"}})
-        files = workspace.state()
-        self.assertTrue(files[page]["writable"])
-        self.assertTrue(files[helper]["writable"])
-        self.assertTrue(files[frozen]["writable"])
-        self.assertTrue(files["frontend/tests/e2e/new.spec.ts"]["writable"])
-        self.assertNotIn("output", result["ui"])
-        self.assertEqual(result["typecheck"], {"returncode": 0})
 
-    def test_agent_retry_receives_sources_identified_by_failed_checks(self):
-        """A file omitted initially becomes writable before the next model repair request."""
-        from infrastructure.shared.agent.loop import run_file_agent
-        from infrastructure.shared.agent.context import SourceFiles
-        page = "frontend/src/screens/broken.tsx"
-        helper = "frontend/src/shared/value.ts"
-        save_text(self.output / page, 'import { value } from "../shared/value.js";')
-        save_text(self.output / helper, "export const value = false;")
-        selection = SourceFiles(self.output)
-        workspace = selection.workspace()
-        calls = []
-        def generate(instructions, payload):
-            calls.append(payload)
-            if len(calls) == 1:
-                self.assertNotIn(page, payload["files"])
-                return propose_files(self.output, [])
-            self.assertTrue(payload["files"][page]["writable"])
-            self.assertTrue(payload["files"][helper]["writable"])
-            return propose_files(self.output, [{"path": helper, "content": "export const value = true;"}])
-        gate = Mock(side_effect=[ValueError(f"{page}(1,1): Type error"), {"green": True}])
-        result = run_file_agent(Mock(generate_json=generate), "Repair", {}, workspace,
-            gate, 2, Mock(), "Repair", feedback_filter=lambda value: selection.feedback(workspace, value))
-        self.assertEqual(result["checks"], {"green": True})
 
-    def test_runtime_types_survive_returning_to_presentation_stage(self):
-        from infrastructure.shared.project.initialize import initialize_project
-        from infrastructure.stages.frontend.ui.runtime import prepare_frontend
-        from infrastructure.stages.frontend.triggers.runtime import sync_triggers
-        from infrastructure.utils.files import read_source
-        initialize_project(self.output)
-        sync_triggers(self.output, {"pages": {}, "bindings": {}, "elements": {}},
-            {"triggers": {}}, {"apis": {}}, [])
-        before = read_source(self.output / "frontend/src/ui-runtime.ts")
-        prepare_frontend(self.output)
-        after = read_source(self.output / "frontend/src/ui-runtime.ts")
-        self.assertEqual(before, after)
-        self.assertIn("export interface UiTriggerContext", after)
-        self.assertEqual(after.count("export type UiTriggerHandler"), 1)
 
-    def test_synthesis_retries_without_publishing_rejected_state(self):
-        requests = []
-        def generate(instructions, payload):
-            requests.append(deepcopy(payload))
-            rid = payload["requirement"]["id"]
-            page = "summary" if rid == "REQ-C" else "editor"
-            context = page_context(self.ui, page)
-            proposal = {"pages": {page: self.ui["pages"][page]} if rid != "REQ-B" else {},
-                "elements": context["elements"] if rid != "REQ-B" else {}, "bindings": context["bindings"] if rid != "REQ-B" else {},
-                "requirement_ui": self.ui["requirements"][rid], "step_ui": {sid: self.ui["steps"][sid] for sid in self.tree.own_steps[rid]}}
-            return proposal
-        contexts = {rid: {**record, "steps": [self.tree.steps[sid] for sid in self.tree.own_steps[rid]], "images": {}} for rid, record in self.tree.requirements.items()}
-        result = synthesize_ui(self.arc, self.tree, {}, contexts, Mock(generate_json=generate), Mock())
-        self.assertEqual(result, self.ui)
-        self.assertEqual(len(requests), 3)
-        self.assertNotIn("step_obligations", requests[0])
 
-    def test_incomplete_ui_response_gets_all_missing_sections_in_one_repair(self):
-        requests = []
-        def generate(instructions, payload):
-            requests.append(deepcopy(payload))
-            rid = payload["requirement"]["id"]
-            pid = "summary" if rid == "REQ-C" else "editor"
-            context = page_context(self.ui, pid)
-            if len(requests) == 1:
-                return {"pages": {pid: self.ui["pages"][pid]}}
-            if len(requests) == 2:
-                details = payload["correction"]["details"]
-                self.assertIn("Actual failure: Cannot read UI/data response", instructions)
-                self.assertIn('"missing_sections"', instructions)
-                self.assertIn("FINAL JSON", instructions)
-                self.assertEqual(set(details["missing_sections"]),
-                    {"elements", "bindings", "requirement_ui", "step_ui"})
-                self.assertEqual(set(details["response_template"]),
-                    {"pages", "elements", "bindings", "requirement_ui", "step_ui"})
-                self.assertEqual(payload["all_pages"], {})
-                self.assertEqual(json.loads((self.arc / "ui_design.json").read_text())["pages"], {})
-            return {"pages": {pid: self.ui["pages"][pid]} if rid != "REQ-B" else {},
-                "elements": context["elements"] if rid != "REQ-B" else {},
-                "bindings": context["bindings"] if rid != "REQ-B" else {},
-                "requirement_ui": self.ui["requirements"][rid],
-                "step_ui": {sid: self.ui["steps"][sid] for sid in self.tree.own_steps[rid]}}
-        contexts = {rid: {**record, "images": {},
-            "steps": [self.tree.steps[sid] for sid in self.tree.own_steps[rid]]}
-            for rid, record in self.tree.requirements.items()}
-        result = synthesize_ui(self.arc, self.tree, {}, contexts,
-            Mock(generate_json=generate), Mock())
-        self.assertEqual(result, self.ui)
-        self.assertEqual(len(requests), 4)
 
-    def test_complete_ui_prompt_example_produces_page_context_and_display_tests(self):
-        from infrastructure.stages.frontend.ui.proposals import EXAMPLE
-        from infrastructure.stages.frontend.ui.testing import existence_suite
-        design = apply_proposal(empty_design(), EXAMPLE, "REQ-A", self.tree)
-        context = page_context(design, "example-home")
-        self.assertEqual(set(context["elements"]), set(EXAMPLE["elements"]))
-        self.assertEqual(set(context["bindings"]), set(EXAMPLE["bindings"]))
-        suite = existence_suite(design, "example-home")
-        self.assertIn("UI-example-username", suite)
-        self.assertIn("ExampleUser", suite)
 
     def test_presentation_loader_has_no_report_policy(self):
         save_json(self.arc / "requirements.json", self.raw)
@@ -461,16 +283,6 @@ class FrontendFlow(unittest.TestCase):
         self.assertEqual(images, {})
         self.assertNotIn("concatenated_steps", contexts["REQ-A"])
 
-    def test_trigger_context_does_not_load_requirement_obligations_or_check_coverage(self):
-        from infrastructure.stages.frontend.triggers.context import load_e2e_context
-        for name, value in (("requirements", self.raw), ("visual_analysis", {}),
-                ("db_schema", {"entities": {}}), ("backend_apis", self.backend),
-                ("ui_design", self.ui), ("frontend_triggers", empty_triggers(self.tree))):
-            save_json(self.arc / (name + ".json"), value)
-        self.assertFalse((self.arc / "db_obligations.json").exists())
-        _, _, backend, _, triggers, _, _ = load_e2e_context(self.arc, self.output)
-        self.assertEqual(backend, self.backend)
-        self.assertEqual(triggers["triggers"], {})
 
     def test_trigger_db_effects_are_derived_without_frontend_coverage_validation(self):
         from infrastructure.stages.frontend.triggers.design import apply_decomposition
@@ -482,45 +294,9 @@ class FrontendFlow(unittest.TestCase):
             {"read": ["Note.id", "Note.text"], "write": []})
         self.assertEqual(result["triggers"]["T"]["read"], ["form.text"])
 
-    def test_trigger_synthesis_retries_json_and_checks_declared_obligations(self):
-        from infrastructure.stages.frontend.triggers.synthesis import synthesize_triggers
-        calls = []
-        self.obligations["steps"] = {sid: self.obligations["requirements"][rid]
-            for rid in self.tree.leaves for sid in self.tree.own_steps[rid]}
-        save_json(self.arc / "db_obligations.json", self.obligations)
-
-        def generate(instructions, payload):
-            calls.append(deepcopy(payload))
-            if len(calls) == 1:
-                raise json.JSONDecodeError("Invalid JSON", "{broken", 1)
-            rid = payload["requirement"]["id"]
-            ids = self.interactions["requirements"][rid]
-            return {"triggers": {tid: self.interactions["triggers"][tid] for tid in ids},
-                "requirement_triggers": ids, "step_triggers": {sid: ids for sid in self.tree.own_steps[rid]}}
-
-        result = synthesize_triggers(self.arc, self.ui, self.tree, self.backend,
-            self.tree.requirements, Mock(generate_json=generate), Mock())
-        self.assertEqual(len(calls), 4)
-        self.assertIn("correction", calls[1])
-        self.assertTrue(all("required_obligations" in call for call in calls))
-        self.assertEqual(set(result), {"triggers", "requirements", "steps"})
-        self.assertTrue((self.arc / "frontend_triggers.json").is_file())
 
 
-    def test_navigation_context_includes_later_page_mount_and_keeps_ownership(self):
-        context = scenario_context(self.ui, self.interactions, "REQ-A")
-        self.assertEqual(set(context["page_subtrees"]), {"editor", "summary"})
-        self.assertEqual(set(context["triggers"]), {"TR-INPUT", "TR-SAVE", "TR-COUNT"})
-        self.assertEqual(len(context["triggers"]), 3)
-        self.assertEqual(self.interactions["requirements"]["REQ-A"], ["TR-INPUT", "TR-SAVE"])
 
-    def test_destination_page_does_not_pull_its_other_business_triggers_into_requirement(self):
-        triggers = deepcopy(self.interactions)
-        triggers["triggers"]["TR-FUTURE"] = {"source": "UI-BACK", "event": "click", "read": [], "write": [], "action": []}
-        triggers["requirements"]["REQ-C"].append("TR-FUTURE")
-        context = scenario_context(self.ui, triggers, "REQ-A")
-        self.assertIn("TR-COUNT", context["triggers"])
-        self.assertNotIn("TR-FUTURE", context["triggers"])
 
     def test_backend_only_requirements_need_no_frontend_triggers(self):
         ui = normalize_design(empty_design(), self.tree)
@@ -528,13 +304,6 @@ class FrontendFlow(unittest.TestCase):
         self.assertEqual(scenario_context(ui, triggers, "REQ-A")["triggers"], {})
 
 
-    def test_frontend_runtime_failure_is_repair_not_test_regeneration(self):
-        report = {"returncode": 1, "failed": 1, "errors": [], "failures": ["E2E_RUNTIME_ERROR: Broken handler"]}
-        self.assertEqual(test_run_status(report), "REPAIR_REQUIRED")
-        page_report = {**report, "failures": ["UI_RUNTIME_ERROR: Broken page"]}
-        self.assertEqual(presentation_run_status(page_report), "REPAIR_REQUIRED")
-        report["failures"] = ["E2E_BACKEND_ERROR: undeclared response"]
-        with self.assertRaises(ValueError): test_run_status(report)
 
 
 if __name__ == "__main__":

@@ -1,156 +1,36 @@
-# Requirement Compiler
+# 11 阶段需求编译器
 
-Compile `requirements.yaml` and reference images into a React + Express + SQLite application through 13 passes: requirements, database schema and obligations, backend APIs and tests, UI, and frontend triggers with end-to-end tests. Intermediate artifacts are saved under the output directory's `.arc/` folder.
-
-## Environment
-
-Install [Python 3.11+](https://www.python.org/downloads/), [Node.js 22.12+ with npm](https://nodejs.org/en/download), and [uv](https://docs.astral.sh/uv/getting-started/installation/). Ensure `node`, `npm`, and `uv` are available in your terminal; reopen it after installation.
-
-Run from the repository root using your platform's shell.
-
-**Windows (PowerShell)**
+需要 Python 3.11+、Node.js 22.12+（含 npm）、uv 和 Git。在本目录安装六项 Python 运行依赖。
 
 ```powershell
-uv sync
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-uv run playwright install chromium
+uv sync --locked
+Copy-Item .env.example .env
 ```
 
-**macOS / Linux (bash or zsh)**
-
-```bash
-uv sync
-if [ ! -f .env ]; then cp .env.example .env; fi
-uv run playwright install chromium
-```
-
-On supported Debian/Ubuntu Linux systems, use `uv run playwright install --with-deps chromium` instead to also install browser system dependencies; this may require sudo.
-
-If npm needs to compile native dependencies such as `better-sqlite3`, install the platform's build tools:
-
-| Platform | Build tools |
-| --- | --- |
-| Windows | Visual Studio Build Tools with **Desktop development with C++**, plus Python available to npm. |
-| macOS | Xcode Command Line Tools: `xcode-select --install`. |
-| Linux | Python, make, and a C++ compiler; on Debian/Ubuntu: `sudo apt-get install python3 build-essential`. |
-
-Set `OPENAI_API_KEY` and `OPENAI_BASE_URL` in `.env` for local runs. The default model is `deepseek-flash`; set `MODEL` to override it with a model that accepts image input. ARC-Bench supplies the key and base URL at runtime, so omit `.env` from the submission archive.
-
-## Run
-
-The input directory must contain `requirements.yaml` and its referenced images. The examples use `input/` and write the generated application to `outputs/demo/`. The commands below work in PowerShell, bash, and zsh.
-
-### Full pipeline
-
-```bash
-uv run main.py input --output-dir outputs/demo
-```
-
-Add `--model-log` to display and save detailed model input/output, or `--port 33000` to change the backend port (default: 3000). Token usage and model latency are always shown.
-
-The default `auto` profile uses the original `arc-compiler-full-track.zip`
-generation and repair profile for the bundled BookStack task. Small inputs use
-the staged pipeline and other inputs with at least ten leaf requirements use the
-compact pipeline. The compact pipeline
-reads the full YAML, generates the backend and frontend separately, samples up to four
-reference images, and checks the build and HTTP startup. It bounds model requests and
-build repair attempts. It writes progress and errors to `.arc/compilation.json` and
-exits nonzero when compilation fails. Use `--profile staged` to force the 13-pass
-pipeline or `--profile compact` to exercise compact generation on a small input.
-
-For a requirements revision with bundled public Playwright cases, the compact
-profile also tests the generated app in a separate browser and database. It makes
-up to three repair attempts using failure diagnostics and retains changes only if
-they improve coverage without breaking a passing case. The run records its result
-in `.arc/acceptance.json`. Public cases are bundled for the supplied revisions of
-12306, BookStack, Ctrip, Keep, PrestaShop, and Stack Overflow. The compiler selects
-cases by the SHA-256 of the requirements text; a different revision can still
-compile without them. A successful build with failed public cases is marked
-`PARTIAL`. These are local results; the ARC-Bench evaluator reports the submission score.
-
-Run each task by passing its own requirements directory to the same compiler:
+本地填入 `OPENAI_BASE_URL`、`OPENAI_API_KEY`。模型默认 `deepseek-flash`，可通过 `MODEL`、`VISUAL_MODEL` 设置模型名。文本和视觉共用连接信息。平台已注入的环境变量优先。
 
 ```powershell
 uv run --locked python main.py ../requirements/arc-bench-web--bookstack --output-dir outputs/bookstack
 ```
 
-To repeat only the public browser checks for an already built application without
-using a model:
+这条命令会请求模型。默认编排对所有输入相同，完整阶段名可用 `python main.py --help` 查询。
 
-```powershell
-uv run --locked python -m infrastructure.verify_app ../requirements/arc-bench-web--bookstack outputs/bookstack --report outputs/bookstack/.arc/retest.json
-```
+| 阶段 | 主要产物 |
+| --- | --- |
+| 00_project_initialization | 应用模板与 Git 检查点 |
+| 01_explore_requirement | requirements.json、visual_analysis.json |
+| 02_build_db_schema | db_schema.json |
+| 03_infer_db_obligations | db_obligations.json |
+| 04_implement_db | SQL、初始化、种子及 db_checks.json |
+| 05_design_backend_apis | backend_apis.json、shared_conventions.json |
+| 06_implement_backend_tdd | API、HTTP 套件与 backend_tdd.json |
+| 07_design_ui | ui_design.json |
+| 08_implement_ui | 前端页面、存在性测试与 ui_checks.json |
+| 09_design_frontend_triggers | frontend_triggers.json |
+| 10_implement_frontend_tdd | 前端行为、E2E 套件与 frontend_e2e.json |
 
-Package the compiler once for the combined track:
+`--stage` 重跑单个阶段，`--from-stage` 从选定阶段跑到末尾。两者会在生成应用的 Git 仓库回退到上一阶段的检查点。请把输出指向专用生成应用目录。查看 `.arc/compilation.json` 确认实际阶段状态。普通编译失败保留退出码 0，参数错误为 2，中断为 130。
 
-```powershell
-uv run --locked python scripts/package.py --output ../arc-compiler-full-track.zip
-```
+公开用例和旧 compact 实现放在 [offline_eval](../offline_eval/README.md)。评测时显式提供用例目录。发布时从本目录运行 `python scripts/package.py --output ../compiler.zip`，再核对包清单。
 
-Use that same ZIP for all six tasks. The ZIP contains the compiler and the public
-checks; each run generates its application from the requirements directory provided
-by the evaluator.
-
-### Step by step
-
-Run these commands in order. They call the same 13 passes with the same default settings as `main.py`. Step 01 uses `--no-browse` to match the non-interactive pipeline.
-
-```bash
-uv run 00_project_initialization.py --input input --output outputs/demo
-uv run 01_explore_requirement.py --input input --output outputs/demo --no-browse
-uv run 02_build_db_schema.py --input input --output outputs/demo
-uv run 03_infer_db_obligations.py --input input --output outputs/demo
-uv run 04_check_db_obligations.py --input input --output outputs/demo
-uv run 05_implement_db.py --input input --output outputs/demo
-uv run 06_design_backend_apis.py --input input --output outputs/demo
-uv run 07_check_backend_apis.py --input input --output outputs/demo
-uv run 08_implement_backend_tdd.py --input input --output outputs/demo
-uv run 09_design_ui.py --input input --output outputs/demo
-uv run 10_implement_ui.py --input input --output outputs/demo
-uv run 11_design_frontend_triggers.py --input input --output outputs/demo
-uv run 12_implement_frontend_tdd.py --input input --output outputs/demo
-```
-
-For individual steps, add `--pause` for teaching pauses or `--debug-model-io` for detailed model I/O. Set a custom backend port with `--port` in step 00.
-
-### Start the generated application
-
-```bash
-cd outputs/demo
-npm run db:init
-npm run build
-npm start
-```
-
-Open `http://localhost:3000` (or the port you selected).
-
-## Code map and extension points
-
-![Compiler code map](assets/compiler-code-map.svg)
-
-Numbered scripts orchestrate each pass. Domain logic lives in `infrastructure/stages/`; shared agent and project services live in `infrastructure/shared/`.
-
-### Module guide
-
-| Module | Entry | Purpose |
-| --- | --- | --- |
-| Pipeline | [main.py](main.py), [compiler.py](infrastructure/compiler.py) | Configuration, pass order, and reports. |
-| Requirements · 00–01 | [requirements/](infrastructure/stages/requirements/), [project/](infrastructure/shared/project/) | Requirement tree and project initialization. |
-| Database · 02–05 | [database/](infrastructure/stages/database/) | Schema, obligations, DDL, and seed data. |
-| Backend · 06–08 | [backend/](infrastructure/stages/backend/) | API contracts, HTTP tests, and implementation. |
-| Frontend · 09–12 | [ui/](infrastructure/stages/frontend/ui/), [triggers/](infrastructure/stages/frontend/triggers/) | UI design, interactions, and browser acceptance. |
-| Agent loops | [proposals.py](infrastructure/shared/agent/proposals.py), [loop.py](infrastructure/shared/agent/loop.py) | Model requests, file edits, checks, and repair. |
-| Runtime services | [project/](infrastructure/shared/project/), [presentation/](infrastructure/utils/presentation/) | Templates, Git checkpoints, logs, and execution evidence. |
-
-### Extension points
-
-| Area | Current entry | Possible extension |
-| --- | --- | --- |
-| Memory | [conventions.py](infrastructure/shared/agent/conventions.py) stores shared decisions; task loops retain retrieved evidence. | Store validated repair lessons and retrieve only those relevant to the current task. |
-| RAG | [rag/](infrastructure/shared/rag/) provides BM25; [discovery.py](infrastructure/shared/agent/discovery.py) provides lexical search and exact reads. | Add embeddings, hybrid retrieval, or reranking to the relevant retrieval path. |
-| Tools | [tools/](infrastructure/shared/agent/tools/) registers and executes `read_file` and `edit_file`. | Add tool schemas, executors, permissions, and observation handling in `loop.py`, including external service adapters. |
-| Skills | No loader is implemented. | Select task-relevant `SKILL.md` guidance when assembling prompts, using the existing tools and permissions. |
-| Models | [text.py](infrastructure/shared/models/text.py), [vision.py](infrastructure/shared/models/vision.py). | Add providers or select models by task. |
-| Acceptance | Domain `testing.py` and runtime modules. | Support other application stacks or execution environments. |
-
-Keep each task focused on one requirement. Retrieve shared knowledge on demand, preserve canonical contracts, and use executable checks to accept changes.
+`tests/` 是开发验证目录，打包脚本通过本目录的忽略规则排除它。新增测试首次跟踪时用 `git add -f -- tests/<文件名>`。

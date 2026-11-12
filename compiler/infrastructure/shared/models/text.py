@@ -48,11 +48,12 @@ class TextModel:
     """Transport for structured stage proposals and file-edit responses."""
     def __init__(self, *, model_name: str | None = None, json_mode: bool = True) -> None:
         """Read compiler/.env and configure the default text model; require API credentials."""
-        load_dotenv(Path(__file__).resolve().parents[3] / ".env", encoding="utf-8-sig")
+        load_dotenv(Path(__file__).resolve().parents[3] / ".env", encoding="utf-8-sig", override=False)
         self.name = model_name or os.getenv("MODEL") or DEFAULT_MODEL
         api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("Set OPENAI_API_KEY in compiler/.env")
+        base_url = os.getenv("OPENAI_BASE_URL")
+        if not api_key or not base_url:
+            raise ValueError("Set OPENAI_API_KEY and OPENAI_BASE_URL for the model connection")
         try:
             self.max_output_tokens = int(os.getenv("MAX_OUTPUT_TOKENS", "320000"))
         except ValueError as error:
@@ -67,7 +68,7 @@ class TextModel:
         self._token_parameter = "max_completion_tokens"
         self.client = OpenAI(
             api_key=api_key,
-            base_url=os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1",
+            base_url=base_url,
             timeout=600, max_retries=2,
             http_client=http_client(),
         )

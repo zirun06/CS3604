@@ -1,7 +1,7 @@
 """Missing declarations and unresolved symbols cannot become empty effects."""
 import unittest
 from copy import deepcopy
-from infrastructure.stages.database.obligations.records import normalize_inference, check_symbols
+from infrastructure.stages.database.obligation_utils import normalize_inference, check_symbols
 from infrastructure.stages.frontend.triggers.design import validate_coverage
 from infrastructure.stages.backend.primitives import ObligationCoverageError
 from test_frontend_flow import frontend_fixture

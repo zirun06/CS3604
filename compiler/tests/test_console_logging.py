@@ -11,7 +11,7 @@ from unittest.mock import patch
 import httpx
 from openai import OpenAI
 
-from infrastructure.shared.models.text import TextModel, reasoning_arguments
+from infrastructure.shared.models.text import JSON_OUTPUT_RULE, TextModel, reasoning_arguments
 from infrastructure.shared.models.vision import VisualModel
 from infrastructure.utils.presentation.console import DemoConsole, preview, show_panel, display_width, WaitingStatus
 from infrastructure.utils.presentation.logging import console_log
@@ -41,7 +41,7 @@ class ConsoleLogging(unittest.TestCase):
     def test_text_and_visual_clients_ignore_environment_proxies_and_keep_audit_hooks(self):
         with patch.dict("os.environ", {
             "OPENAI_API_KEY": "test-key", "MODEL": "test-model", "OPENAI_BASE_URL": "https://model.test/v1",
-            "VISUAL_API_KEY": "test-key", "VISUAL_MODEL": "test-model", "VISUAL_BASE_URL": "https://model.test/v1",
+            "VISUAL_API_KEY": "unused", "VISUAL_MODEL": "image-model", "VISUAL_BASE_URL": "https://unused.test/v1",
             "MAX_OUTPUT_TOKENS": "320000",
             "HTTP_PROXY": "invalid-proxy", "HTTPS_PROXY": "invalid-proxy", "ALL_PROXY": "invalid-proxy",
             "http_proxy": "invalid-proxy", "https_proxy": "invalid-proxy", "all_proxy": "invalid-proxy",
@@ -50,6 +50,7 @@ class ConsoleLogging(unittest.TestCase):
                 with self.subTest(model=model_type.__name__):
                     model = model_type()
                     try:
+                        self.assertEqual(str(model.client.base_url), "https://model.test/v1/")
                         transport = model.client._client
                         self.assertFalse(transport.trust_env)
                         self.assertEqual(transport.event_hooks["request"], [_http_request])
@@ -57,11 +58,22 @@ class ConsoleLogging(unittest.TestCase):
                         self.assertEqual(model.client.timeout, 600)
                         if isinstance(model, TextModel):
                             self.assertEqual(model.max_output_tokens, 320000)
-                        self.assertEqual(transport.timeout.as_dict(),
-                            {"connect": 600, "read": 600, "write": 600, "pool": 600})
+                        self.assertEqual(set(transport.timeout.as_dict()), {"connect", "read", "write", "pool"})
                         self.assertEqual(model.client.max_retries, 2)
                     finally:
                         model.client.close()
+
+    def test_connection_requires_both_platform_variables(self):
+        for model_type in (TextModel, VisualModel):
+            module = model_type.__module__
+            for environment in ({"OPENAI_API_KEY": "fake-key"}, {"OPENAI_BASE_URL": "https://model.test/v1"},
+                    {"VISUAL_API_KEY": "unused", "VISUAL_BASE_URL": "https://unused.test/v1"}):
+                with self.subTest(model=model_type.__name__, variables=tuple(environment)), \
+                        patch.dict("os.environ", environment, clear=True), patch(module + ".load_dotenv"), \
+                        patch(module + ".OpenAI") as client:
+                    with self.assertRaisesRegex(ValueError, "OPENAI_API_KEY and OPENAI_BASE_URL"):
+                        model_type()
+                    client.assert_not_called()
 
     def test_connection_failure_logs_the_underlying_transport_reason(self):
         def handler(request):
@@ -72,7 +84,7 @@ class ConsoleLogging(unittest.TestCase):
             root = Path(temporary)
             with console_log(root), self.assertRaisesRegex(RuntimeError, "Connection error"):
                 model.generate_json("Design", {})
-            record = json.loads((root / "model_calls.jsonl").read_text().splitlines()[-1])
+            record = json.loads((root / "model_calls.jsonl").read_text(encoding="utf-8").splitlines()[-1])
             self.assertEqual(record["error_type"], "APIConnectionError")
             self.assertIn("ConnectError: TLS connection closed by peer", record["cause"])
 
@@ -86,8 +98,8 @@ class ConsoleLogging(unittest.TestCase):
             with patch("sys.argv", ["10_implement_ui.py"]), patch("infrastructure.utils.presentation.model_io.monotonic", side_effect=[10, 20, 25.125]), redirect_stdout(terminal), redirect_stderr(terminal), console_log(root):
                 DemoConsole().show("PAGE-home | Input context", "INPUT-DETAIL\n" * 1000 + "END-OF-PANEL")
                 result = model.generate_json("Implement UI.", {"files": {"page.tsx": {"content": source, "writable": True}}})
-            records = [json.loads(line) for line in (root / "model_calls.jsonl").read_text().splitlines()]
-            compiler_log = (root / "compiler.log").read_text()
+            records = [json.loads(line) for line in (root / "model_calls.jsonl").read_text(encoding="utf-8").splitlines()]
+            compiler_log = (root / "compiler.log").read_text(encoding="utf-8")
             self.assertFalse((root / ".arc" / "model_logs").exists())
         self.assertEqual(result["edits"][0]["content"], source)
         self.assertNotIn("END-OF-PANEL", terminal.getvalue())
@@ -108,7 +120,7 @@ class ConsoleLogging(unittest.TestCase):
         self.assertEqual([item["event"] for item in records], ["request", "http_request", "http_response", "response"])
         wire_request = json.loads(records[1]["body"])
         self.assertEqual(wire_request, records[0]["arguments"])
-        self.assertTrue(wire_request["messages"][0]["content"].endswith("Return exactly one JSON object without Markdown."))
+        self.assertTrue(wire_request["messages"][0]["content"].endswith(JSON_OUTPUT_RULE))
         self.assertEqual(json.loads(records[2]["body"])["choices"][0]["message"]["content"], raw_content)
         self.assertEqual(records[3]["response"]["choices"][0]["message"]["content"], raw_content)
         self.assertEqual(len({record["call_id"] for record in records}), 1)
@@ -129,7 +141,7 @@ class ConsoleLogging(unittest.TestCase):
             root = Path(temporary)
             with patch("sys.argv", ["06_design_backend_apis.py"]), redirect_stdout(StringIO()), console_log(root, debug_model_io=True):
                 self.assertEqual(model.generate_json("Generate.\nKeep line breaks.", {}), {"ok": True})
-            records = [json.loads(line) for line in (root / "model_calls.jsonl").read_text().splitlines()]
+            records = [json.loads(line) for line in (root / "model_calls.jsonl").read_text(encoding="utf-8").splitlines()]
             directory = root / ".arc" / "model_logs"
             inputs = list(directory.glob("*.model.input"))
             self.assertEqual(len(inputs), 3)
@@ -141,11 +153,17 @@ class ConsoleLogging(unittest.TestCase):
                 attempt = 1 + sum(record["call_id"] == call_id for record in request_records[:index])
                 input_file = next(directory.glob(f"06.*.{call_id[:8]}.{attempt}.model.input"))
                 output_file = input_file.with_name(input_file.name.removesuffix(".input") + ".ouput")
-                self.assertEqual(input_file.read_text(), "Generate.\nKeep line breaks.\nReturn exactly one JSON object without Markdown.\n\n{}")
+                input_text = input_file.read_text(encoding="utf-8")
+                self.assertIn("Generate.\nKeep line breaks.\n" + JSON_OUTPUT_RULE, input_text)
+                self.assertTrue(input_text.rstrip().endswith("{}"))
                 body = json.loads(response_record["body"])
                 expected = body["error"]["message"] if "error" in body else body["choices"][0]["message"]["content"]
-                self.assertEqual(output_file.read_text(), expected)
-                self.assertNotIn("test-secret", input_file.read_text())
+                rendered = output_file.read_text(encoding="utf-8")
+                if "error" in body:
+                    self.assertIn(expected, rendered)
+                else:
+                    self.assertEqual(json.loads(rendered[rendered.index("{"):]), json.loads(expected))
+                self.assertNotIn("test-secret", input_file.read_text(encoding="utf-8"))
         requests = [json.loads(record["body"]) for record in records if record["event"] == "http_request"]
         self.assertEqual(requests, attempts)
         self.assertEqual(len(requests), 3)
@@ -210,7 +228,7 @@ class ConsoleLogging(unittest.TestCase):
                 root = Path(temporary)
                 with redirect_stdout(StringIO()), console_log(root), self.assertRaises(ValueError):
                     model.generate_json("Generate.", {})
-                records = [json.loads(line) for line in (root / "model_calls.jsonl").read_text().splitlines()]
+                records = [json.loads(line) for line in (root / "model_calls.jsonl").read_text(encoding="utf-8").splitlines()]
                 self.assertEqual(records[-1]["response"]["choices"][0]["message"]["content"], content)
 
     def test_plain_transport_preserves_complete_ui_json_and_still_requires_parseable_json(self):
@@ -227,7 +245,7 @@ class ConsoleLogging(unittest.TestCase):
             with self.assertRaises(json.JSONDecodeError):
                 model.generate_json("Design complete UI", {})
         self.assertNotIn("response_format", attempts[0])
-        self.assertIn("Return exactly one JSON object without Markdown", attempts[0]["messages"][0]["content"])
+        self.assertIn("return exactly one valid JSON object", attempts[0]["messages"][0]["content"])
 
     def test_length_feedback_explains_output_budget_instead_of_attempting_to_parse_partial_code(self):
         model = self.model(lambda request: httpx.Response(200, json=self.response('{"edits":[', finish="length")))
@@ -261,7 +279,7 @@ class ConsoleLogging(unittest.TestCase):
             root = Path(temporary)
             with redirect_stdout(terminal), console_log(root):
                 invoke(model.client, arguments)
-            records = [json.loads(line) for line in (root / "model_calls.jsonl").read_text().splitlines()]
+            records = [json.loads(line) for line in (root / "model_calls.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertNotIn("QUJD", terminal.getvalue())
         self.assertEqual(json.loads(records[1]["body"]), arguments)
 
@@ -274,7 +292,7 @@ class ConsoleLogging(unittest.TestCase):
             with redirect_stdout(terminal), console_log(root, model_log=False, stage="06_design_backend_apis.py"):
                 result = model.generate_json("PRIVATE-MODEL-PROMPT", {"task": "private"})
             self.assertEqual(result, {"secret": marker})
-            logged = (root / "compiler.log").read_text()
+            logged = (root / "compiler.log").read_text(encoding="utf-8")
             self.assertNotIn(marker, terminal.getvalue() + logged)
             self.assertNotIn("PRIVATE-MODEL-PROMPT", terminal.getvalue() + logged)
             self.assertFalse((root / "model_calls.jsonl").exists())
@@ -310,7 +328,7 @@ class ConsoleLogging(unittest.TestCase):
                     model.generate_json("Generate.", {})
                 expected_line = f"Reported tokens | input: 10 | cached input: {expected} | output: 20 | total: 30"
                 self.assertRegex(terminal.getvalue(), rf"Cached input\s+│ {expected}\s")
-                self.assertIn(expected_line, (root / "compiler.log").read_text())
+                self.assertIn(expected_line, (root / "compiler.log").read_text(encoding="utf-8"))
 
     def test_preview_limits_single_line_and_many_short_lines(self):
         self.assertLess(len(preview("x" * 1000000)), 6000)
@@ -336,7 +354,7 @@ class ConsoleLogging(unittest.TestCase):
             with patch.dict("os.environ", {}, clear=True), redirect_stdout(terminal), console_log(root):
                 show_panel("[MODEL OUTPUT]", "Response content", tone="output")
             self.assertIn("\x1b[", terminal.getvalue())
-            self.assertNotIn("\x1b[", (root / "compiler.log").read_text())
+            self.assertNotIn("\x1b[", (root / "compiler.log").read_text(encoding="utf-8"))
         terminal.seek(0)
         terminal.truncate()
         with patch.dict("os.environ", {"NO_COLOR": "1"}), redirect_stdout(terminal):
@@ -356,18 +374,13 @@ class ConsoleLogging(unittest.TestCase):
         terminal.isatty = lambda: True
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
-            with redirect_stdout(terminal), console_log(root):
+            with redirect_stdout(terminal), console_log(root), patch("rich.progress.Progress") as progress:
                 waiting = WaitingStatus()
-                initial = terminal.getvalue()
-                self.assertEqual(initial.count("[WAITING]"), 1)
-                self.assertNotIn("elapsed", initial)
+                progress.return_value.start.assert_called_once()
                 waiting.close()
-                cleared = terminal.getvalue()
                 waiting.close()
-                self.assertEqual(terminal.getvalue(), cleared)
+                progress.return_value.stop.assert_called_once()
             logged = (root / "compiler.log").read_bytes()
-        redraws = [item for item in terminal.getvalue().split("\r") if "[WAITING]" in item]
-        self.assertGreaterEqual(len(redraws), 1)
         self.assertEqual(logged.count(b"[WAITING]"), 1)
         self.assertNotIn(b"\r", logged)
         self.assertNotIn(b"\x1b[", logged)

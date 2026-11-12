@@ -14,6 +14,6 @@ def propose_files(output, contents, **extra):
         arguments = {'path': path, 'operation': 'create' if before is None else 'replace', 'new_content': content}
         if before is not None:
             arguments['old_content'] = before
-        calls.append({'tool': 'edit_file', 'arguments': arguments})
+        calls.append({'tool': 'edit_file', **arguments})
         staged[path] = content
     return {**extra, 'tool_calls': calls}

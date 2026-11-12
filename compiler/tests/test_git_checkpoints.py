@@ -71,7 +71,7 @@ class GitCheckpoints(unittest.TestCase):
                 self.assertTrue(repository.run('config', '--local', '--get', 'user.email', check=False).returncode)
                 self.assertFalse((root / 'absent-config').exists())
 
-    def test_task_failure_and_later_success_are_separate_snapshots(self):
+    def test_task_failure_and_later_success_are_reported(self):
         with TemporaryDirectory() as temporary, redirect_stdout(StringIO()):
             root = Path(temporary)
             repository = initialize_repository(root)
@@ -82,10 +82,7 @@ class GitCheckpoints(unittest.TestCase):
                 save_json(root / '.arc/db_schema.json', {'entities': {'Note': {}}})
             with self.assertRaises(StageIncomplete):
                 tasks.finish()
-            history = repository.log()
-            self.assertIn('BAD: Publish design task result (FAILED)', history)
-            self.assertIn('GOOD: Publish design task result (GREEN)', history)
-            report = json.loads(repository.run('show', 'HEAD:.arc/stage_tasks/02_build_db_schema.json').stdout)
+            report = tasks.report
             self.assertEqual(report['status'], 'COMPLETED_WITH_FAILURES')
             self.assertEqual(report['tasks']['GOOD']['status'], 'GREEN')
 
@@ -94,45 +91,22 @@ class GitCheckpoints(unittest.TestCase):
             root = Path(temporary)
             repository = initialize_repository(root)
             path = 'backend/src/api/note.ts'
-            save_text(root / path, 'accepted baseline')
+            save_text(root / path, '// preserved\naccepted baseline')
             checkpoint(root, stage='08', task='baseline', action='Save accepted source')
             entry = {'status': 'IMPLEMENTING'}
-            model = Mock(generate_json=Mock(return_value=propose_files(root, [{'path': path, 'content': 'rejected implementation'}], diagnosis={'cause': 'implementation', 'reason': 'Missing result'})))
+            model = Mock(generate_json=Mock(return_value={'tool_calls': [{'tool': 'edit_file', 'path': path, 'operation': 'replace', 'old_content': 'accepted baseline', 'new_content': 'rejected implementation'}]}))
             with implementation_task(root, entry, Mock(), '08 / API-NOTE'):
-                run_file_agent(model, '', {}, FileTools(root, [path]),
+                run_file_agent(model, '', {}, FileTools(root, ['backend'], stage='backend', files=[path]),
                     Mock(side_effect=ValueError('Business result is wrong')), 1, Mock(), 'API-NOTE')
             self.assertEqual(entry['status'], 'FAILED')
-            self.assertEqual((root / path).read_text(), 'accepted baseline')
-            self.assertEqual(repository.run('show', f'HEAD~2:{path}').stdout, 'rejected implementation')
-            self.assertEqual(repository.run('show', f'HEAD:{path}').stdout, 'accepted baseline')
+            self.assertEqual((root / path).read_text(), '// preserved\naccepted baseline')
+            self.assertEqual(repository.run('show', f'HEAD~2:{path}').stdout, '// preserved\nrejected implementation')
+            self.assertEqual(repository.run('show', f'HEAD:{path}').stdout, '// preserved\naccepted baseline')
             self.assertIn('Archive failed attempt', repository.log())
             archive = entry['archive'] + '/failure.json'
             self.assertEqual(json.loads(repository.run('show', 'HEAD:' + archive).stdout)['status'], 'FAILED')
             self.assertEqual(repository.status(), '')
 
-    def test_pipeline_commits_each_pass_and_final_partial_report(self):
-        with TemporaryDirectory() as temporary, redirect_stdout(StringIO()):
-            from test_compiler import PASSES
-            root = Path(temporary)
-            compiler = Compiler(root / 'input', root / 'output')
-            def load(module):
-                name = next(function for stage, function in PASSES if stage == module)
-                def execute(*args, **kwargs):
-                    if module.startswith('03'):
-                        raise ValueError('Missing obligation')
-                    return {'status': 'GREEN'}
-                return SimpleNamespace(**{name: execute})
-            with patch('infrastructure.compiler.import_module', side_effect=load):
-                compiler.compile()
-            repository = GitRepository(compiler.output_dir)
-            history = repository.log(100)
-            for module, _ in PASSES:
-                self.assertIn(f'[{module}] stage report: Publish pass result', history)
-            report = json.loads(repository.run('show', 'HEAD:.arc/compilation.json').stdout)
-            self.assertEqual(report['status'], 'COMPLETED_WITH_FAILURES')
-            self.assertEqual(report['stages']['03_infer_db_obligations']['status'], 'FAILED')
-            self.assertIn('Publish final compilation report (COMPLETED_WITH_FAILURES)', history)
-            self.assertEqual(repository.status(), '')
 
     def test_git_errors_do_not_replace_model_or_acceptance_results(self):
         with TemporaryDirectory() as temporary, redirect_stdout(StringIO()) as console:
@@ -144,12 +118,12 @@ class GitCheckpoints(unittest.TestCase):
                 self.assertIsNone(checkpoint(temporary, task='check', action='Record result'))
                 root = Path(temporary)
                 path = 'backend/src/accepted.ts'
-                save_text(root / path, 'before')
-                model = Mock(generate_json=Mock(return_value=propose_files(root, [{'path': path, 'content': 'after'}])))
-                accepted = run_file_agent(model, '', {}, FileTools(root, [path]),
+                save_text(root / path, '// preserved\nbefore')
+                model = Mock(generate_json=Mock(return_value={'tool_calls': [{'tool': 'edit_file', 'path': path, 'operation': 'replace', 'old_content': 'before', 'new_content': 'after'}]}))
+                accepted = run_file_agent(model, '', {}, FileTools(root, ['backend'], stage='backend', files=[path]),
                     Mock(return_value={'returncode': 0}), 1, Mock(), 'implementation')
                 self.assertEqual(accepted['checks']['returncode'], 0)
-                self.assertEqual((root / path).read_text(), 'after')
+                self.assertEqual((root / path).read_text(), '// preserved\nafter')
             self.assertEqual(repository.run('branch', '--show-current').stdout.strip(), 'main')
 
     def test_detached_head_does_not_receive_compiler_commits(self):

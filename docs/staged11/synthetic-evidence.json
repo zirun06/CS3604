@@ -1,0 +1,204 @@
+{
+  "execution": "Two fixture-model CLI runs. Local install/build/DB/HTTP/browser checks replaced with test doubles.",
+  "model_http_requests": 0,
+  "runs": [
+    {
+      "artifact_directory": "compiler/outputs/staged11-pytest-pass/test_nonempty_pipeline_handoff0/application/.arc",
+      "root_id": "ROOT",
+      "requirement_id": "R-COUNT",
+      "step_id": "S-COUNT",
+      "total_status": "GREEN",
+      "stage_status": {
+        "00_project_initialization": "GREEN",
+        "01_explore_requirement": "GREEN",
+        "02_build_db_schema": "GREEN",
+        "03_infer_db_obligations": "GREEN",
+        "04_implement_db": "GREEN",
+        "05_design_backend_apis": "GREEN",
+        "06_implement_backend_tdd": "GREEN",
+        "07_design_ui": "GREEN",
+        "08_implement_ui": "GREEN",
+        "09_design_frontend_triggers": "GREEN",
+        "10_implement_frontend_tdd": "GREEN"
+      },
+      "visual_analysis": {
+        "reference.png": {
+          "layout": "One panel",
+          "elements": [
+            "Count notes"
+          ],
+          "style": "plain"
+        }
+      },
+      "schema_symbols": [
+        "Note.id"
+      ],
+      "step_obligations": {
+        "read": [
+          "Note.id"
+        ],
+        "write": []
+      },
+      "database_status": "GREEN",
+      "apis": [
+        "API-COUNT"
+      ],
+      "http_tdd": {
+        "tests": 1,
+        "pass": 1,
+        "fail": 0
+      },
+      "ui_elements": [
+        "UI-button"
+      ],
+      "ui_check": "GREEN",
+      "trigger_ids": [
+        "TR-COUNT"
+      ],
+      "e2e": {
+        "requirements": 1,
+        "triggers": 1,
+        "e2e_tests": 1,
+        "ui_tests": 1,
+        "failed": 0
+      },
+      "requirement_files": {
+        "database": [
+          "backend/src/db/tables/Note.sql"
+        ],
+        "backend": [
+          "backend/src/api/register.ts",
+          "backend/tests/R-COUNT/API-COUNT.test.ts"
+        ],
+        "ui": [
+          "frontend/src/App.tsx",
+          "frontend/src/main.tsx",
+          "frontend/tests/ui/notes.spec.ts"
+        ],
+        "frontend": [
+          "backend/src/api/register.ts",
+          "backend/src/db/seeds/Note.sql",
+          "backend/src/db/tables/Note.sql",
+          "frontend/src/App.tsx",
+          "frontend/src/main.tsx",
+          "frontend/src/style.css",
+          "frontend/tests/e2e/R-COUNT.spec.ts"
+        ]
+      },
+      "sha256": {
+        "compilation": "24f424e0e7a7b2be7bf6ecd33769cce289a54bb130ba4075e797532f13bee31c",
+        "requirements": "a2d909805779d7d0bcb9ab37a34eeb948f66cc3b5b237097841096fa86302962",
+        "visual_analysis": "ddc3cf8a62fb3cf6b5548d04391f0cd1e67d022ca8fc988936703d72d159f487",
+        "db_schema": "4e14d8de960bf59d3a99ff3fca0bee62d82efe631702dc81243796ec06a05b48",
+        "db_obligations": "85071e4ece4f83f663890861dd605614a64bab6f32dbfec8cf39c394238ef856",
+        "db_checks": "a8371a87f843386f66cf2dd480f4ab35d19d67216725cecf9418acf94c9dd71d",
+        "backend_apis": "7db537fb37f3e21448408853c822c82efb9f684e00ff62e54bf2759ce51fbf45",
+        "backend_tdd": "ca4f0963f885ceaa750ac253e117f92e6953a0d0047d8a7416111e1b38164e7b",
+        "ui_design": "9122d62434d7bca4ca0abe86d4ea5279651925cf96ecf4d4febf8660ecf4ac71",
+        "ui_checks": "14d2d9bb5eb168ee757b26ffc29e90db0b196f55e9934e9977905b63788b6781",
+        "frontend_triggers": "b8627a5036bebfe5204417b989646f70e77b716d0cee93788af6a2cdd0f03f91",
+        "frontend_e2e": "59c99b958ea2151760577b12569edb097295bdcc477cbda6589b6eff878fc0d8",
+        "requirement_files": "b65648dba513ba05c9bc4781c6e48f6b5c6eeab21d6f242a681110f88ff45734"
+      }
+    },
+    {
+      "artifact_directory": "compiler/outputs/staged11-pytest-pass/test_nonempty_pipeline_handoff1/application/.arc",
+      "root_id": "NEW-ROOT",
+      "requirement_id": "RENAMED-REQ",
+      "step_id": "RENAMED-STEP",
+      "total_status": "GREEN",
+      "stage_status": {
+        "00_project_initialization": "GREEN",
+        "01_explore_requirement": "GREEN",
+        "02_build_db_schema": "GREEN",
+        "03_infer_db_obligations": "GREEN",
+        "04_implement_db": "GREEN",
+        "05_design_backend_apis": "GREEN",
+        "06_implement_backend_tdd": "GREEN",
+        "07_design_ui": "GREEN",
+        "08_implement_ui": "GREEN",
+        "09_design_frontend_triggers": "GREEN",
+        "10_implement_frontend_tdd": "GREEN"
+      },
+      "visual_analysis": {
+        "reference.png": {
+          "layout": "One panel",
+          "elements": [
+            "Count notes"
+          ],
+          "style": "plain"
+        }
+      },
+      "schema_symbols": [
+        "Note.id"
+      ],
+      "step_obligations": {
+        "read": [
+          "Note.id"
+        ],
+        "write": []
+      },
+      "database_status": "GREEN",
+      "apis": [
+        "API-COUNT"
+      ],
+      "http_tdd": {
+        "tests": 1,
+        "pass": 1,
+        "fail": 0
+      },
+      "ui_elements": [
+        "UI-button"
+      ],
+      "ui_check": "GREEN",
+      "trigger_ids": [
+        "TR-COUNT"
+      ],
+      "e2e": {
+        "requirements": 1,
+        "triggers": 1,
+        "e2e_tests": 1,
+        "ui_tests": 1,
+        "failed": 0
+      },
+      "requirement_files": {
+        "database": [
+          "backend/src/db/tables/Note.sql"
+        ],
+        "backend": [
+          "backend/src/api/register.ts",
+          "backend/tests/RENAMED-REQ/API-COUNT.test.ts"
+        ],
+        "ui": [
+          "frontend/src/App.tsx",
+          "frontend/src/main.tsx",
+          "frontend/tests/ui/notes.spec.ts"
+        ],
+        "frontend": [
+          "backend/src/api/register.ts",
+          "backend/src/db/seeds/Note.sql",
+          "backend/src/db/tables/Note.sql",
+          "frontend/src/App.tsx",
+          "frontend/src/main.tsx",
+          "frontend/src/style.css",
+          "frontend/tests/e2e/RENAMED-REQ.spec.ts"
+        ]
+      },
+      "sha256": {
+        "compilation": "42e2d45fbce28ae9685b94ef77fe9f3166618fe875a8e0fc69105467febf64b2",
+        "requirements": "51b9738725fc40ac04519ca0a4623ec6fef321edf88a2bb1bcdbf3cb5173c7b9",
+        "visual_analysis": "ddc3cf8a62fb3cf6b5548d04391f0cd1e67d022ca8fc988936703d72d159f487",
+        "db_schema": "910ce5aba0476d09d08ccbe62727a501640c15787de7f794726d4c4c2313a918",
+        "db_obligations": "fcc44c2b4f4d0aba138782f9bbc2a4c519d9fbc74a4994ac0db44a45997d66e5",
+        "db_checks": "a8371a87f843386f66cf2dd480f4ab35d19d67216725cecf9418acf94c9dd71d",
+        "backend_apis": "9af04586132e4aa9484177f4c2e332b9dec949102ef5a154cca23f511ba1fb6c",
+        "backend_tdd": "936039e0782bb9b7509484be9f9050aa9a8cc41d9afc05080430136bd4b39566",
+        "ui_design": "bfe340d6521e48173dcd499c4c60338ed7853c4ea3b7c605c3fcf7a958578f19",
+        "ui_checks": "acb85b8aca910e09764451895a24e446746b8549349322be108714a1e12ccf3f",
+        "frontend_triggers": "37fa409c24d8ca81ae3f96e26dff42cc48db65e850e4142fe90263bcd8177d9c",
+        "frontend_e2e": "dace664769ed9bf57eec2fb6b15a593eaf4a081ae602e3e8ff8120c3a023b364",
+        "requirement_files": "db96bba44912070d7fc0d2a437179471b7a75c29a2f1d46b410d8d7187a493ea"
+      }
+    }
+  ]
+}
