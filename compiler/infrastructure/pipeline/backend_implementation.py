@@ -206,7 +206,7 @@ def implement_backend_tdd(arc_dir: Path, pause: bool = False, max_turns: int = 1
                     workspace = FileTools(output, ["backend"], requirements=api_owners, stage="backend",
                         files=[relative, *supplied_sources(output, api, schema)], writable=[relative])
                     agent = run_file_agent(model, TEST_INSTRUCTIONS, context, workspace,
-                        test_gate, max_turns, console, label + " / Test Generation")
+                        test_gate, max_turns, console, label + " / Test Generation", test_phase="generation")
                     for owner in api_owners:
                         report["tests"].setdefault(owner, {})[aid] = targets[aid]
                     report["agents"][f"tests:{aid}"] = {"turns": agent["turns"]}

@@ -5,8 +5,8 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from openai import OpenAI, OpenAIError
-from infrastructure.utils.presentation.model_io import http_client, invoke
+from openai import OpenAIError
+from infrastructure.utils.presentation.model_io import BudgetedOpenAI as OpenAI, http_client, invoke, logical_request
 
 
 DEFAULT_MODEL = "deepseek-flash"
@@ -73,6 +73,7 @@ class TextModel:
             http_client=http_client(),
         )
 
+    @logical_request
     def _request(self, **arguments):
         """Apply one output budget to JSON calls, with legacy endpoint compatibility."""
         while True:
@@ -96,6 +97,7 @@ class TextModel:
                     continue
                 raise
 
+    @logical_request
     def generate_json(self, instructions: str, payload: dict) -> dict:
         """Request JSON using the stage prompt and serialized task data."""
         mode = getattr(self, "reasoning", "low")

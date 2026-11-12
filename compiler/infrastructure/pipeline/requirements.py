@@ -3,10 +3,14 @@
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 from pathlib import Path
 
 import yaml
 
+from infrastructure.utils.budget import BudgetExhausted, active_budget
+from infrastructure.utils.presentation.events import task_scope
+from infrastructure.utils.presentation.model_io import vision_admission
 from infrastructure.shared.models.vision import VisualModel
 from infrastructure.utils.presentation.console import DemoConsole
 from infrastructure.utils.files import save_json, save_text
@@ -252,6 +256,18 @@ def collect_images(value: object) -> list[str]:
     return list(dict.fromkeys(references))
 
 
+def image_owners(root):
+    owners = {}
+    pending = [root]
+    while pending:
+        node = pending.pop()
+        for path in collect_images({key: value for key, value in node.items() if key != "children"}):
+            if isinstance(node.get("id"), str):
+                owners.setdefault(path, set()).add(node["id"])
+        pending.extend(node.get("children", []))
+    return owners
+
+
 def explore_requirement(input_dir: Path, arc_dir: Path, pause: bool = False) -> dict:
     console = DemoConsole(pause)
     # --- Extension point 01A: requirement parsing -----------------------------
@@ -296,17 +312,50 @@ def explore_requirement(input_dir: Path, arc_dir: Path, pause: bool = False) -> 
     if references:
         model = VisualModel()
         images = list(unique_images.items())
-        for start in range(0, len(images), 5):
-            batch = images[start:start + 5]
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                results = list(executor.map(lambda item: model.analyze(item[0]), batch))
-            for (image_path, image_references), result in zip(batch, results):
-                for reference in image_references:
-                    analysis[reference] = result
-                    checkpoint(arc_dir.parent, stage="01", task=reference, action="Publish visual reference analysis",
-                        details={"reference": reference, "path": str(image_path), "analysis": result})
-                    console.show(f"3. Visual analysis | {reference}", json.dumps(result, ensure_ascii=False, indent=2))
-                save_json(arc_dir / "visual_analysis.json", analysis)
+        owners = image_owners(requirements)
+
+        def analyze(item, slot, batch_id):
+            image, refs = item
+            requirement_ids = sorted({rid for ref in refs for rid in owners.get(ref, ())})
+            with task_scope(refs[0], requirement_ids, batch_id=batch_id), vision_admission(slot):
+                return model.analyze(image)
+
+        try:
+            for start in range(0, len(images), 5):
+                batch = images[start:start + 5]
+                batch_id = f"visual-{start // 5 + 1}"
+                jobs = []
+                denied = None
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    # Reserve before submitting any member of this batch.
+                    for item in batch:
+                        try:
+                            slot = model.reserve_image() if active_budget() is not None else None
+                        except BudgetExhausted as error:
+                            denied = error
+                            break
+                        jobs.append((item, slot))
+                    futures = [(item, executor.submit(copy_context().run, analyze, item, slot, batch_id))
+                        for item, slot in jobs]
+                    for (image_path, image_references), future in futures:
+                        try:
+                            result = future.result()
+                        except BudgetExhausted as error:
+                            denied = error
+                            continue
+                        for reference in image_references:
+                            analysis[reference] = result
+                            checkpoint(arc_dir.parent, stage="01", task=reference,
+                                action="Publish visual reference analysis",
+                                details={"reference": reference, "path": str(image_path), "analysis": result})
+                            console.show(f"3. Visual analysis | {reference}",
+                                json.dumps(result, ensure_ascii=False, indent=2))
+                        save_json(arc_dir / "visual_analysis.json", analysis)
+                if denied is not None:
+                    raise denied
+        finally:
+            model.client.close()
+            save_json(arc_dir / "visual_analysis.json", analysis)
     else:
         console.show("3. Visual analysis", "No referenced images; no model call is needed.")
     save_json(arc_dir / "visual_analysis.json", analysis)

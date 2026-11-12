@@ -127,11 +127,18 @@ def initialize_repository(output):
         return None
 
 
-def rollback_before_stage(output: Path, previous_stage: str):
+def rollback_before_stage(output: Path, previous_stage: str, source):
     """Restore the last previous-stage report, preserving committed history on a branch."""
     from infrastructure.shared.project.initialize import DEFAULT_STACK, STACKS
 
+    from infrastructure.shared.project.provenance import (
+        CHECKPOINT, COMPLETE_STATES, WORKSPACE, checkpoint_artifacts, read_workspace,
+    )
+
     repository = GitRepository(output)
+    marker = read_workspace(repository.directory)
+    if marker is None or not (repository.directory / ".git").is_dir() or (repository.directory / ".git").is_symlink():
+        raise GitError("Rollback requires a recognized generated application")
     repository.require_root()
     branch = repository.run("symbolic-ref", "--quiet", "--short", "HEAD", check=False)
     if branch.stdout.strip() != "main":
@@ -139,6 +146,11 @@ def rollback_before_stage(output: Path, previous_stage: str):
     if repository.status().strip():
         raise GitError("Output repository has uncommitted or untracked files; commit or move them before rollback")
 
+    current = repository.directory / ".arc/compilation.json"
+    if current.is_file():
+        stage_record = json.loads(current.read_text(encoding="utf-8")).get("stages", {}).get(previous_stage)
+        if stage_record and stage_record["status"] not in COMPLETE_STATES:
+            raise GitError(f"Previous stage {previous_stage} did not complete successfully: {stage_record['status']}")
     prefix = f"[{previous_stage}] stage report: Publish pass result ("
     records = repository.run("log", "--format=%H%x09%s").stdout.splitlines()
     revision = None
@@ -146,12 +158,27 @@ def rollback_before_stage(output: Path, previous_stage: str):
         commit, title = record.split("\t", 1)
         if title.startswith(prefix):
             status = title[len(prefix):].removesuffix(")")
-            if status in {"FAILED", "COMPLETED_WITH_FAILURES", "INTERRUPTED", "RUNNING"}:
+            if status not in COMPLETE_STATES:
                 raise GitError(f"Previous stage {previous_stage} did not complete successfully: {status}")
             revision = commit
             break
     if revision is None:
         raise GitError(f"No completed stage checkpoint found for {previous_stage}")
+
+    def content(path):
+        return repository.run("show", f"{revision}:{path}").stdout
+
+    saved = json.loads(content(CHECKPOINT))
+    old_marker = json.loads(content(WORKSPACE))
+    report = json.loads(content(".arc/compilation.json"))
+    if (old_marker != marker or saved.get("workspace_id") != marker["workspace_id"]
+            or saved.get("stage") != previous_stage or saved.get("run_id") != report.get("run_id")
+            or report.get("stages", {}).get(previous_stage, {}).get("status") not in COMPLETE_STATES
+            or saved.get("source") != source):
+        raise GitError("Checkpoint does not match workspace identity, inputs, compiler sources or configuration")
+    actual = checkpoint_artifacts(repository.run("ls-tree", "-r", "-z", revision).stdout, 2)
+    if actual != saved.get("artifacts"):
+        raise GitError("Checkpoint artifact mismatch: staged designs or application files changed")
 
     build_directories = STACKS[DEFAULT_STACK]["build_directories"]
     for relative in build_directories:
@@ -177,7 +204,7 @@ def rollback_before_stage(output: Path, previous_stage: str):
         print(f"[BUILD] Cleared {relative}", flush=True)
 
 
-def checkpoint(output=None, *, stage=None, task, action, status="GREEN", details=None):
+def checkpoint(output=None, *, stage=None, task, action, status="GREEN", details=None, provenance=None):
     """Record a semantic step, including no-change checks, without hiding build failures."""
     from infrastructure.utils.presentation.logging import session_info
     session = session_info()
@@ -195,6 +222,12 @@ def checkpoint(output=None, *, stage=None, task, action, status="GREEN", details
         if repository.run("symbolic-ref", "--quiet", "--short", "HEAD", check=False).stdout.strip() != "main":
             raise GitError("Checkpoints require the output repository's main branch")
         repository.add()
+        if provenance is not None:
+            from infrastructure.shared.project.provenance import CHECKPOINT, checkpoint_artifacts, stage_checkpoint
+
+            artifacts = checkpoint_artifacts(repository.run("ls-files", "--stage", "-z").stdout, 1)
+            stage_checkpoint(repository.directory, *provenance, artifacts)
+            repository.add(CHECKPOINT)
         changed = repository.run("diff", "--cached", "--stat").stdout.strip()
         title = " ".join(f"[{stage}] {task}: {action} ({status})".split())
         message = (title + f"\n\nStage: {stage}\nTask: {task}\nAction: {action}\nStatus: {status}\n"

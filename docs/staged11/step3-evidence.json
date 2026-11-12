@@ -1,0 +1,490 @@
+{
+  "model_transport": "Offline httpx.MockTransport; no model service contacted",
+  "native_retries": [
+    {
+      "event": "http_attempt_started",
+      "timestamp": "2026-11-12T11:49:14.752565+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "logical_call_id": "b793baeff469420eba232d99cce55e07",
+      "call_id": "e5ed6f4a7ecb48aea33dcec9ceda725b",
+      "attempt": 1
+    },
+    {
+      "event": "http_attempt_finished",
+      "timestamp": "2026-11-12T11:49:14.753419+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "logical_call_id": "b793baeff469420eba232d99cce55e07",
+      "call_id": "e5ed6f4a7ecb48aea33dcec9ceda725b",
+      "attempt": 1,
+      "http_status": 500
+    },
+    {
+      "event": "http_attempt_started",
+      "timestamp": "2026-11-12T11:49:14.755559+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "logical_call_id": "b793baeff469420eba232d99cce55e07",
+      "call_id": "e5ed6f4a7ecb48aea33dcec9ceda725b",
+      "attempt": 2
+    },
+    {
+      "event": "http_attempt_finished",
+      "timestamp": "2026-11-12T11:49:14.756080+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "logical_call_id": "b793baeff469420eba232d99cce55e07",
+      "call_id": "e5ed6f4a7ecb48aea33dcec9ceda725b",
+      "attempt": 2,
+      "http_status": 400
+    },
+    {
+      "event": "model_finished",
+      "timestamp": "2026-11-12T11:49:14.756744+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "call_id": "e5ed6f4a7ecb48aea33dcec9ceda725b",
+      "model": "fixture-model",
+      "status": "FAILED",
+      "seconds": 0.10178539999469649,
+      "usage": {
+        "input_tokens": null,
+        "cached_input_tokens": null,
+        "output_tokens": null,
+        "reasoning_tokens": null,
+        "total_tokens": null
+      },
+      "cost_cny": null,
+      "currency": "CNY",
+      "price": null,
+      "cached_usage_reported": false,
+      "error": "Error code: 400 - Unsupported parameter max_completion_tokens",
+      "action_id": null
+    },
+    {
+      "event": "http_attempt_started",
+      "timestamp": "2026-11-12T11:49:14.762573+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "logical_call_id": "b793baeff469420eba232d99cce55e07",
+      "call_id": "fc463289c4dc4f9eb4b82850ac2e0dcd",
+      "attempt": 1
+    },
+    {
+      "event": "http_attempt_finished",
+      "timestamp": "2026-11-12T11:49:14.763116+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "logical_call_id": "b793baeff469420eba232d99cce55e07",
+      "call_id": "fc463289c4dc4f9eb4b82850ac2e0dcd",
+      "attempt": 1,
+      "http_status": 200
+    },
+    {
+      "event": "model_finished",
+      "timestamp": "2026-11-12T11:49:14.767765+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "call_id": "fc463289c4dc4f9eb4b82850ac2e0dcd",
+      "model": "fixture-model",
+      "status": "GREEN",
+      "seconds": 0.005775799989351071,
+      "usage": {
+        "input_tokens": 11,
+        "cached_input_tokens": 4,
+        "output_tokens": 9,
+        "reasoning_tokens": 3,
+        "total_tokens": 20
+      },
+      "cost_cny": null,
+      "currency": "CNY",
+      "price": null,
+      "cached_usage_reported": true,
+      "error": null,
+      "action_id": null
+    }
+  ],
+  "visual_batch": [
+    {
+      "event": "http_attempt_started",
+      "timestamp": "2026-11-12T11:49:14.940523+00:00",
+      "stage": "test_stage",
+      "task_id": "a.png",
+      "requirement_ids": [
+        "ROOT"
+      ],
+      "batch_id": "visual-1",
+      "logical_call_id": "e3a1d194b0c54c5ab39eadaa31351a9b",
+      "call_id": "c43d5cc893e64697a249f72e6f92c618",
+      "attempt": 1
+    },
+    {
+      "event": "model_finished",
+      "timestamp": "2026-11-12T11:49:14.941781+00:00",
+      "stage": "test_stage",
+      "task_id": "a.png",
+      "requirement_ids": [
+        "ROOT"
+      ],
+      "batch_id": "visual-1",
+      "call_id": "c43d5cc893e64697a249f72e6f92c618",
+      "model": "fixture-model",
+      "status": "GREEN",
+      "seconds": 0.0023680000012973323,
+      "usage": {
+        "input_tokens": 11,
+        "cached_input_tokens": 4,
+        "output_tokens": 9,
+        "reasoning_tokens": 3,
+        "total_tokens": 20
+      },
+      "cost_cny": null,
+      "currency": "CNY",
+      "price": null,
+      "cached_usage_reported": true,
+      "error": null,
+      "action_id": "8c70631540cc4038a52a366d4e2d2335"
+    }
+  ],
+  "test_feedback": [
+    {
+      "event": "validation",
+      "timestamp": "2026-11-12T11:49:14.969804+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "validation_type": "http_test",
+      "seconds": 4.699992132373154e-06,
+      "result": "passed",
+      "test_source": "model",
+      "files": [
+        "backend/tests/sample.test.ts"
+      ],
+      "test_model_effort": {
+        "generation": {
+          "logical_calls": 1,
+          "http_attempts": 1,
+          "missing_usage_calls": 0,
+          "input_tokens": 11,
+          "output_tokens": 9,
+          "total_tokens": 20
+        },
+        "review": {
+          "logical_calls": 1,
+          "http_attempts": 1,
+          "missing_usage_calls": 0,
+          "input_tokens": 11,
+          "output_tokens": 9,
+          "total_tokens": 20
+        }
+      }
+    },
+    {
+      "event": "stage_finished",
+      "timestamp": "2026-11-12T11:49:14.972742+00:00",
+      "stage": "test_stage",
+      "task_id": null,
+      "requirement_ids": [],
+      "batch_id": null,
+      "status": "GREEN",
+      "started_at": "2026-11-12T11:49:14.956351+00:00",
+      "finished_at": "2026-11-12T11:49:14.970838+00:00",
+      "seconds": 0.014493000009679236,
+      "usage": {
+        "calls": 2,
+        "usage_calls": 2,
+        "logical_calls": 2,
+        "http_attempts": 2,
+        "failed_calls": 0,
+        "failed_sdk_calls": 0,
+        "missing_usage_calls": 0,
+        "http_missing_usage": 0,
+        "reasoning_tokens": 6,
+        "local_check_seconds": 0,
+        "priced_calls": 0,
+        "input_tokens": 22,
+        "cached_input_tokens": 8,
+        "output_tokens": 18,
+        "total_tokens": 40,
+        "model_seconds": 0.003880500007653609,
+        "cost_cny": null,
+        "currency": "CNY",
+        "cost_complete": false
+      },
+      "validations": {
+        "http_test": {
+          "count": 1,
+          "seconds": 4.699992132373154e-06,
+          "passed": 1,
+          "failed": 0,
+          "not_run": 0,
+          "pass_rate": 1.0
+        }
+      },
+      "first_validation_seconds": 0.013438800000585616
+    }
+  ],
+  "states": {
+    "model_budget": {
+      "path": "compiler/outputs/staged11-step3-verified/test_exhausted_model_still_all0/generated",
+      "status": "COMPLETED_WITH_FAILURES",
+      "selection": {
+        "stage": null,
+        "from_stage": null
+      },
+      "stages": {
+        "00_project_initialization": {
+          "status": "GREEN",
+          "validations": {},
+          "first_validation_seconds": null
+        },
+        "01_explore_requirement": {
+          "status": "GREEN",
+          "validations": {},
+          "first_validation_seconds": null
+        },
+        "02_build_db_schema": {
+          "status": "BUDGET_EXHAUSTED",
+          "validations": {},
+          "first_validation_seconds": null
+        },
+        "03_infer_db_obligations": {
+          "status": "GREEN",
+          "validations": {
+            "database_check": {
+              "count": 1,
+              "seconds": 0.25,
+              "passed": 1,
+              "failed": 0,
+              "not_run": 0,
+              "pass_rate": 1.0
+            }
+          },
+          "first_validation_seconds": 0.5028796999977203
+        }
+      },
+      "budget": {
+        "limits": {
+          "calls": 0
+        },
+        "used": {
+          "calls": 0,
+          "http_attempts": 0,
+          "tokens": 0
+        },
+        "reserved_http_attempts": 0,
+        "reserved_tokens": 0,
+        "unreported_tokens_charged": 0,
+        "denials": [
+          {
+            "resource": "calls",
+            "scope": "run"
+          }
+        ],
+        "denial_count": 1,
+        "image_token_reserve": 4096,
+        "seconds_remaining": null
+      },
+      "schema_sha256": "d9bf70b0db229359a85b1664cff9b83c4724d3fd42bedb4d6363428cdabbda4a",
+      "provenance": {
+        "input_sha256": "ac0b75fbea1a7c48d47030c95188c426ef8580c6e382e88c486b4ce88e894180",
+        "source_sha256": "248693b3ae6320bc0319b5ffb94bb8c931ebe36a94ed6f1109110d1c90cac652",
+        "config_sha256": "764fe938135d11e94c60d3f82228133bbbd5b2c64bea6df0dfa2e8c7c19b4f0b"
+      }
+    },
+    "deadline": {
+      "path": "compiler/outputs/staged11-step3-verified/test_deadline_skips_remaining_0/generated",
+      "status": "COMPLETED_WITH_FAILURES",
+      "selection": {
+        "stage": null,
+        "from_stage": null
+      },
+      "stages": {
+        "00_project_initialization": {
+          "status": "GREEN",
+          "validations": {},
+          "first_validation_seconds": null
+        },
+        "01_explore_requirement": {
+          "status": "BUDGET_EXHAUSTED",
+          "validations": {},
+          "first_validation_seconds": null
+        },
+        "02_build_db_schema": {
+          "status": "SKIPPED_TIME",
+          "validations": {},
+          "first_validation_seconds": null
+        },
+        "03_infer_db_obligations": {
+          "status": "SKIPPED_TIME",
+          "validations": {},
+          "first_validation_seconds": null
+        }
+      },
+      "budget": {
+        "limits": {
+          "seconds": 20
+        },
+        "used": {
+          "calls": 0,
+          "http_attempts": 0,
+          "tokens": 0
+        },
+        "reserved_http_attempts": 0,
+        "reserved_tokens": 0,
+        "unreported_tokens_charged": 0,
+        "denials": [
+          {
+            "resource": "seconds",
+            "scope": "run"
+          }
+        ],
+        "denial_count": 1,
+        "image_token_reserve": 4096,
+        "seconds_remaining": 0
+      },
+      "schema_sha256": null,
+      "provenance": {
+        "input_sha256": "ac0b75fbea1a7c48d47030c95188c426ef8580c6e382e88c486b4ce88e894180",
+        "source_sha256": "248693b3ae6320bc0319b5ffb94bb8c931ebe36a94ed6f1109110d1c90cac652",
+        "config_sha256": "38842619dd94ca46d24683c741b863db999e51d51f2c2061b4d3c2a0f37d8f6f"
+      }
+    },
+    "interrupt": {
+      "path": "compiler/outputs/staged11-step3-verified/test_interrupt_retains_stage_a0/generated",
+      "status": "INTERRUPTED",
+      "selection": {
+        "stage": null,
+        "from_stage": null
+      },
+      "stages": {
+        "00_project_initialization": {
+          "status": "GREEN",
+          "validations": {},
+          "first_validation_seconds": null
+        },
+        "01_explore_requirement": {
+          "status": "INTERRUPTED",
+          "validations": {},
+          "first_validation_seconds": null
+        }
+      },
+      "budget": {
+        "limits": {},
+        "used": {
+          "calls": 0,
+          "http_attempts": 0,
+          "tokens": 0
+        },
+        "reserved_http_attempts": 0,
+        "reserved_tokens": 0,
+        "unreported_tokens_charged": 0,
+        "denials": [],
+        "denial_count": 0,
+        "image_token_reserve": 4096,
+        "seconds_remaining": null
+      },
+      "schema_sha256": null,
+      "provenance": {
+        "input_sha256": "ac0b75fbea1a7c48d47030c95188c426ef8580c6e382e88c486b4ce88e894180",
+        "source_sha256": "248693b3ae6320bc0319b5ffb94bb8c931ebe36a94ed6f1109110d1c90cac652",
+        "config_sha256": "38842619dd94ca46d24683c741b863db999e51d51f2c2061b4d3c2a0f37d8f6f"
+      }
+    },
+    "single_stage": {
+      "path": "compiler/outputs/staged11-step3-verified/test_cli_resumes_verified_chec0/generated",
+      "status": "GREEN",
+      "selection": {
+        "stage": "02_build_db_schema",
+        "from_stage": null
+      },
+      "stages": {
+        "02_build_db_schema": {
+          "status": "GREEN",
+          "validations": {},
+          "first_validation_seconds": null
+        }
+      },
+      "budget": {
+        "limits": {},
+        "used": {
+          "calls": 0,
+          "http_attempts": 0,
+          "tokens": 0
+        },
+        "reserved_http_attempts": 0,
+        "reserved_tokens": 0,
+        "unreported_tokens_charged": 0,
+        "denials": [],
+        "denial_count": 0,
+        "image_token_reserve": 4096,
+        "seconds_remaining": null
+      },
+      "schema_sha256": "794340226ea072de48db7b7c8f46e4e90d821eb2c51734724bfc2763a561fb46",
+      "provenance": {
+        "input_sha256": "ac0b75fbea1a7c48d47030c95188c426ef8580c6e382e88c486b4ce88e894180",
+        "source_sha256": "248693b3ae6320bc0319b5ffb94bb8c931ebe36a94ed6f1109110d1c90cac652",
+        "config_sha256": "38842619dd94ca46d24683c741b863db999e51d51f2c2061b4d3c2a0f37d8f6f"
+      }
+    },
+    "remaining_stages": {
+      "path": "compiler/outputs/staged11-step3-verified/test_cli_resumes_verified_chec1/generated",
+      "status": "GREEN",
+      "selection": {
+        "stage": null,
+        "from_stage": "02_build_db_schema"
+      },
+      "stages": {
+        "02_build_db_schema": {
+          "status": "GREEN",
+          "validations": {},
+          "first_validation_seconds": null
+        },
+        "03_infer_db_obligations": {
+          "status": "GREEN",
+          "validations": {},
+          "first_validation_seconds": null
+        }
+      },
+      "budget": {
+        "limits": {},
+        "used": {
+          "calls": 0,
+          "http_attempts": 0,
+          "tokens": 0
+        },
+        "reserved_http_attempts": 0,
+        "reserved_tokens": 0,
+        "unreported_tokens_charged": 0,
+        "denials": [],
+        "denial_count": 0,
+        "image_token_reserve": 4096,
+        "seconds_remaining": null
+      },
+      "schema_sha256": "794340226ea072de48db7b7c8f46e4e90d821eb2c51734724bfc2763a561fb46",
+      "provenance": {
+        "input_sha256": "ac0b75fbea1a7c48d47030c95188c426ef8580c6e382e88c486b4ce88e894180",
+        "source_sha256": "248693b3ae6320bc0319b5ffb94bb8c931ebe36a94ed6f1109110d1c90cac652",
+        "config_sha256": "38842619dd94ca46d24683c741b863db999e51d51f2c2061b4d3c2a0f37d8f6f"
+      }
+    }
+  }
+}

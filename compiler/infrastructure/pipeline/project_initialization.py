@@ -16,7 +16,7 @@ def project_initialization(input_dir: Path, output_dir: Path, pause: bool = Fals
             raise ValueError("Output directory must not be inside the requirements directory")
         
         # copy requirements directory to output directory, ignoring tests
-        shutil.copytree(input_dir, output_dir, dirs_exist_ok=True, ignore=shutil.ignore_patterns("tests"))
+        shutil.copytree(input_dir, output_dir, dirs_exist_ok=True, ignore=shutil.ignore_patterns("tests", ".git", ".arc"))
 
     initialize_repository(output_dir)
     created = initialize_project(output_dir, stack, port)

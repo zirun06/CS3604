@@ -5,6 +5,7 @@ import os
 import re
 from tempfile import TemporaryDirectory
 
+from infrastructure.utils.presentation.events import validation
 from infrastructure.stages.frontend.triggers.e2e_runtime import RUNNER
 from infrastructure.stages.frontend.ui.testing import FrontendChecks, parse_playwright_result
 
@@ -22,6 +23,7 @@ class E2EChecks(FrontendChecks):
         return super().typecheck(files, test_roots=("frontend/tests/ui", "frontend/tests/e2e"),
             source_files=("src/**/*.ts", "src/**/*.tsx") if full_source else ())
 
+    @validation("browser_e2e", source="model", selected_files=True)
     def tests(self, files):
         """Run selected E2E specs and keep startup/runner failures available for repair."""
         if not files:

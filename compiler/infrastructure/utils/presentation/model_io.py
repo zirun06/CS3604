@@ -1,19 +1,24 @@
 """Full SDK and HTTP model I/O audit, with concise progress on the terminal."""
 
+from contextlib import contextmanager
+from functools import wraps
 from datetime import datetime, timezone
 import json
 import re
 import traceback
-from time import monotonic
+from time import monotonic, sleep
 from uuid import uuid4
 from contextvars import ContextVar
 
 import httpx
+from openai import OpenAI
 
 from infrastructure.utils.presentation.console import current_activity, preview, show_panel, WaitingStatus
 from infrastructure.utils.presentation.logging import session_info, full_detail
 from infrastructure.utils.presentation.agent import AgentLogger
-from infrastructure.utils.presentation.events import model_started, model_finished
+from infrastructure.shared.models.pricing import normalize_usage
+from infrastructure.utils.budget import active_budget, BudgetExhausted
+from infrastructure.utils.presentation.events import model_started, model_finished, model_metric, emit
 from rich.console import Group
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -22,6 +27,127 @@ from infrastructure.utils.presentation.artifacts import proposal_kind, render_ar
 
 
 _call = ContextVar("compiler_model_call", default=None)
+
+
+_logical = ContextVar("compiler_logical_call", default=None)
+_admitted_vision = ContextVar("compiler_admitted_vision", default=None)
+
+
+class BudgetedOpenAI(OpenAI):
+    """Keep the SDK retry policy while bounding its backoff by the run deadline."""
+
+    def _sleep_for_retry(self, *, retries_taken, max_retries, options, response):
+        budget = active_budget()
+        if budget is None or "seconds" not in budget.limits:
+            return super()._sleep_for_retry(retries_taken=retries_taken, max_retries=max_retries,
+                options=options, response=response)
+        delay = self._calculate_retry_timeout(max_retries - retries_taken, options,
+            response.headers if response is not None else None)
+        budget.check_model_time(minimum=delay)
+        sleep(delay)
+
+
+def input_token_reserve(arguments):
+    """Bound text conservatively; reserve a configurable provider-specific image estimate."""
+    images = 0
+
+    def replace(value):
+        nonlocal images
+        if isinstance(value, dict):
+            if value.get("type") == "image_url" and isinstance(value.get("image_url"), dict):
+                images += 1
+                return {**value, "image_url": {**value["image_url"], "url": ""}}
+            return {key: replace(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [replace(item) for item in value]
+        return value
+
+    payload = {key: value for key, value in arguments.items()
+        if key not in {"max_tokens", "max_completion_tokens", "timeout"}}
+    size = len(json.dumps(replace(payload), ensure_ascii=False, default=str).encode("utf-8"))
+    return size + 256 + images * active_budget().image_tokens
+
+
+@contextmanager
+def vision_admission(attempt):
+    token = _admitted_vision.set(attempt)
+    try:
+        yield
+    finally:
+        _admitted_vision.reset(token)
+        if attempt is not None:
+            active_budget().settle(attempt, None)
+
+
+@contextmanager
+def logical_call():
+    if _logical.get() is not None:
+        yield
+        return
+    budget = active_budget()
+    attempt = _admitted_vision.get()
+    if attempt is not None:
+        _admitted_vision.set(None)
+    elif budget is not None:
+        budget.start_call()
+    state = {"id": uuid4().hex, "first": attempt}
+    token = _logical.set(state)
+    model_metric("logical_calls")
+    try:
+        yield
+        if state.get("incomplete_response"):
+            model_metric("failed_calls")
+    except BaseException:
+        model_metric("failed_calls")
+        raise
+    finally:
+        if budget is not None:
+            budget.settle(state["first"], None)
+        _logical.reset(token)
+
+
+def logical_request(function):
+    @wraps(function)
+    def run(*args, **kwargs):
+        with logical_call():
+            return function(*args, **kwargs)
+    return run
+
+
+def _reserve_request(arguments):
+    budget = active_budget()
+    if budget is None:
+        return dict(arguments), None
+    options = dict(arguments)
+    parameter = "max_tokens" if "max_tokens" in options else "max_completion_tokens"
+    attempt = _logical.get().pop("first", None)
+    _logical.get()["first"] = None
+    try:
+        estimate = input_token_reserve(options)
+        cap = options.get(parameter, 4096)
+        if attempt is not None and (estimate > attempt.input_tokens or cap > attempt.output_tokens):
+            budget.settle(attempt, None)
+            attempt = None
+        if attempt is None:
+            attempt = budget.reserve_attempt(estimate, cap, shrink=True)
+        if "tokens" in budget.limits or parameter in options:
+            options[parameter] = attempt.output_tokens
+        return options, attempt
+    except BaseException:
+        budget.settle(attempt, None)
+        raise
+
+
+def _finish_attempt(call, usage=None, status=None):
+    attempt = call.get("reservation")
+    budget = active_budget()
+    if attempt is not None and budget is not None:
+        budget.settle(attempt, normalize_usage(usage or {})["total_tokens"])
+    if call.get("pending"):
+        model_metric("http_missing_usage", int(normalize_usage(usage or {})["total_tokens"] is None))
+        emit("http_attempt_finished", logical_call_id=_logical.get()["id"], call_id=call["id"],
+            attempt=call["wire_attempts"], http_status=status)
+    call["reservation"], call["pending"] = None, False
 
 
 def _exception_chain(error: BaseException) -> list[dict[str, str]]:
@@ -66,8 +192,29 @@ def record_tool_execution(tool_call: dict, result: dict, *, logger: AgentLogger 
 def _http_request(request: httpx.Request) -> None:
     """Capture the actual serialized body on every HTTP attempt, including retries."""
     session, call = session_info(), _call.get()
+    if call is not None:
+        budget = active_budget()
+        if budget is not None:
+            if call["pending"]:
+                _finish_attempt(call)
+            attempt = call["reservation"]
+            if attempt is None:
+                attempt = budget.reserve_attempt(call["input_tokens"], call["output_tokens"])
+                call["reservation"] = attempt
+            remaining = budget.check_model_time()
+            if "seconds" in budget.limits:
+                # HTTPX timeouts are per I/O phase. Recompute before every retry.
+                timeout = request.extensions.get("timeout") or {}
+                request.extensions["timeout"] = {phase: min(timeout.get(phase) or remaining, remaining / 4)
+                    for phase in ("connect", "read", "write", "pool")}
+            budget.dispatch(attempt)
+        call["wire_attempts"] += 1
+        call["pending"] = True
+        model_metric("http_attempts")
+        emit("http_attempt_started", logical_call_id=_logical.get()["id"], call_id=call["id"],
+            attempt=call["wire_attempts"])
     if session and session.get("debug_model_io") and call:
-        call["attempt"] = call.get("attempt", 0) + 1
+        call["attempt"] = call["wire_attempts"]
         stage = session["stage"].split(" | ", 1)[0].removeprefix("Stage ")
         task = re.sub(r"[^\w.-]+", "_", call["activity"].split(" | ", 1)[0]).strip("._")[:24] or "model"
         directory = session["output"] / ".arc" / "model_logs"
@@ -86,6 +233,17 @@ def _http_request(request: httpx.Request) -> None:
 def _http_response(response: httpx.Response) -> None:
     """Read and retain the complete non-streaming response before SDK parsing."""
     response.read()
+    call = _call.get()
+    if call is not None and call["pending"]:
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        usage = body.get("usage") if isinstance(body, dict) else None
+        _finish_attempt(call, usage, response.status_code)
+        if response.status_code >= 400 and usage:
+            from infrastructure.utils.presentation.events import account_usage
+            account_usage(call["model"], usage)
     prefix = response.request.extensions.get("compiler_model_log_prefix")
     if prefix is not None:
         try:
@@ -251,14 +409,15 @@ def _count_call(usage, elapsed, failed=False):
     session = session_info()
     if session is None:
         return
-    stats = session.setdefault("model_stats", {})
-    stats["calls"] = stats.get("calls", 0) + 1
-    stats["failed"] = stats.get("failed", 0) + int(failed)
-    stats["seconds"] = stats.get("seconds", 0) + elapsed
-    for key, value in _usage_counts(usage).items():
-        if value is not None:
-            stats[key] = stats.get(key, 0) + value
-            stats[key + " reports"] = stats.get(key + " reports", 0) + 1
+    with session["lock"]:
+        stats = session.setdefault("model_stats", {})
+        stats["calls"] = stats.get("calls", 0) + 1
+        stats["failed"] = stats.get("failed", 0) + int(failed)
+        stats["seconds"] = stats.get("seconds", 0) + elapsed
+        for key, value in _usage_counts(usage).items():
+            if value is not None:
+                stats[key] = stats.get(key, 0) + value
+                stats[key + " reports"] = stats.get(key + " reports", 0) + 1
 
 
 def show_call_totals():
@@ -275,6 +434,7 @@ def show_call_totals():
     show_panel("Stage model usage | reported counts only", view, tone="output")
 
 
+@logical_request
 def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
     """Audit one SDK call and show a static waiting message until it returns."""
     call_id = uuid4().hex
@@ -282,7 +442,12 @@ def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
     session = session_info()
     label = f"{session['stage']} | {activity}" if session else activity
     logger = logger or AgentLogger("Model")
-    token = _call.set({"id": call_id, "activity": activity, "logger": logger})
+    arguments, reservation = _reserve_request(arguments)
+    call = {"id": call_id, "activity": activity, "logger": logger, "model": arguments.get("model"),
+        "reservation": reservation, "wire_attempts": 0, "pending": False,
+        "input_tokens": reservation.input_tokens if reservation else 0,
+        "output_tokens": reservation.output_tokens if reservation else 0}
+    token = _call.set(call)
     verbose = session is None or session.get("model_log", True)
     if verbose:
         logger.log_input(label, arguments)
@@ -294,7 +459,7 @@ def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
 
     usage_recorded = False
     try:
-        model_started(call_id, arguments.get("model"), str(getattr(client, "base_url", "")))
+        model_started(call_id, arguments.get("model"), _logical.get()["id"])
         _record("request", arguments=arguments)
         started = monotonic()
         response = client.chat.completions.create(**arguments)
@@ -305,19 +470,29 @@ def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
         waiting.close()
         content = "\n".join(logger.format_message(choice.get("message", {})) for choice in raw.get("choices", []))
         usage = raw.get("usage") or {}
-        model_finished(call_id, arguments.get("model"), usage, elapsed)
+        incomplete = any(choice.get("finish_reason") == "length" or choice.get("message", {}).get("refusal")
+            for choice in raw.get("choices", []))
+        _logical.get()["incomplete_response"] = incomplete
+        model_finished(call_id, arguments.get("model"), usage, elapsed,
+            status="INCOMPLETE_RESPONSE" if incomplete else "GREEN")
         usage_recorded = True
         _count_call(usage, elapsed)
         full_detail(f"[MODEL OUTPUT] {label}", _usage_summary(usage) + f"\nRound-trip latency: {elapsed:.2f} s"
             + ("\n" + logger.format_output(raw) if verbose else ""))
         show_panel(f"[MODEL OUTPUT] {label} | {elapsed:.2f}s",
             _output_view(content, usage, elapsed) if verbose else _usage_view(usage, elapsed), tone="output")
+        budget = active_budget()
+        if budget is not None:
+            budget.check_time()
+            if budget.used["tokens"] > budget.limits.get("tokens", float("inf")):
+                budget.deny("tokens", "run")
         return response
     except BaseException as error:
         elapsed = monotonic() - started
         if not usage_recorded:
             model_finished(call_id, arguments.get("model"), {}, elapsed, status="FAILED", error=str(error))
-        _count_call({}, elapsed, failed=True)
+        if not usage_recorded:
+            _count_call({}, elapsed, failed=True)
         waiting.close()
         chain = _exception_chain(error)
         cause = ": ".join(f"{item['type']}: {item['message']}" for item in chain[1:]) or None
@@ -331,5 +506,6 @@ def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
         show_panel(f"[MODEL FAILED] {label}", detail, tone="error", max_lines=12, max_chars=1800)
         raise
     finally:
+        _finish_attempt(call)
         waiting.close()
         _call.reset(token)

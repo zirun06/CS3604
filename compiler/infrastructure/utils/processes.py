@@ -7,6 +7,9 @@ import signal
 import subprocess
 from time import monotonic
 
+from infrastructure.utils.budget import BudgetExhausted, active_budget, budget_timeout
+from infrastructure.utils.presentation.events import model_metric
+
 WINDOWS = os.name == "nt"
 
 
@@ -24,6 +27,7 @@ def process_options() -> dict:
 
 def start_process(command, *, cwd, env=None, **options):
     """Launch an argument list without shell interpolation, preserving spaces and Unicode paths."""
+    budget_timeout(float("inf"))
     return subprocess.Popen([str(part) for part in command], cwd=cwd,
         env=child_environment(env), **process_options(), **options)
 
@@ -56,19 +60,40 @@ def stop_process(process) -> None:
 def capture_process(command, *, cwd, timeout, env=None) -> dict:
     """Capture UTF-8 output and clean the whole process tree before re-raising timeout or Ctrl+C."""
     started = monotonic()
+    effective = budget_timeout(timeout)
     process = start_process(command, cwd=cwd, env=env, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
     try:
-        stdout, stderr = process.communicate(timeout=timeout)
-    except BaseException:
-        stop_process(process)
-        process.communicate(timeout=5)
+        stdout, stderr = process.communicate(timeout=budget_timeout(effective))
+        check_process_deadline()
+    except BaseException as error:
+        try:
+            stop_process(process)
+            process.communicate(timeout=5)
+        finally:
+            if isinstance(error, subprocess.TimeoutExpired) and effective < timeout:
+                check_process_deadline(expired=True)
         raise
-    elapsed = monotonic() - started
+    finally:
+        elapsed = monotonic() - started
+        model_metric("local_check_seconds", elapsed)
     label = " ".join([Path(str(command[0])).name, *(str(part) for part in command[1:])])
     print(f"[CHECK] {label} | {elapsed:.2f} s | exit {process.returncode}", flush=True)
     return {"returncode": process.returncode, "stdout": stdout, "stderr": stderr, "elapsed_seconds": elapsed,
         "output": (stdout + stderr)[-24000:]}
+
+
+def check_process_deadline(*, expired=False):
+    budget = active_budget()
+    if budget is None:
+        return
+    try:
+        if expired:
+            budget.deny("seconds", "run" if budget.remaining_time(run_only=True) <= 0 else "stage")
+        budget.check_time()
+    except BudgetExhausted as error:
+        error.process_started = True
+        raise
 
 
 def npm_command() -> list[str]:

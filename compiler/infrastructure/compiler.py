@@ -17,8 +17,12 @@ from infrastructure.pipeline.frontend_implementation import implement_frontend_t
 from infrastructure.utils.presentation.console import show_panel
 from infrastructure.utils.presentation.logging import console_log
 from infrastructure.utils.files import save_json
+from infrastructure.utils.budget import RunBudget, active_budget, budget_scope, BudgetExhausted
+from infrastructure.shared.project.provenance import (
+    COMPLETE_STATES, effective_settings, prepare_workspace, provenance, resolve_workspace,
+)
 from infrastructure.shared.project.git import checkpoint, rollback_before_stage
-from infrastructure.utils.presentation.events import begin_run, finish_run, begin_stage, finish_stage, timestamp
+from infrastructure.utils.presentation.events import begin_run, finish_run, begin_stage, finish_stage, timestamp, validation_event
 
 
 PIPELINE = (
@@ -35,6 +39,28 @@ PIPELINE = (
     ("10_implement_frontend_tdd", implement_frontend_triggers, "frontend_e2e"),
 )
 
+
+REQUIRES = {
+    "02": ("requirements.json",),
+    "03": ("requirements.json", "db_schema.json"),
+    "04": ("requirements.json", "db_schema.json"),
+    "05": ("requirements.json", "db_schema.json", "db_obligations.json"),
+    "06": ("requirements.json", "db_schema.json", "db_obligations.json", "backend_apis.json"),
+    "07": ("requirements.json", "visual_analysis.json"),
+    "08": ("requirements.json", "visual_analysis.json", "ui_design.json"),
+    "09": ("requirements.json", "visual_analysis.json", "db_schema.json", "backend_apis.json",
+        "db_obligations.json", "ui_design.json"),
+    "10": ("requirements.json", "visual_analysis.json", "db_schema.json", "backend_apis.json",
+        "ui_design.json", "frontend_triggers.json"),
+}
+VALIDATIONS = {
+    "04": (("build", "deterministic"), ("database_check", "deterministic"), ("startup_check", "deterministic")),
+    "06": (("typecheck", "deterministic"), ("http_test", "model"), ("build", "deterministic")),
+    "08": (("typecheck", "deterministic"), ("ui_presence", "deterministic"), ("build", "deterministic")),
+    "10": (("typecheck", "deterministic"), ("http_test", "model"), ("ui_presence", "deterministic"),
+        ("browser_e2e", "model"), ("build", "deterministic")),
+}
+
 class Compiler:
     """Own shared paths, configuration, and results for one compilation."""
 
@@ -42,8 +68,7 @@ class Compiler:
             port: int = 3000, pause: bool = False) -> None:
         if not 1 <= port <= 65535:
             raise ValueError("Backend port must be between 1 and 65535")
-        self.input_dir = Path(input_dir).expanduser().resolve()
-        self.output_dir = Path(output_dir).expanduser().resolve()
+        self.input_dir, self.output_dir = resolve_workspace(input_dir, output_dir)
         self.arc_dir = self.output_dir / ".arc"
         self.model_log = model_log
         self.port = port
@@ -58,10 +83,25 @@ class Compiler:
         stage_event = begin_stage(stage)
         self.report["stages"][stage] = {"status": "RUNNING", "started_at": timestamp()}
         save_json(self.arc_dir / "compilation.json", self.report)
+        budget = active_budget()
+        denied_before = budget.denial_count if budget is not None else 0
         try:
-            with console_log(self.output_dir, stage=stage,
-                    model_log=self.model_log, debug_model_io=self.model_log):
-                result = function(*arguments, **options)
+            missing = [name for name in REQUIRES.get(stage[:2], ()) if not (self.arc_dir / name).is_file()]
+            if budget is not None and budget.remaining_time(run_only=True) <= 0:
+                result = {"status": "SKIPPED_TIME", "error": "Run deadline reached"}
+            elif missing:
+                result = {"status": "MISSING_PREREQUISITES", "missing": missing}
+            else:
+                if budget is not None:
+                    budget.check_time()
+                with console_log(self.output_dir, stage=stage,
+                        model_log=self.model_log, debug_model_io=self.model_log):
+                    result = function(*arguments, **options)
+                if budget is not None:
+                    budget.check_time()
+        except BudgetExhausted as error:
+            result = {"status": "BUDGET_EXHAUSTED", "error": str(error),
+                "budget_resource": error.resource, "budget_scope": error.scope}
         except KeyboardInterrupt as error:
             self.report["status"] = "INTERRUPTED"
             self.report["stages"][stage] = {"status": "INTERRUPTED", "error": str(error),
@@ -81,14 +121,23 @@ class Compiler:
             finish_stage(stage_event, "FAILED")
             raise
         status = result.get("status", "GREEN") if isinstance(result, dict) else "GREEN"
+        if budget is not None and budget.denial_count > denied_before and status != "BUDGET_EXHAUSTED":
+            status = "BUDGET_EXHAUSTED"
+        if status in {"SKIPPED_TIME", "MISSING_PREREQUISITES", "NO_UI", "NO_APIS", "BUDGET_EXHAUSTED"}:
+            for kind, source in VALIDATIONS.get(stage[:2], ()):
+                validation_event(kind, 0, "not_run", source=source, reason=status, only_if_absent=True)
         self.report["stages"][stage] = {"status": status, **finish_stage(stage_event, status)}
         if isinstance(result, dict):
-            for key in ("failures", "verification", "error", "error_type", "traceback"):
+            for key in ("failures", "verification", "error", "error_type", "traceback", "budget_resource", "budget_scope", "missing"):
                 if key in result:
                     self.report["stages"][stage][key] = result[key]
         save_json(self.arc_dir / "compilation.json", self.report)
-        checkpoint(self.output_dir, stage=stage, task="stage report", action="Publish pass result",
-            status=status, details=self.report["stages"][stage])
+        if status != "SKIPPED_TIME":
+            checkpoint_source = None
+            if all(item["status"] in COMPLETE_STATES for item in self.report["stages"].values()):
+                checkpoint_source = (self.workspace, self.source, stage, self.report["run_id"])
+            checkpoint(self.output_dir, stage=stage, task="stage report", action="Publish pass result",
+                status=status, details=self.report["stages"][stage], provenance=checkpoint_source)
         return result
 
     def compile(self, stage: str | None = None, *, from_stage: str | None = None) -> Path:
@@ -105,23 +154,35 @@ class Compiler:
                     break
             if not passes:
                 raise ValueError(f"Unknown stage: {selected}. Use a full stage name such as 06_implement_backend_tdd.")
+        resolve_workspace(self.input_dir, self.output_dir)
+        settings = effective_settings()
+        budget = RunBudget.from_settings(settings, len(passes))
+        budget.reserve_final_checks = any(name.startswith("10_") for name, _, _ in passes)
+        self.source = provenance(self.input_dir, settings, self.port)
         if selected is not None:
             names = [name for name, _, _ in PIPELINE]
             index = names.index(selected)
             if index > 0:
-                rollback_before_stage(self.output_dir, names[index - 1])
+                rollback_before_stage(self.output_dir, names[index - 1], self.source)
+        self.workspace = prepare_workspace(self.output_dir)
+        with budget_scope(budget):
+            return self._compile_passes(passes, stage, from_stage, settings)
+
+    def _compile_passes(self, passes, stage, from_stage, settings):
         self.artifacts.clear()
         self.report = {"status": "RUNNING", "stages": {}}
         show_panel("Requirement compiler | Pipeline",
             f"Input: {self.input_dir}\nOutput: {self.output_dir}\nPasses: {len(passes)}\nDetailed model logs: {'enabled' if self.model_log else 'disabled'}")
-        run_token, run_id = begin_run(self.output_dir, self.input_dir, selected)
+        run_token, run_id = begin_run(self.output_dir, self.input_dir, stage or from_stage, settings)
         self.report["selection"] = {"stage": stage, "from_stage": from_stage}
-        self.report.update(run_id=run_id, started_at=timestamp())
+        self.report.update(run_id=run_id, workspace_id=self.workspace["workspace_id"],
+            provenance=self.source, started_at=timestamp())
         try:
             # =========================================
             # main loop over all passes in the pipeline
             # =========================================
-            for name, function, artifact in passes:
+            for index, (name, function, artifact) in enumerate(passes):
+                active_budget().select_stage(len(passes) - index - 1)
                 if function is project_initialization:
                     result = self._run(name, function, self.input_dir, self.output_dir, port=self.port, pause=self.pause)
                 elif function in (explore_requirement, design_frontend_ui, implement_frontend_ui,
@@ -136,7 +197,7 @@ class Compiler:
             # ========================================
             self.current_stage = None
             incomplete = [name for name, result in self.report["stages"].items()
-                if result["status"] in {"FAILED", "COMPLETED_WITH_FAILURES"}]
+                if result["status"] not in COMPLETE_STATES]
             self.report["status"] = "COMPLETED_WITH_FAILURES" if incomplete else "GREEN"
             show_panel("[DONE] Requirement compilation | " + self.report["status"],
                 f"Application: {self.output_dir}\nReport: {self.arc_dir / 'compilation.json'}"
@@ -150,6 +211,6 @@ class Compiler:
             self.report.update(finish_run(run_token, self.report["status"]))
             save_json(self.arc_dir / "compilation.json", self.report)
             incomplete = [name for name, result in self.report["stages"].items()
-                if result["status"] in {"FAILED", "COMPLETED_WITH_FAILURES", "INTERRUPTED"}]
+                if result["status"] not in COMPLETE_STATES]
             checkpoint(self.output_dir, stage="compiler", task="pipeline", action="Publish final compilation report",
                 status=self.report["status"], details={"stages": self.report["stages"], "incomplete_stages": incomplete})

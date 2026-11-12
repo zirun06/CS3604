@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import re
 from uuid import uuid4
 
+from infrastructure.utils.budget import BudgetExhausted
 from infrastructure.shared.agent.files import EXCLUDED
 from infrastructure.utils.files import save_bytes, save_json
 from infrastructure.shared.project.git import checkpoint
@@ -32,7 +33,7 @@ def implementation_task(output, entry, console, label):
         before = _snapshot(output)
         try:
             yield
-        except ValueError as error:
+        except (ValueError, BudgetExhausted) as error:
             after = _snapshot(output)
             changed = {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)}
             name = re.sub(r"[^\w.-]+", "_", label).strip("._")[:100] or "task"
@@ -40,7 +41,8 @@ def implementation_task(output, entry, console, label):
             for path in sorted(changed):
                 if path in after:
                     save_bytes(directory / "files" / path, after[path])
-            failure = {"status": "FAILED", "task": label, "phase": entry.get("status"),
+            status = "BUDGET_EXHAUSTED" if isinstance(error, BudgetExhausted) else "FAILED"
+            failure = {"status": status, "task": label, "phase": entry.get("status"),
                 "error": str(error), "turns": getattr(error, "turns", 0),
                 "feedback": getattr(error, "feedback", None), "changed_files": sorted(changed),
                 "deleted_files": sorted(changed - after.keys()),
@@ -52,9 +54,11 @@ def implementation_task(output, entry, console, label):
                 else:
                     (output / path).unlink(missing_ok=True)
             entry.update(failure)
-            console.show(label + " | FAILED; continuing", str(error) + "\nBaseline restored. Failure archive: " + failure["archive"])
+            console.show(label + " | " + status, str(error) + "\nBaseline restored. Failure archive: " + failure["archive"])
             checkpoint(output, task=label, action="Archive failed attempt and restore task baseline",
-                status="FAILED", details=failure)
+                status=status, details=failure)
+            if isinstance(error, BudgetExhausted) and error.time_limit:
+                raise
         except BaseException as error:
             checkpoint(output, task=label, action="Record interrupted implementation task",
                 status="INTERRUPTED" if isinstance(error, KeyboardInterrupt) else "FAILED",
@@ -88,7 +92,7 @@ def final_checks(console, **checks):
 
 def complete_report(report, entries, verification):
     """Separate completion of the process from successful acceptance."""
-    report["failures"] = [dict(entry) for entry in entries if entry.get("status") == "FAILED"]
+    report["failures"] = [dict(entry) for entry in entries if entry.get("status") in {"FAILED", "BUDGET_EXHAUSTED"}]
     report["verification"] = verification
     report["status"] = ("COMPLETED_WITH_FAILURES" if report["failures"]
         or any(check["status"] == "FAILED" for check in verification.values()) else "GREEN")

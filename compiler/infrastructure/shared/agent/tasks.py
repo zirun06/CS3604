@@ -1,6 +1,7 @@
 """Isolate failed design tasks while preserving successful neighboring artifacts."""
 
 from contextlib import contextmanager
+from infrastructure.utils.budget import BudgetExhausted
 from infrastructure.utils.presentation.events import task_scope
 
 
@@ -23,6 +24,11 @@ class TaskFailures:
         try:
             with task_scope(identity):
                 yield
+        except BudgetExhausted as error:
+            if error.time_limit:
+                raise
+            self.report['tasks'][identity] = {'status': 'BUDGET_EXHAUSTED', 'error': str(error),
+                'error_type': type(error).__name__}
         except Exception as error:
             if isinstance(error, OSError):
                 raise
@@ -34,7 +40,7 @@ class TaskFailures:
 
     def finish(self):
         failures = [{'task': identity, **entry} for identity, entry in self.report['tasks'].items()
-            if entry['status'] == 'FAILED']
+            if entry['status'] != 'GREEN']
         self.report['status'] = 'COMPLETED_WITH_FAILURES' if failures else 'GREEN'
         if failures:
             raise StageIncomplete(self.stage, failures)

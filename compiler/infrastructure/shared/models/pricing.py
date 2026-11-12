@@ -1,6 +1,7 @@
 """Shared model prices and provider usage normalization, in CNY."""
 
 import json
+import math
 from pathlib import Path
 
 PRICE_TABLE = json.loads(
@@ -8,6 +9,20 @@ PRICE_TABLE = json.loads(
 )
 MODEL_PRICES = PRICE_TABLE["models"]
 TOKEN_UNIT = PRICE_TABLE["unit_tokens"]
+
+
+def load_prices(path=None):
+    source = Path(path).expanduser().resolve() if path else Path(__file__).with_name("pricing.json")
+    table = json.loads(source.read_text(encoding="utf-8-sig"))
+    if (table.get("currency") != "CNY" or type(table.get("unit_tokens")) is not int
+            or table["unit_tokens"] <= 0 or not isinstance(table.get("models"), dict)):
+        raise ValueError("Price table requires currency CNY, positive unit_tokens and a models map")
+    for price in table["models"].values():
+        if not isinstance(price, dict) or any(
+                type(rate) not in (int, float) or not math.isfinite(rate) or rate < 0
+                for rate in (price.get("input"), price.get("output"), price.get("cached", 0))):
+            raise ValueError("Model prices must be finite non-negative input, output and optional cached rates")
+    return table, str(source)
 
 
 def normalize_usage(usage):
@@ -41,8 +56,7 @@ def normalize_usage(usage):
         "total_tokens": count(usage.get("total_tokens")),
     }
     if (
-        normalized["total_tokens"] is None
-        and normalized["input_tokens"] is not None
+        normalized["input_tokens"] is not None
         and normalized["output_tokens"] is not None
     ):
         normalized["total_tokens"] = (
@@ -51,7 +65,7 @@ def normalize_usage(usage):
     return normalized
 
 
-def estimate_cost(model, usage, prices=None):
+def estimate_cost(model, usage, prices=None, unit=TOKEN_UNIT):
     price = (MODEL_PRICES if prices is None else prices).get(model)
     if (
         price is None
@@ -64,4 +78,4 @@ def estimate_cost(model, usage, prices=None):
         (usage["input_tokens"] - cached) * price["input"]
         + cached * price.get("cached", price["input"])
         + usage["output_tokens"] * price["output"]
-    ) / TOKEN_UNIT
+    ) / unit

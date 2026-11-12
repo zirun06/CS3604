@@ -1,5 +1,6 @@
 """Execute actual backend compilation and tests without source/title policy gates."""
 
+from infrastructure.utils.presentation.events import validation
 from infrastructure.shared.agent.feedback import CheckFailure
 
 import json
@@ -32,11 +33,13 @@ class BackendChecks:
             raise ValueError(f"Backend check timed out after {self.timeout}s") from error
         return {"returncode": result["returncode"], "output": result["output"]}
 
+    @validation("build")
     def build(self) -> dict:
         """Build the backend, including publication of its SQL runtime assets."""
         command = npm_command()
         return self.execute([*command[1:], "run", "build", "--workspace", "@arc/backend"], executable=command[0])
 
+    @validation("typecheck", selected_files=True)
     def typecheck(self, files: list[str] | None = None) -> dict:
         """Compile selected backend tests with TypeScript, using and cleaning a temporary test configuration."""
         if files is None:
@@ -56,6 +59,7 @@ class BackendChecks:
         finally:
             temporary.unlink(missing_ok=True)
 
+    @validation("http_test", source="model", selected_files=True)
     def tests(self, files: list[str]) -> dict:
         """Start the real backend through the owned HTTP runner and parse test TAP counts."""
         if not files:

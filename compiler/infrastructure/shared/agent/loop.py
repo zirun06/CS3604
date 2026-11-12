@@ -1,5 +1,6 @@
 """Bounded file editing with failure attribution and real acceptance checks."""
 
+from contextlib import nullcontext
 import json
 
 from infrastructure.shared.agent.conventions import task_conventions
@@ -10,6 +11,7 @@ from infrastructure.shared.agent.tools.protocol import FILE_TOOL_RULES
 from infrastructure.shared.agent.proposals import RESPONSE_ERRORS, response_feedback
 from infrastructure.shared.project.git import checkpoint
 from infrastructure.utils.files import read_source
+from infrastructure.utils.presentation.events import test_authoring
 
 
 class AgentExhausted(ValueError):
@@ -22,7 +24,7 @@ class AgentExhausted(ValueError):
 
 
 def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
-        max_turns: int, console, label: str, feedback=None, feedback_filter=None) -> dict:
+        max_turns: int, console, label: str, feedback=None, feedback_filter=None, *, test_phase=None) -> dict:
     """Refresh files and paths; optionally select failure-related files before repair.
 
     The stage-owned feedback filter may add writable sources/read-only references
@@ -71,7 +73,8 @@ def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
                     request["context_result"] = context_result
                 rules = instructions + "\n\n" + FILE_TOOL_RULES
                 rules += "\nImplementation uses the supplied requirement, design, scope and related files. Semantic queries are not available."
-                return model.generate_json(rules, request)
+                with (test_authoring(task["test_path"], test_phase) if test_phase else nullcontext()):
+                    return model.generate_json(rules, request)
             response = request_model()
             while isinstance(response, dict):
                 if "context_request" in response:

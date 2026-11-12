@@ -1,5 +1,6 @@
 """Deterministic UI existence suites and bounded browser/typecheck commands."""
 
+from infrastructure.utils.presentation.events import validation
 from infrastructure.shared.agent.feedback import CheckFailure
 
 import json
@@ -174,6 +175,7 @@ class FrontendChecks:
         except subprocess.TimeoutExpired as error:
             raise ValueError(f"Frontend check timed out after {timeout or self.timeout}s") from error
 
+    @validation("browser_install")
     def install_browser(self) -> None:
         """Install the Chromium browser used by the generated Playwright tests."""
         result = self.execute(["node_modules/@playwright/test/cli.js", "install", "chromium"], timeout=600)
@@ -181,6 +183,7 @@ class FrontendChecks:
         if result["returncode"]:
             raise ValueError("Playwright Chromium installation failed; install its OS libraries if reported above")
 
+    @validation("typecheck", selected_files=True)
     def typecheck(self, files: list[str], *, test_roots=("frontend/tests/ui",), source_files=("src/**/*.ts", "src/**/*.tsx")) -> dict:
         """Compile selected frontend/test roots with a temporary TypeScript configuration, then remove that configuration."""
         includes = list(source_files)
@@ -199,6 +202,7 @@ class FrontendChecks:
         finally:
             path.unlink(missing_ok=True)
 
+    @validation("ui_presence", selected_files=True)
     def tests(self, files: list[str]) -> dict:
         """Run selected UI-existence specs with Playwright and normalize the reporter output."""
         if not files:
@@ -210,6 +214,7 @@ class FrontendChecks:
         result = self.execute(["node_modules/@playwright/test/cli.js", "test", "--config", "frontend/playwright.ui.config.ts", *files], env=env)
         return parse_playwright_result(result)
 
+    @validation("build")
     def build(self) -> dict:
         """Run the generated workspace's frontend and backend build command and return the captured result."""
         command = npm_command()

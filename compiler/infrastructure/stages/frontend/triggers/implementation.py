@@ -282,12 +282,12 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
             if agent is None:
                 agent = run_file_agent(model, TEST_INSTRUCTIONS, test_context,
                     test_workspace, test_gate, max_turns, console, label + " / Test Generation",
-                    feedback=generation_feedback)
+                    feedback=generation_feedback, test_phase="generation")
             report["requirements"][rid]["test_turns"] = agent["turns"]
             if agent["checks"]["status"] != "GREEN":
                 review = run_file_agent(model, REVIEW_INSTRUCTIONS, test_context,
                     test_workspace, test_gate, max_turns, console, label + " / Test Review",
-                    feedback=agent["checks"]["behavior"])
+                    feedback=agent["checks"]["behavior"], test_phase="review")
                 report["requirements"][rid]["review_turns"] = review["turns"]
                 agent = review
             report["requirements"][rid]["test_path"] = relative

@@ -8,9 +8,12 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from openai import OpenAI, OpenAIError
+from openai import OpenAIError
 from PIL import Image, ImageOps
-from infrastructure.utils.presentation.model_io import http_client, invoke
+from infrastructure.utils.budget import active_budget
+from infrastructure.utils.presentation.model_io import (
+    BudgetedOpenAI as OpenAI, http_client, input_token_reserve, invoke, logical_request,
+)
 from infrastructure.utils.presentation.console import DemoConsole
 from infrastructure.shared.agent.proposals import propose_json
 from infrastructure.shared.models.text import DEFAULT_MODEL, JSON_OUTPUT_RULE, reasoning_arguments, reasoning_rejected
@@ -76,20 +79,32 @@ class VisualModel:
             lambda value: value, DemoConsole(), f"Visual analysis {image.name}", max_attempts)
         return result
 
-    def generate_json(self, instructions: str, payload: dict) -> dict:
-        """Request visual JSON and include prior response errors when repairing it."""
+    def _arguments(self, instructions, payload):
         text = instructions.rstrip() + "\n" + JSON_OUTPUT_RULE
         if "correction" in payload:
             text += "\n" + VISUAL_REPAIR_PREFIX + json.dumps(payload["correction"], ensure_ascii=False)
+        return {
+            "model": self.name,
+            "messages": [{"role": "user", "content": [
+                {"type": "text", "text": text},
+                {"type": "image_url", "image_url": {"url": payload["image_url"], "detail": "high"}},
+            ]}],
+            "response_format": {"type": "json_object"},
+        }
+
+    def reserve_image(self):
+        budget = active_budget()
+        if budget is None:
+            return None
+        arguments = self._arguments(VISION_INSTRUCTIONS, {"image_url": ""})
+        arguments.update(reasoning_arguments(self.name, self.reasoning))
+        return budget.reserve_first_call(input_token_reserve(arguments), 4096)
+
+    @logical_request
+    def generate_json(self, instructions: str, payload: dict) -> dict:
+        """Request visual JSON and include prior response errors when repairing it."""
+        arguments = self._arguments(instructions, payload)
         mode = getattr(self, "reasoning", "low")
-        arguments = {
-                "model": self.name,
-                "messages": [{"role": "user", "content": [
-                    {"type": "text", "text": text},
-                    {"type": "image_url", "image_url": {"url": payload["image_url"], "detail": "high"}},
-                ]}],
-                "response_format": {"type": "json_object"},
-            }
         try:
             while True:
                 controls = reasoning_arguments(self.name, mode) if getattr(self, "_reasoning_supported", True) else {}
