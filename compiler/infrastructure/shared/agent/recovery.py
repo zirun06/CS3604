@@ -5,6 +5,7 @@ import re
 from uuid import uuid4
 
 from infrastructure.utils.budget import BudgetExhausted
+from infrastructure.shared.models.text import ModelRequestFailed
 from infrastructure.shared.agent.files import EXCLUDED
 from infrastructure.utils.files import save_bytes, save_json
 from infrastructure.shared.project.git import checkpoint
@@ -83,7 +84,7 @@ def implementation_task(output, entry, console, label, *, batch_id=None):
         before = snapshot(output)
         try:
             yield
-        except (ValueError, BudgetExhausted) as error:
+        except (ValueError, ModelRequestFailed, BudgetExhausted) as error:
             after = snapshot(output)
             status = "BUDGET_EXHAUSTED" if isinstance(error, BudgetExhausted) else "FAILED"
             failure = _archive(output, label, before, after, status, {
@@ -94,7 +95,7 @@ def implementation_task(output, entry, console, label, *, batch_id=None):
             console.show(label + " | " + status, str(error) + "\nBaseline restored. Failure archive: " + failure["archive"])
             checkpoint(output, task=label, action="Archive failed attempt and restore task baseline",
                 status=status, details=failure)
-            if isinstance(error, BudgetExhausted) and error.time_limit:
+            if isinstance(error, BudgetExhausted) and error.time_limit and error.scope == "run":
                 raise
         except BaseException as error:
             checkpoint(output, task=label, action="Record interrupted implementation task",

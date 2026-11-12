@@ -171,7 +171,7 @@ class ConsoleLogging(unittest.TestCase):
         self.assertIn("max_tokens", requests[2])
         self.assertEqual([record["status_code"] for record in records if record["event"] == "http_response"], [500, 400, 200])
 
-    def test_all_task_types_use_low_reasoning_on_the_wire(self):
+    def test_explicit_low_reasoning_applies_to_all_task_types_on_the_wire(self):
         payloads = [{}, {"entity_name": "Note"},
             {"entity_name": "Note", "correction": {"error": "Invalid SQL"}},
             {"task": {"test_path": None}},
@@ -186,6 +186,7 @@ class ConsoleLogging(unittest.TestCase):
             return httpx.Response(200, json=self.response('{"ok":true}'))
         model = self.model(handler)
         model.name = "deepseek-flash"
+        model.reasoning = "low"
         with redirect_stdout(StringIO()):
             for payload in payloads:
                 model.generate_json("Complete this task", payload)
@@ -211,6 +212,8 @@ class ConsoleLogging(unittest.TestCase):
                 visual_model.client = model.client
                 model = visual_model
             model.name = "deepseek-flash"
+            if not visual:
+                model.reasoning = "low"
             payload = {"image_url": "data:image/png;base64,QUJD"} if visual else {}
             with self.subTest(visual=visual), redirect_stdout(StringIO()):
                 self.assertEqual(model.generate_json("Describe", payload), {"ok": True})

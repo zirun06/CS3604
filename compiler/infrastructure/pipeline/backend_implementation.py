@@ -10,6 +10,7 @@ from infrastructure.shared.agent.files import editable_application_path
 from infrastructure.stages.backend.context import load_context, supplied_sources, related_schema
 from infrastructure.shared.agent.implementation_batches import ImplementationBatches, passing_checks, require_any
 from infrastructure.shared.agent.feedback import CheckFailure
+from infrastructure.stages.database.order import table_dependencies
 from infrastructure.utils.files import read_artifact
 from infrastructure.stages.backend.runtime import REGISTER_PATH, TEST_RUNNER_PATH, TEST_SUPPORT_PATH, prepare_runtime, test_path
 from infrastructure.stages.backend.testing import BackendChecks, require_green, test_run_status
@@ -138,24 +139,52 @@ def implement_backend_tdd(arc_dir: Path, pause: bool = False, max_turns: int = 1
     tree, schema, _ = load_context(arc_dir)
     contracts = read_artifact(arc_dir, "backend_apis.json")
     output = arc_dir.parent.resolve()
-    for relative in ["backend/src/db/initialize.ts", *(f"backend/src/db/tables/{name}.sql" for name in schema["entities"])]:
-        if not (output / relative).is_file():
-            raise ValueError(f"Missing {relative}; run stage 04")
+    if not (output / "backend/src/db/initialize.ts").is_file():
+        raise ValueError("Missing database initializer; run stage 04")
     prepare_runtime(output)
     install_dependencies(output)
     console = DemoConsole(pause)
     owners = {aid: [rid for rid in tree.leaves if aid in contracts["requirements"].get(rid, [])]
         for aid in contracts["apis"]}
     apis = {aid: api for aid, api in contracts["apis"].items() if owners[aid]}
+    dependencies = table_dependencies(schema)
+    blocked_apis = {}
+    for aid, api in apis.items():
+        required = set(related_schema(schema, [api]))
+        pending = list(required)
+        while pending:
+            for target in dependencies[pending.pop()]:
+                if target not in required:
+                    pending.append(target)
+                    required.add(target)
+        missing = sorted(name for name in required if not (output / f"backend/src/db/tables/{name}.sql").is_file())
+        if missing:
+            blocked_apis[aid] = {"status": "FAILED", "api": aid, "error": "Missing table SQL", "tables": missing}
+    apis = {aid: api for aid, api in apis.items() if aid not in blocked_apis}
     paths = {aid: test_path(owners[aid][0], aid) for aid in apis}
     signals = {aid: api_capability_signals(api, contracts["modules"]) for aid, api in apis.items()}
     batches = ImplementationBatches(arc_dir, "06", console).register(apis, owners, signals)
     report = {"status": "RUNNING", "requirements": {}, "apis": {}, "tests": {}, "red": {}, "green": {}, "agents": {}}
+    def record_requirements():
+        for rid in tree.leaves:
+            ids = contracts["requirements"].get(rid, [])
+            if rid not in contracts["requirements"]:
+                report["requirements"][rid] = {"status": "FAILED", "requirement": rid, "apis": [],
+                    "error": "Missing accepted backend design"}
+            else:
+                report["requirements"][rid] = {"requirement": rid, "apis": ids, "status": (
+                    "NO_DIRECT_APIS" if not ids else "GREEN" if all(aid in batches.accepted for aid in ids) else "FAILED")}
+
     report_path = arc_dir / "backend_tdd.json"
     save_json(report_path, report)
     if not apis:
         batches.publish()
-        report.update(status="NO_APIS", summary={"tests": 0, "pass": 0, "fail": 0})
+        report["apis"].update(blocked_apis)
+        record_requirements()
+        complete_report(report, [*blocked_apis.values(), *report["requirements"].values()], {})
+        if report["status"] == "GREEN":
+            report["status"] = "NO_APIS"
+        report["summary"] = {"tests": 0, "pass": 0, "fail": 0}
         save_json(report_path, report)
         return report
     checks, model = BackendChecks(output), TextModel()
@@ -224,23 +253,20 @@ def implement_backend_tdd(arc_dir: Path, pause: bool = False, max_turns: int = 1
             for aid, evidence in results["passed"].items()}
 
     try:
-        report["apis"] = batches.run(process)
+        report["apis"] = {**blocked_apis, **batches.run(process)}
         for aid, entry in batches.accepted.items():
             for owner in owners[aid]:
                 report["tests"].setdefault(owner, {})[aid] = paths[aid]
             report["red"][aid] = entry["red"]
             report["green"][aid] = entry["green"]
             report["agents"][aid] = {"generation": entry["test_turns"], "implementation": entry["implementation_turns"]}
-        for rid in tree.leaves:
-            ids = contracts["requirements"].get(rid, [])
-            report["requirements"][rid] = {"apis": ids, "status": (
-                "NO_DIRECT_APIS" if not ids else "GREEN" if all(aid in batches.accepted for aid in ids) else "FAILED")}
+        record_requirements()
         all_files = [paths[aid] for aid in batches.accepted]
         verification = final_checks(console, typecheck=(checks.typecheck, None),
             tests=(lambda: checks.tests(all_files), require_green if all_files else None), build=(checks.build, None))
         final = verification["tests"].get("result") or {}
         report["summary"] = {key: final.get(key, 0) for key in ("tests", "pass", "fail")}
-        complete_report(report, report["apis"].values(), verification)
+        complete_report(report, [*report["apis"].values(), *report["requirements"].values()], verification)
         save_json(report_path, report)
         checkpoint(output, stage="06", task="API acceptance", action="Publish grouped backend report", details=report["summary"])
         return report

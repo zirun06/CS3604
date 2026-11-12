@@ -104,6 +104,18 @@ def implement_db(arc_dir: Path, pause: bool = False) -> dict:
     ddl = batches.run(process)
     implementations.update({name: {k: ddl[name][k] for k in ("path", "content")}
         for name in order if ddl[name]["status"] == "GREEN"})
+    # A table with a missing FK target cannot join the runnable subset.
+    blocked = []
+    changed = True
+    while changed:
+        changed = False
+        for name in tuple(implementations):
+            missing = sorted(set(dependencies[name]) - implementations.keys())
+            if missing:
+                blocked.append({"status": "FAILED", "table": name, "error": "Missing foreign-key targets",
+                    "tables": missing})
+                del implementations[name]
+                changed = True
     initializer = output / "backend/src/db/initialize.ts"
     if not initializer.resolve().is_relative_to(output):
         raise ValueError("DB initializer path escapes the output directory")
@@ -111,8 +123,9 @@ def implement_db(arc_dir: Path, pause: bool = False) -> dict:
     checkpoint(output, stage="04", task="database initializer", action="Publish ordered SQL initialization",
         details={"table_order": order, "published_tables": list(implementations)})
     seeds = implement_startup_data(arc_dir, schema, console, list(implementations))
-    report = verify_database_runtime(arc_dir, schema, console)
-    failures = [value for value in [*ddl.values(), *seeds.values()] if value["status"] != "GREEN"]
+    runnable_schema = {**schema, "entities": {name: schema["entities"][name] for name in implementations}}
+    report = verify_database_runtime(arc_dir, runnable_schema, console)
+    failures = [*blocked, *(value for value in [*ddl.values(), *seeds.values()] if value["status"] != "GREEN")]
     if failures:
         report.update(status="COMPLETED_WITH_FAILURES", failures=failures)
         save_json(arc_dir / "db_checks.json", report)

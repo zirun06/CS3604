@@ -227,7 +227,13 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
         report["baseline"].update(status="GREEN", checks=baseline)
     save_json(arc_dir / "frontend_e2e.json", report)
     values, signals = {}, {}
+    backend_report = arc_dir / "backend_tdd.json"
+    implemented_apis = read_artifact(arc_dir, backend_report.name).get("apis", {}) if backend_report.is_file() else None
     for rid in tree.leaves:
+        unavailable = design.get("unavailable", {}).get(rid)
+        if unavailable:
+            report["requirements"][rid] = {"status": "FAILED", "requirements": [rid], "error": unavailable}
+            continue
         context = scenario_context(ui, design, rid)
         tids = set(context["triggers"])
         pages = context["page_subtrees"]
@@ -236,6 +242,12 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
                 "error": "No UI interface available for requirement acceptance; not verified"}
             continue
         called = {aid for trigger in context["triggers"].values() for aid in api_ids(trigger)}
+        blocked = sorted(aid for aid in called if implemented_apis is not None
+            and implemented_apis.get(aid, {}).get("status") != "GREEN")
+        if blocked:
+            report["requirements"][rid] = {"status": "FAILED", "requirements": [rid],
+                "error": "Missing accepted API implementation", "apis": blocked}
+            continue
         context.update(requirement=contexts[rid], target_trigger_ids=sorted(tids),
             obligations={tid: trigger_obligations(trigger, backend) for tid, trigger in context["triggers"].items()},
             backend_apis={aid: backend["apis"][aid] for aid in sorted(called)})

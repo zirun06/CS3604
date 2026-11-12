@@ -1,9 +1,10 @@
 """Single-response SQL implementation through native edit_file calls."""
 
 import json
+from openai import OpenAIError
 
 from infrastructure.shared.agent.agent import BaseAgent
-from infrastructure.shared.models.text import ModelOutputTruncated, reasoning_arguments
+from infrastructure.shared.models.text import ModelOutputTruncated, ModelRequestFailed, reasoning_arguments
 from infrastructure.shared.agent.design_batches import check_request_size
 from infrastructure.utils.presentation.model_io import record_tool_execution
 
@@ -104,9 +105,12 @@ class DatabaseImplementationAgent(BaseAgent):
             "\nReturn all required native edit_file calls in one response, one path per table."},
             {"role": "user", "content": json.dumps(task, ensure_ascii=False)}]
         self.messages = messages
-        response = self.model._request(model=self.model.name, messages=messages,
-            tools=files.definitions(["edit_file"]), tool_choice="required",
-            **reasoning_arguments(self.model.name, self.model.reasoning))
+        try:
+            response = self.model._request(model=self.model.name, messages=messages,
+                tools=files.definitions(["edit_file"]), tool_choice="required",
+                **reasoning_arguments(self.model.name, self.model.reasoning))
+        except OpenAIError as error:
+            raise ModelRequestFailed(f"Database model request failed: {error}") from error
         if not response.choices:
             raise ValueError("Database agent returned no choices")
         choice = response.choices[0]

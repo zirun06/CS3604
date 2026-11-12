@@ -12,7 +12,7 @@ def load_context(arc_dir: Path):
     """Load the requirement tree, schema, and normalized obligations."""
     tree = RequirementTree(read_artifact(arc_dir, "requirements.json"))
     schema = read_artifact(arc_dir, "db_schema.json")
-    obligations = normalize_obligations(read_artifact(arc_dir, "db_obligations.json"), tree)
+    obligations = normalize_obligations(read_artifact(arc_dir, "db_obligations.json"), tree, partial=True)
     check_symbols([*obligations["requirements"].values(), *obligations["steps"].values()], schema)
     return tree, schema, obligations
 

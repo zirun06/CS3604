@@ -25,7 +25,7 @@ class TaskFailures:
             with task_scope(identity):
                 yield
         except BudgetExhausted as error:
-            if error.time_limit:
+            if error.time_limit and error.scope == "run":
                 raise
             self.report['tasks'][identity] = {'status': 'BUDGET_EXHAUSTED', 'error': str(error),
                 'error_type': type(error).__name__}

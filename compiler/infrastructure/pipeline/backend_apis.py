@@ -41,6 +41,8 @@ def design_backend_apis(arc_dir: Path, pause: bool = False, top_k: int = 6, max_
     path = arc_dir / "backend_apis.json"
     save_json(path, design)
     batches = DesignBatches(arc_dir, "05_design_backend_apis", console)
+    for rid, failure in obligations["unavailable"].items():
+        batches.block(rid, failure["reason"])
     model = TextModel(json_mode=False)
 
     def process(batch):
@@ -48,6 +50,8 @@ def design_backend_apis(arc_dir: Path, pause: bool = False, top_k: int = 6, max_
         requests = {}
         retrieved = {"apis": {}, "modules": {}}
         for rid in batch.leaves:
+            if rid in batches.blocked_requirements:
+                continue
             requirement = tree.requirements[rid]
             required = obligations["requirements"][rid]
             query = "\n".join((requirement["name"], requirement["description"], tree.concatenated_steps(rid)))
@@ -57,6 +61,8 @@ def design_backend_apis(arc_dir: Path, pause: bool = False, top_k: int = 6, max_
             requests[rid] = {"required_obligations": required,
                 "step_obligations": {sid: obligations["steps"][sid] for sid in tree.own_steps[rid]},
                 "candidate_apis": list(matches["apis"]), "candidate_modules": list(matches["modules"])}
+        if not requests:
+            return False
         records = [r["required_obligations"] for r in requests.values()] + [
             *retrieved["apis"].values(), *retrieved["modules"].values()]
         fields = union(records)
@@ -72,7 +78,7 @@ def design_backend_apis(arc_dir: Path, pause: bool = False, top_k: int = 6, max_
                         raise ValueError(f"Cannot replace an unseen shared contract: {identity}")
                     exact_keys(contract, shape["required"], f"{kind}.{identity}")
                     candidate[kind][identity] = deepcopy(contract)
-            for rid in batch.leaves:
+            for rid in requests:
                 association = proposal["requirements"][rid]
                 for key, dest in (("api_ids", "requirements"), ("module_ids", "requirement_modules")):
                     ids = association[key]

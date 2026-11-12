@@ -10,7 +10,7 @@ from infrastructure.shared.agent.recovery import CandidateProgress, reject_candi
 
 from infrastructure.shared.agent.tools import FileTools, FileToolError
 from infrastructure.shared.agent.tools.protocol import FILE_TOOL_RULES
-from infrastructure.shared.models.text import ModelOutputTruncated
+from infrastructure.shared.models.text import ModelOutputTruncated, reasoning_scope
 from infrastructure.shared.agent.proposals import RESPONSE_ERRORS, response_feedback
 from infrastructure.shared.project.git import checkpoint
 from infrastructure.utils.files import read_source
@@ -84,7 +84,8 @@ def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
                     check_request_size(request, len(task["units"]))
                 test_targets = task.get("test_path", task.get("test_paths"))
                 with (test_authoring(test_targets, test_phase) if test_phase else nullcontext()):
-                    return model.generate_json(rules, request)
+                    with reasoning_scope(bool(feedback) or test_phase == "review"):
+                        return model.generate_json(rules, request)
             response = request_model()
             while isinstance(response, dict):
                 if "context_request" in response:

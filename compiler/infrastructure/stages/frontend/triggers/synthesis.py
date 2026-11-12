@@ -13,17 +13,25 @@ from infrastructure.stages.backend.primitives import validate_design, Obligation
 
 def synthesize_triggers(arc_dir, ui, tree, backend, contexts, model, console, max_attempts=10):
     result = empty_triggers(tree)
-    obligations = normalize_obligations(read_artifact(arc_dir, "db_obligations.json"), tree)
+    obligations = normalize_obligations(read_artifact(arc_dir, "db_obligations.json"), tree, partial=True)
     conventions = load_conventions(arc_dir)
     accepted = []
     path = arc_dir / "frontend_triggers.json"
     save_json(path, result)
     batches = DesignBatches(arc_dir, "09_design_frontend_triggers", console)
 
+    for rid in tree.leaves:
+        if rid in obligations["unavailable"]:
+            batches.block(rid, obligations["unavailable"][rid]["reason"])
+        elif rid not in backend["requirements"]:
+            batches.block(rid, "Missing accepted backend design")
+
     def process(batch):
         nonlocal result
         requests, apis = {}, {}
         for rid in batch.leaves:
+            if rid in batches.blocked_requirements:
+                continue
             pages = relevant_pages(ui, rid)
             if not pages:
                 continue
@@ -32,8 +40,8 @@ def synthesize_triggers(arc_dir, ui, tree, backend, contexts, model, console, ma
                     "requirements": {rid: backend["requirements"].get(rid, [])}},
                     obligations, complete=False, tree=tree)
             except ObligationCoverageError as error:
-                raise ValueError(f"Upstream backend contract cannot cover {rid}: {error}. "
-                    "Review stage 03 obligations and stage 05 API design before generating triggers.") from error
+                batches.block(rid, f"Upstream backend contract cannot cover requirement: {error}")
+                continue
             elements = {uid for page in pages.values() for uid in page["elements"]}
             existing = {tid: trigger for tid, trigger in result["triggers"].items() if trigger["source"] in elements}
             aids = set(backend["requirements"].get(rid, [])) | {aid for trigger in existing.values() for aid in api_ids(trigger)}
@@ -70,5 +78,11 @@ def synthesize_triggers(arc_dir, ui, tree, backend, contexts, model, console, ma
         console.artifact("frontend_triggers", result, batch.id + " | Accepted triggers")
         return True
 
-    batches.run(process)
+    try:
+        batches.run(process)
+    finally:
+        result["covered_requirements"] = accepted
+        result["unavailable"] = {rid: batches.blocked_requirements.get(rid, "Trigger design was not accepted")
+            for rid in tree.leaves if rid not in accepted and (rid in batches.blocked_requirements or relevant_pages(ui, rid))}
+        save_json(path, result)
     return result

@@ -10,6 +10,7 @@ from time import monotonic, sleep
 from uuid import uuid4
 from contextvars import ContextVar
 
+import httpcore
 import httpx
 from openai import OpenAI
 
@@ -124,7 +125,7 @@ def _reserve_request(arguments):
     _logical.get()["first"] = None
     try:
         estimate = input_token_reserve(options)
-        cap = options.get(parameter, 4096)
+        cap = budget.output_limit(options.get(parameter, 4096))
         if attempt is not None and (estimate > attempt.input_tokens or cap > attempt.output_tokens):
             budget.settle(attempt, None)
             attempt = None
@@ -141,12 +142,18 @@ def _reserve_request(arguments):
 def _finish_attempt(call, usage=None, status=None):
     attempt = call.get("reservation")
     budget = active_budget()
+    actual = normalize_usage(usage or {})["total_tokens"]
+    unprocessed = call.pop("unprocessed", None)
     if attempt is not None and budget is not None:
-        budget.settle(attempt, normalize_usage(usage or {})["total_tokens"])
+        budget.settle(attempt, 0 if actual is None and unprocessed else actual)
     if call.get("pending"):
-        model_metric("http_missing_usage", int(normalize_usage(usage or {})["total_tokens"] is None))
+        model_metric("http_missing_usage", int(actual is None))
         emit("http_attempt_finished", logical_call_id=_logical.get()["id"], call_id=call["id"],
-            attempt=call["wire_attempts"], http_status=status)
+            attempt=call["wire_attempts"], http_status=status, reported_tokens=actual,
+            reserved_input_tokens=attempt.input_tokens if attempt else None,
+            reserved_output_tokens=attempt.output_tokens if attempt else None,
+            charged_tokens=(actual if actual is not None else 0 if unprocessed
+                else attempt.tokens if attempt else None), unprocessed=unprocessed)
     call["reservation"], call["pending"] = None, False
 
 
@@ -203,9 +210,11 @@ def _http_request(request: httpx.Request) -> None:
                 call["reservation"] = attempt
             remaining = budget.check_model_time()
             if "seconds" in budget.limits:
-                # HTTPX timeouts are per I/O phase. Recompute before every retry.
                 timeout = request.extensions.get("timeout") or {}
-                request.extensions["timeout"] = {phase: min(timeout.get(phase) or remaining, remaining / 4)
+                # Allow the gateway the remaining read window. The transport
+                # reapplies the absolute deadline before each socket operation.
+                request.extensions["timeout"] = {phase: min(remaining, timeout.get(phase) or remaining,
+                    {"connect": 10, "write": 15, "pool": 5}.get(phase, remaining))
                     for phase in ("connect", "read", "write", "pool")}
             budget.dispatch(attempt)
         call["wire_attempts"] += 1
@@ -240,6 +249,12 @@ def _http_response(response: httpx.Response) -> None:
         except ValueError:
             body = None
         usage = body.get("usage") if isinstance(body, dict) else None
+        error = body.get("error") if isinstance(body, dict) else None
+        message = str(error.get("message", "")).lower() if isinstance(error, dict) else ""
+        if response.status_code in {400, 422} and any(
+                key in message for key in ("max_completion_tokens", "reasoning_effort", "thinking")) and any(
+                word in message for word in ("unsupported", "unknown", "unrecognized", "not supported", "not allowed", "unexpected")):
+            call["unprocessed"] = "request_parameter_rejected"
         _finish_attempt(call, usage, response.status_code)
         if response.status_code >= 400 and usage:
             from infrastructure.utils.presentation.events import account_usage
@@ -263,10 +278,58 @@ def _http_response(response: httpx.Response) -> None:
         request_id=response.headers.get("x-request-id"), body=response.text)
 
 
+def _deadline(timeout):
+    budget = active_budget()
+    if budget is None or "seconds" not in budget.limits:
+        return timeout
+    remaining = budget.check_model_time()
+    return remaining if timeout is None else min(timeout, remaining)
+
+
+class DeadlineStream(httpcore.NetworkStream):
+    def __init__(self, stream):
+        self.stream = stream
+
+    def read(self, max_bytes, timeout=None):
+        return self.stream.read(max_bytes, timeout=_deadline(timeout))
+
+    def write(self, buffer, timeout=None):
+        return self.stream.write(buffer, timeout=_deadline(timeout))
+
+    def start_tls(self, ssl_context, server_hostname=None, timeout=None):
+        return DeadlineStream(self.stream.start_tls(ssl_context, server_hostname, timeout=_deadline(timeout)))
+
+    def get_extra_info(self, info):
+        return self.stream.get_extra_info(info)
+
+    def close(self):
+        self.stream.close()
+
+
+class DeadlineBackend(httpcore.SyncBackend):
+    def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+        return DeadlineStream(super().connect_tcp(host, port, _deadline(timeout), local_address, socket_options))
+
+
+class DeadlineTransport(httpx.HTTPTransport):
+    def __init__(self):
+        super().__init__(trust_env=False, limits=httpx.Limits(max_connections=20, max_keepalive_connections=10))
+        self._pool._network_backend = DeadlineBackend()
+
+    def handle_request(self, request):
+        try:
+            return super().handle_request(request)
+        except (httpx.ConnectTimeout, httpx.ConnectError, httpx.PoolTimeout):
+            call = _call.get()
+            if call is not None:
+                call["unprocessed"] = "connection_not_established"
+            raise
+
+
 def http_client() -> httpx.Client:
-    """Connect directly, retaining audit hooks and the SDK's transport limits."""
+    """Connect directly, retaining audit hooks and enforcing a shared I/O deadline."""
     from openai import DefaultHttpxClient
-    return DefaultHttpxClient(trust_env=False, timeout=httpx.Timeout(600),
+    return DefaultHttpxClient(trust_env=False, timeout=httpx.Timeout(600), transport=DeadlineTransport(),
         event_hooks={"request": [_http_request], "response": [_http_response]})
 
 

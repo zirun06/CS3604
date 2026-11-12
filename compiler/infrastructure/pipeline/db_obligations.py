@@ -10,6 +10,7 @@ from infrastructure.stages.database.obligation_agent import OBLIGATION_INTRO, OB
 from infrastructure.stages.database.obligation_utils import check_symbols, normalize_inference, normalize_obligations
 from infrastructure.stages.requirements.tree import RequirementTree
 from infrastructure.utils.files import read_artifact, save_json
+from infrastructure.utils.budget import active_budget
 from infrastructure.utils.presentation.console import DemoConsole
 
 
@@ -31,10 +32,15 @@ def infer_db_obligations(arc_dir: Path, pause: bool = False, top_k: int = 6, max
     batches = DesignBatches(arc_dir, "03_infer_db_obligations", console, root)
     model = TextModel(json_mode=False)
     business_rules = OBLIGATION_INTRO.replace("ONE requirement", "each leaf requirement") + OBLIGATION_RULES
-    business_rules += """
-For each leaf, return {"requirement":{"read":[],"write":[]},"steps":{"STEP-ID":
-{"read":[],"write":[]}}}. Include all supplied step IDs, using {} for no steps.
-Use only actual schema symbols and do not modify them. Query entity context if needed."""
+    output_rules = """
+
+Return exactly one JSON object with TWO top-level maps. Use
+{"requirements":{"LEAF-ID":{"read":[],"write":[]}},"steps":{"STEP-ID":{"read":[],"write":[]}}}.
+Requirements and steps are siblings. Do not nest steps inside a requirement.
+Use every leaf ID in order and every ID in its expected_step_ids. Use empty read/write
+arrays where appropriate and an empty steps map only when the batch has no steps.
+Use only actual schema symbols and do not modify them. Query entity context if needed.
+When correcting a rejection, resubmit both maps for the whole batch."""
 
     def process(batch):
         requests, provided = {}, {}
@@ -47,31 +53,37 @@ Use only actual schema symbols and do not modify them. Query entity context if n
             entities = set(retriever.retrieve(query, schema, top_k)["entities"])
             entities.update(field.split(".", 1)[0] for field in candidates)
             provided.update({name: schema["entities"][name] for name in sorted(entities) if name in schema["entities"]})
-            requests[rid] = {"related_fields": candidates, "entity_candidates": sorted(entities)}
+            requests[rid] = {"related_fields": candidates, "entity_candidates": sorted(entities),
+                "expected_step_ids": tree.own_steps[rid]}
 
         def accept(proposal):
             reviewed = {}
+            expected = [sid for rid in batch.leaves for sid in tree.own_steps[rid]]
+            exact_keys(proposal.get("steps"), expected, "Top-level steps (sibling of requirements)")
             for rid in batch.leaves:
-                entry = proposal["requirements"][rid]
-                exact_keys(entry["steps"], tree.own_steps[rid], f"{rid} steps")
-                record = normalize_inference(entry, tree.own_steps[rid])
+                record = normalize_inference({"requirement": proposal["requirements"][rid],
+                    "steps": proposal["steps"]}, tree.own_steps[rid])
                 check_symbols([record["requirement"], *record["steps"].values()], schema)
                 reviewed[rid] = record
             return reviewed
 
-        reviewed = batches.propose(batch, model, business_rules, requests, accept, min(max_attempts, 5),
-            shared={"provided_entities": provided}, context_index=ContextIndex(lambda: {"entity": schema["entities"]}))
+        return batches.propose(batch, model, business_rules, requests, accept, min(max_attempts, 5),
+            shared={"provided_entities": provided}, context_index=ContextIndex(lambda: {"entity": schema["entities"]}),
+            output_rules=output_rules, log_checkpoints=False)
+
+    def publish(batch, reviewed):
         for rid, entry in reviewed.items():
             obligations["requirements"][rid] = entry["requirement"]
             obligations["steps"].update(entry["steps"])
         save_json(path, obligations)
         console.artifact("db_obligations", obligations, batch.id + " | Accepted obligations")
-        return True
 
+    budget = active_budget()
     try:
-        batches.run(process)
+        batches.run(process, publish=publish, workers=budget.design_workers if budget and not pause else 1,
+            split_rejected=True)
     finally:
         model.client.close()
-    obligations = normalize_obligations(obligations, tree)
-    save_json(path, obligations)
+        obligations = normalize_obligations(obligations, tree, partial=True)
+        save_json(path, obligations)
     return obligations

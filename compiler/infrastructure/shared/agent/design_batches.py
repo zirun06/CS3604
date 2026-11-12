@@ -1,14 +1,17 @@
 """Execute and report design batches, publishing only validated proposals."""
 
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 from contextlib import nullcontext
 
 from infrastructure.shared.agent.conventions import load_conventions
-from infrastructure.shared.agent.proposals import propose_json
+from infrastructure.shared.agent.proposals import ProposalExhausted, propose_json
 from infrastructure.shared.agent.tasks import TaskFailures
 from infrastructure.shared.models.text import ModelOutputTruncated
 from infrastructure.stages.requirements.batching import DesignPlan, packed
 from infrastructure.utils.files import read_artifact, save_json
+from infrastructure.utils.budget import wait_for_reservations
 from infrastructure.utils.presentation.events import task_scope
 
 
@@ -64,6 +67,8 @@ class DesignBatches:
         self.failures = TaskFailures(arc_dir, stage, console)
         self.records = []
         self.effective = []
+        self._records_by_id = {}
+        self.blocked_requirements = {}
         self.catalog = {}
         self.refresh_catalog()
         save_json(arc_dir / "design_batch_plan.json", self.plan.evidence())
@@ -89,7 +94,8 @@ class DesignBatches:
             "accepted_symbols": dict(catalog), "shared_conventions": load_conventions(self.arc_dir)}
         save_json(self.arc_dir / "design_catalog.json", self.catalog)
 
-    def propose(self, batch, model, instructions, requests, accept, max_attempts, *, context_index=None, shared=None):
+    def propose(self, batch, model, instructions, requests, accept, max_attempts, *, context_index=None,
+            shared=None, output_rules=OUTPUT, log_checkpoints=True):
         active = tuple(requests)
         if not active:
             return None
@@ -104,54 +110,86 @@ class DesignBatches:
             exact_keys(proposal["requirements"], active, "Batch requirements")
             return accept(proposal)
 
-        self.records[-1]["request_chars"] = len(packed(request))
+        self._records_by_id[batch.id]["request_chars"] = len(packed(request))
         check_request_size(request, len(batch.leaves))
-        result, _ = propose_json(model, instructions + OUTPUT, request, verify,
-            self.console, batch.id, max_attempts, context_index=context_index, split_on_truncation=True)
+        result, _ = propose_json(model, instructions + output_rules, request, verify,
+            self.console, batch.id, max_attempts, context_index=context_index, split_on_truncation=True,
+            log_checkpoints=log_checkpoints, compact_feedback=True)
         return result
 
-    def run(self, process):
-        def visit(batch):
+    def block(self, rid, reason):
+        self.blocked_requirements[rid] = reason
+        self.failures.report["tasks"][f"upstream:{rid}"] = {"status": "BLOCKED_UPSTREAM", "error": reason}
+
+    def run(self, process, *, publish=None, workers=1, split_rejected=False):
+        """Workers may compute independent results; only the caller publishes them."""
+        if workers > 1 and publish is None:
+            raise ValueError("Parallel design requires an explicit serial publish function")
+
+        def register(batch):
             record = {**self.plan.describe(batch), "status": "RUNNING"}
             self.records.append(record)
-            try:
-                with task_scope(batch.id, batch.leaves, batch_id=batch.id):
-                    ran = process(batch)
-                    if ran:
-                        self.refresh_catalog()
-                record["status"] = "GREEN" if ran else "NOT_APPLICABLE"
-            except (DesignInputTooLarge, ModelOutputTruncated) as error:
-                record["split_reason"] = "input_size" if isinstance(error, DesignInputTooLarge) else "output_truncated"
-                if len(batch.leaves) == 1:
-                    record["status"] = "TRUNCATED_SINGLE_LEAF"
-                    raise
-                record["status"] = "SPLIT"
-                children = self.plan.split(batch)
-                record["children"] = [child.id for child in children]
-            else:
-                self.effective.append(batch)
-                return
-            for child in children:
-                attempt(child)
+            self._records_by_id[batch.id] = record
+            return record
 
-        def attempt(batch):
-            i = len(self.records)
+        def evaluate(batch):
+            with task_scope(batch.id, batch.leaves, batch_id=batch.id), wait_for_reservations():
+                return process(batch)
+
+        pool = ThreadPoolExecutor(max_workers=workers) if workers > 1 else None
+
+        def submit(batch):
+            register(batch)
+            return pool.submit(copy_context().run, evaluate, batch)
+
+        def attempt(batch, future=None):
+            record = self._records_by_id[batch.id] if future is not None else register(batch)
             with self.failures.task(batch.id):
-                visit(batch)
+                try:
+                    result = future.result() if future is not None else evaluate(batch)
+                    if publish is not None and result is not None:
+                        with task_scope(batch.id, batch.leaves, batch_id=batch.id):
+                            publish(batch, result)
+                    if result:
+                        self.refresh_catalog()
+                    record["status"] = "GREEN" if result else "NOT_APPLICABLE"
+                except (DesignInputTooLarge, ModelOutputTruncated, ProposalExhausted) as error:
+                    rejected = isinstance(error, ProposalExhausted)
+                    if rejected and (not split_rejected or len(batch.leaves) == 1):
+                        raise
+                    record["split_reason"] = ("invalid_proposal" if rejected else "input_size"
+                        if isinstance(error, DesignInputTooLarge) else "output_truncated")
+                    if len(batch.leaves) == 1:
+                        record["status"] = "TRUNCATED_SINGLE_LEAF"
+                        raise
+                    record["status"] = "SPLIT"
+                    children = self.plan.split(batch)
+                    record["children"] = [child.id for child in children]
+                else:
+                    self.effective.append(batch)
             task = self.failures.report["tasks"][batch.id]
             if task["status"] != "GREEN":
-                record = self.records[i]
                 if record["status"] == "RUNNING":
                     record["status"] = task["status"]
                 record["error"] = task["error"]
                 self.effective.append(batch)
+            elif record["status"] == "SPLIT":
+                for child in children:
+                    attempt(child, submit(child) if pool else None)
 
         try:
-            for batch in self.plan.batches:
-                attempt(batch)
+            if pool:
+                jobs = [(batch, submit(batch)) for batch in self.plan.batches]
+                for batch, future in jobs:
+                    attempt(batch, future)
+            else:
+                for batch in self.plan.batches:
+                    attempt(batch)
             self.failures.finish()
         finally:
+            if pool:
+                pool.shutdown(cancel_futures=True)
             coverage = self.plan.audit(self.effective) if self.failures.report["status"] != "RUNNING" else None
             save_json(self.arc_dir / f"design_batches_{self.stage[:2]}.json", {
-                "stage": self.stage, "status": self.failures.report["status"],
-                "attempts": self.records, "coverage": coverage})
+                "stage": self.stage, "status": self.failures.report["status"], "workers": workers,
+                "blocked_requirements": self.blocked_requirements, "attempts": self.records, "coverage": coverage})

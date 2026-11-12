@@ -188,7 +188,8 @@ class Compiler:
         resolve_workspace(self.input_dir, self.output_dir)
         settings = effective_settings()
         budget = RunBudget.from_settings(settings, len(passes))
-        budget.reserve_final_checks = any(name.startswith("10_") for name, _, _ in passes)
+        budget.allocate_stages(name for name, _, _ in passes)
+        budget.reserve_final_checks = any(name[:2] in {"04", "06", "08", "10"} for name, _, _ in passes)
         self.source = provenance(self.input_dir, settings, self.port)
         if selected is not None:
             names = [name for name, _, _ in PIPELINE]
@@ -214,7 +215,7 @@ class Compiler:
             # main loop over all passes in the pipeline
             # =========================================
             for index, (name, function, artifact) in enumerate(passes):
-                active_budget().select_stage(len(passes) - index - 1)
+                active_budget().select_stage(len(passes) - index - 1, name)
                 if function is project_initialization:
                     result = self._run(name, function, self.input_dir, self.output_dir, port=self.port, pause=self.pause)
                 elif function in (explore_requirement, design_frontend_ui, implement_frontend_ui,

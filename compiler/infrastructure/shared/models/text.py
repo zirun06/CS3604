@@ -1,5 +1,7 @@
 """Small JSON-generating text model client."""
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 import json
 import os
 from pathlib import Path
@@ -44,6 +46,22 @@ def reasoning_arguments(name, mode):
     return {"reasoning_effort": mode}
 
 
+_repair = ContextVar("model_repair", default=False)
+
+
+@contextmanager
+def reasoning_scope(repair):
+    token = _repair.set(repair)
+    try:
+        yield
+    finally:
+        _repair.reset(token)
+
+
+class ModelRequestFailed(RuntimeError):
+    """The endpoint failed to produce a response after transport retries."""
+
+
 class ModelOutputTruncated(ValueError):
     """A provider finished with length rather than returning a complete answer."""
 
@@ -64,9 +82,12 @@ class TextModel:
             raise ValueError("MAX_OUTPUT_TOKENS must be a positive integer") from error
         if self.max_output_tokens < 1:
             raise ValueError("MAX_OUTPUT_TOKENS must be a positive integer")
-        self.reasoning = os.getenv("MODEL_REASONING", "low").lower()
-        if self.reasoning not in {"auto", "provider", "none", "low", "high", "max"}:
-            raise ValueError("MODEL_REASONING must be auto, provider, none, low, high or max")
+        default = "none" if self.name.lower().startswith("deepseek") else "provider"
+        self.reasoning = os.getenv("MODEL_REASONING", default).lower()
+        self.repair_reasoning = os.getenv("MODEL_REPAIR_REASONING", "low" if default == "none" else "provider").lower()
+        for setting, mode in (("MODEL_REASONING", self.reasoning), ("MODEL_REPAIR_REASONING", self.repair_reasoning)):
+            if mode not in {"auto", "provider", "none", "low", "high", "max"}:
+                raise ValueError(f"{setting} must be auto, provider, none, low, high or max")
         self._reasoning_supported = True
         self.json_mode = json_mode
         self._token_parameter = "max_completion_tokens"
@@ -85,17 +106,18 @@ class TextModel:
             if not getattr(self, "_reasoning_supported", True):
                 options.pop("reasoning_effort", None)
                 options.pop("extra_body", None)
+            parameter = self._token_parameter
             try:
-                return invoke(self.client, {**options, self._token_parameter: self.max_output_tokens},
+                return invoke(self.client, {**options, parameter: self.max_output_tokens},
                     logger=getattr(self, "logger", None))
             except OpenAIError as error:
                 message = str(error).lower()
                 rejected = getattr(error, "status_code", None) in {400, 422} and any(
                     word in message for word in ("unsupported", "unknown", "unrecognized", "not supported", "not allowed", "unexpected"))
-                if rejected and self._token_parameter == "max_completion_tokens" and "max_completion_tokens" in message:
+                if rejected and parameter == "max_completion_tokens" and "max_completion_tokens" in message:
                     self._token_parameter = "max_tokens"
                     continue
-                if getattr(self, "_reasoning_supported", True) and reasoning_rejected(error):
+                if ("reasoning_effort" in options or "extra_body" in options) and reasoning_rejected(error):
                     self._reasoning_supported = False
                     print("Provider rejected reasoning controls; using provider defaults.", flush=True)
                     continue
@@ -104,19 +126,21 @@ class TextModel:
     @logical_request
     def generate_json(self, instructions: str, payload: dict) -> dict:
         """Request JSON using the stage prompt and serialized task data."""
-        mode = getattr(self, "reasoning", "low")
+        mode = getattr(self, "reasoning", "provider")
+        if _repair.get():
+            mode = getattr(self, "repair_reasoning", mode)
         try:
             response = self._request(
                 model=self.name,
                 messages=[
                     {"role": "system", "content": instructions.rstrip() + "\n" + JSON_OUTPUT_RULE},
-                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False, separators=(",", ":"))},
                 ],
                 **({"response_format": {"type": "json_object"}} if getattr(self, "json_mode", True) else {}),
                 **reasoning_arguments(self.name, mode),
             )
         except OpenAIError as error:
-            raise RuntimeError(f"Text model request failed: {error}") from error
+            raise ModelRequestFailed(f"Text model request failed: {error}") from error
         if response.choices and response.choices[0].finish_reason == "length":
             raise ModelOutputTruncated(
                 f"Model output was truncated (finish_reason=length). The output budget is "

@@ -2,20 +2,24 @@
 
 import json
 
-from infrastructure.shared.models.text import ModelOutputTruncated
+from infrastructure.shared.models.text import ModelOutputTruncated, reasoning_scope
 from infrastructure.shared.agent.discovery import DISCOVERY_RULES, DiscoverySession
 from infrastructure.shared.project.git import checkpoint
+from infrastructure.utils.presentation.events import emit
 
 
 RESPONSE_ERRORS = (ValueError, KeyError, TypeError, AttributeError, IndexError)
 REPAIR_INSTRUCTIONS = """The previous proposal was rejected. Read correction.error and correction.details
-in the input and fix that failure. correction.previous_response is the rejected
-answer, not an accepted example. Return a complete replacement JSON object in the
+in the input and fix that failure. Return a complete replacement JSON object in the
 original output format, including every required top-level section. Do not return
 only the unchanged portion, a partial patch, or the correction metadata itself.
 DSML/XML tool-call text is forbidden. If requesting context, return the allowed
 context_request JSON object directly, never invoke/parameter tags. Otherwise return
-the complete stage result. invalid_response is rejected data; never copy its format."""
+the complete stage result."""
+
+
+class ProposalExhausted(RuntimeError):
+    """All allowed proposals failed validation."""
 
 
 def response_feedback(error, response):
@@ -37,7 +41,7 @@ def response_feedback(error, response):
     return feedback
 
 
-def propose_json(model, instructions, request, accept, console, label, max_attempts=10, context_index=None, *, split_on_truncation=False):
+def propose_json(model, instructions, request, accept, console, label, max_attempts=10, context_index=None, *, split_on_truncation=False, log_checkpoints=True, compact_feedback=False):
     """Generate and repair a proposal within a finite total model-call budget."""
     if max_attempts < 1:
         raise ValueError("--max-attempts must be positive")
@@ -46,6 +50,16 @@ def propose_json(model, instructions, request, accept, console, label, max_attem
         instructions += "\n\n" + DISCOVERY_RULES
         request["context_kinds"] = list(context_index.records())
     discovery = DiscoverySession(context_index) if context_index is not None else None
+
+    def generate(prompt):
+        with reasoning_scope("correction" in request):
+            return model.generate_json(prompt, request)
+
+    def record(action, attempt, details, status="GREEN"):
+        emit("design_proposal", proposal=attempt, status=status, label=label,
+            error=details.get("error"), error_type=details.get("error_type"))
+        if log_checkpoints:
+            checkpoint(task=label, action=f"{action} design proposal {attempt}", status=status, details=details)
     for attempt in range(1, max_attempts + 1):
         progress = f"{attempt}/{max_attempts}"
         console.show(f"{label} | Model proposal {progress}", "Generate the proposal; response-reading and obligation errors receive repair feedback.")
@@ -57,25 +71,25 @@ def propose_json(model, instructions, request, accept, console, label, max_attem
                 prompt += "\nActual failure: " + correction["error"]
                 if correction.get("details"):
                     prompt += "\nRepair details:\n" + json.dumps(correction["details"], ensure_ascii=False, indent=2)
-            response = model.generate_json(prompt, request)
+            response = generate(prompt)
             while context_index is not None and isinstance(response, dict) and "context_request" in response:
                 query = response["context_request"]
                 console.show(label + " | Context query", json.dumps(query, ensure_ascii=False))
                 request["context_result"] = discovery.resolve(query)
                 request["context_records"] = discovery.evidence
                 request["context_candidates"] = discovery.candidates
-                response = model.generate_json(prompt, request)
+                response = generate(prompt)
             accepted = accept(response)
-            checkpoint(task=label, action=f"Accept design proposal {attempt}",
-                details={"attempt": attempt, "sections": list(response) if isinstance(response, dict) else []})
+            record("Accept", attempt, {"sections": list(response) if isinstance(response, dict) else []})
             return accepted, response
         except RESPONSE_ERRORS as error:
             if split_on_truncation and isinstance(error, ModelOutputTruncated):
                 raise
             feedback = response_feedback(error, response)
             feedback["failed_attempt"] = attempt
-            checkpoint(task=label, action=f"Reject design proposal {attempt}", status="REJECTED", details=feedback)
+            record("Reject", attempt, feedback, "REJECTED")
             console.show(f"{label} | Repair feedback", json.dumps(feedback, ensure_ascii=False, indent=2))
             if attempt >= max_attempts:
-                raise RuntimeError(f"{label} exhausted {max_attempts} proposals: {feedback['error']}") from error
-            request["correction"] = feedback
+                raise ProposalExhausted(f"{label} exhausted {max_attempts} proposals: {feedback['error']}") from error
+            request["correction"] = ({key: value for key, value in feedback.items()
+                if key not in {"previous_response", "invalid_response"}} if compact_feedback else feedback)

@@ -180,8 +180,7 @@ export function App() {
                 "requirements": {owner: {"related_fields": apis[targets[owner]]["read"]} for owner in owners}})
         if number == "03":
             effects = {owner: {"read": apis[targets[owner]]["read"], "write": []} for owner in owners}
-            return response({"requirements": {owner: {"requirement": effects[owner],
-                "steps": {step_ids[owner]: effects[owner]}} for owner in owners}})
+            return response({"requirements": effects, "steps": {step_ids[owner]: effects[owner] for owner in owners}})
         if number == "04":
             if "prerequisites" in request:
                 assert "requirement_evidence" not in request
@@ -323,6 +322,7 @@ def mock_local_checks(stack):
     ("NEW-ROOT", "RENAMED-REQ", "RENAMED-STEP", "unseen-project"),
     ("ROOT-BATCH", "R-COUNT", "S-COUNT", "multi-leaf"),
     ("ROOT-ARTIFACTS", "R-COUNT", "S-COUNT", "artifact-groups"),
+    ("ROOT-PARTIAL", "R-COUNT", "S-COUNT", "partial-obligations"),
 ])
 def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, dirname):
     source, output = tmp_path / dirname, tmp_path / "application"
@@ -334,7 +334,8 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
             "Given": "There are no notes", "When": "Click Count notes", "Then": "Show 0"}]}]}]}
     other = None
     artifacts = dirname == "artifact-groups"
-    if dirname in ("multi-leaf", "artifact-groups"):
+    partial = dirname == "partial-obligations"
+    if dirname in ("multi-leaf", "artifact-groups") or partial:
         from copy import deepcopy
         other = ("R-SECOND", "S-SECOND")
         first = raw["children"][0]
@@ -355,7 +356,21 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
     calls = []
     fake = fixture_model(output, rid, sid, calls, other=other, artifacts=artifacts)
     with ExitStack() as stack:
-        stack.enter_context(patch.object(text, "invoke", fake))
+        def invoke(client, args, **kwargs):
+            number = session_info()["stage"].split()[1]
+            if partial and number in {"03", "05", "09"}:
+                request = json.loads(args["messages"][-1]["content"])
+                if number == "03" and other[0] in request["order"]:
+                    if correction := request.get("correction"):
+                        assert "Top-level steps" in correction["error"]
+                        assert "previous_response" not in correction
+                    calls.append(number)
+                    return response({"requirements": {owner: {"read": ["Note.id"], "write": []}
+                        for owner in request["order"]}})
+                if number in {"05", "09"}:
+                    assert request["order"] == [rid]
+            return fake(client, args, **kwargs)
+        stack.enter_context(patch.object(text, "invoke", invoke))
         def fake_vision(_client, args):
             assert args["messages"][0]["content"][1]["type"] == "image_url"
             calls.append("01")
@@ -363,7 +378,13 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
         stack.enter_context(patch.object(vision, "invoke", fake_vision))
         if os.getenv("STAGED11_REAL_CHECKS") != "1":
             mock_local_checks(stack)
-        main.main([str(source), "--output-dir", str(output)])
+        args = [str(source), "--output-dir", str(output)]
+        if partial:
+            with pytest.raises(SystemExit) as exit_status:
+                main.main(args)
+            assert exit_status.value.code == 0
+        else:
+            main.main(args)
 
     def read(name):
         return json.loads((output / ".arc" / (name + ".json")).read_text(encoding="utf-8"))
@@ -373,6 +394,22 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
     assert "[PREFLIGHT] node --version:" in (output / "compiler.log").read_text(encoding="utf-8")
     assert tuple(name for name, _, _ in PIPELINE) == STAGES
     assert tuple(report["stages"]) == STAGES
+    if partial:
+        assert report["status"] == "COMPLETED_WITH_FAILURES"
+        assert [stage["status"] for stage in report["stages"].values()] == [
+            "GREEN", "GREEN", "GREEN", "COMPLETED_WITH_FAILURES", "GREEN", "COMPLETED_WITH_FAILURES",
+            "COMPLETED_WITH_FAILURES", "GREEN", "GREEN", "COMPLETED_WITH_FAILURES", "COMPLETED_WITH_FAILURES"]
+        blocked, blocked_step = other
+        obligations = read("db_obligations")
+        assert blocked_step not in obligations["steps"]
+        assert obligations["unavailable"][blocked]["missing_steps"] == [blocked_step]
+        contracts = read("backend_apis")["requirements"]
+        assert contracts[rid] == ["API-COUNT"] and blocked not in contracts
+        assert read("backend_tdd")["apis"]["API-COUNT"]["status"] == "GREEN"
+        assert blocked in read("frontend_triggers")["unavailable"]
+        acceptance = read("frontend_e2e")["requirements"]
+        assert {key: acceptance[key]["status"] for key in (rid, blocked)} == {rid: "GREEN", blocked: "FAILED"}
+        return
     assert report["status"] == "GREEN", {k: v for k, v in report["stages"].items() if v["status"] != "GREEN"}
     assert all(stage["status"] == "GREEN" for stage in report["stages"].values())
     assert read("requirements")["id"] == root_id

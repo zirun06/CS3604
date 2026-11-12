@@ -26,9 +26,21 @@ def normalize_inference(result, step_ids):
     return inferred
 
 
-def normalize_obligations(value, tree):
-    return {kind: {key: normalize_record(value[kind][key]) for key in expected}
-        for kind, expected in (('requirements', tree.requirements), ('steps', tree.steps))}
+def normalize_obligations(value, tree, *, partial=False):
+    if not partial:
+        return {kind: {key: normalize_record(value[kind][key]) for key in expected}
+            for kind, expected in (('requirements', tree.requirements), ('steps', tree.steps))}
+    result = {"requirements": {}, "steps": {}, "unavailable": {}}
+    for rid in tree.requirements:
+        missing_steps = [sid for sid in tree.own_steps[rid] if sid not in value["steps"]]
+        if rid not in value["requirements"] or missing_steps:
+            if rid in tree.leaves:
+                result["unavailable"][rid] = {"reason": "Missing accepted database obligations",
+                    "missing_steps": missing_steps}
+            continue
+        result["requirements"][rid] = normalize_record(value["requirements"][rid])
+        result["steps"].update({sid: normalize_record(value["steps"][sid]) for sid in tree.own_steps[rid]})
+    return result
 
 
 def check_symbols(records, schema):
