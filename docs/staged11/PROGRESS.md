@@ -64,3 +64,11 @@
 - 将通用接口、按需会话和所有权、控件、导航、编辑与恢复规则放入对应阶段。10 建覆盖矩阵、冻结测试、记录复核差异，以同一用例集合比较候选；失败候选恢复包含新增和删除。
 - 测试生成、复核时机保持 4b 原样。最终全量退出 0：140 通过、1 跳过、1 未选择、38 子测试通过。证据与命令见 [STEP5.md](STEP5.md) 和 [step5-evidence.json](step5-evidence.json)。
 - 本轮未调用模型 API，未进行第 6 步；真实 Node／Chromium 检查及部署命令已列出，留待沙箱外复验。
+
+
+## 第 6 步：Windows 部署修复和候选包
+
+- 离线部署工具在 Windows 用独立 Job Object 回收 Git Bash 启动器及后代，临时文件锁重试，失败也会发布 JSON 和残留路径。真实 SQLite 子进程和异常专项共 3 通过；真实 Git Bash 复验留给组长。
+- 候选包在 `compiler/outputs/staged11-step6/compiler-staged11.zip`，280,374 字节、144 个文件，SHA-256 为 `9c62357b75c201ad75005afbb283ab83c24dc511681ee05eaaec631c365128d2`。忽略输出未提交。完整清单、扫描模式与内容复核见 [STEP6.md](STEP6.md)。
+- 用干净 Python 环境从解包目录运行：105 个模块导入，11 阶段帮助与模板通过，合成输入 11 阶段 GREEN，阶段选择、续跑和退出码符合约定；源码仓库外的全新临时目录复验也通过。模型 HTTP 请求为 0。
+- 已更新第 1–6 步 [SUMMARY.md](SUMMARY.md) 和待确认的 [RUN_BOOKSTACK.md](RUN_BOOKSTACK.md)。尚未启动第 7 步，等待组长确认连接和单次／累计预算。

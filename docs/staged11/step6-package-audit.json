@@ -1,0 +1,2638 @@
+{
+  "archive": "compiler-staged11.zip",
+  "size": 280374,
+  "sha256": "9c62357b75c201ad75005afbb283ab83c24dc511681ee05eaaec631c365128d2",
+  "root_entries": [
+    ".env.example",
+    ".gitattributes",
+    ".gitignore",
+    "infrastructure",
+    "main.py",
+    "principle.md",
+    "pyproject.toml",
+    "readme.md",
+    "requirements.txt",
+    "scripts",
+    "uv.lock"
+  ],
+  "directories": 28,
+  "file_count": 144,
+  "expanded_file_bytes": 722408,
+  "files": [
+    {
+      "path": ".env.example",
+      "bytes": 401,
+      "sha256": "e8d8c7039fec21f6648b3611b98ee4a1cefe902fb83a544fe4525d25eb88a987"
+    },
+    {
+      "path": ".gitattributes",
+      "bytes": 93,
+      "sha256": "8579b65b1243e3cf5b629ab5583191c299bb54e2171ec182e3c98ee4c71fff61"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 246,
+      "sha256": "46bc6d7db910b33c4343db32fcfa48e2be4f05335b488ee0616e43ac00e13b58"
+    },
+    {
+      "path": "main.py",
+      "bytes": 3775,
+      "sha256": "ffa74486ce7174a5862e1b32e3498fee1360dffe104c42adf1c128d7d6daf20b"
+    },
+    {
+      "path": "principle.md",
+      "bytes": 37986,
+      "sha256": "429e8af74cc0601c60810168abf767a733944cedf91aa7522f1e6448b4e3e646"
+    },
+    {
+      "path": "pyproject.toml",
+      "bytes": 371,
+      "sha256": "e2282b8cc13a2516f535ca9b3c7fe37e8f1036caee67ba5e710028616e8472a7"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2031,
+      "sha256": "863f86323d2f64881eb4a0d8f64c37123f204a97258525700afda6bb8efb1b43"
+    },
+    {
+      "path": "requirements.txt",
+      "bytes": 62,
+      "sha256": "789a1bec50359ba504acf7d5ab1a01fcb2d282f1b888b03a9dd0f792c41eda9d"
+    },
+    {
+      "path": "uv.lock",
+      "bytes": 132083,
+      "sha256": "8e16e300c4bad0f7cc1b7d9ada0bea3c0d341be08ddf9e1831c60de87e6784f4"
+    },
+    {
+      "path": "scripts/package.py",
+      "bytes": 4064,
+      "sha256": "de3eeebd78e9f48b205150c8a1dd80fe8a6cb5b8d244a323c454df325c920be1"
+    },
+    {
+      "path": "infrastructure/__init__.py",
+      "bytes": 85,
+      "sha256": "9c9aa4c6f4c1be1386ad16bd4afdf3ebdf38d9ae053005d174bfc4ba4ea976c5"
+    },
+    {
+      "path": "infrastructure/compiler.py",
+      "bytes": 14554,
+      "sha256": "808b70c16ffa4fe52c719e680c56cb7740452e857ed1fe2b875e2e58fb53306a"
+    },
+    {
+      "path": "infrastructure/utils/__init__.py",
+      "bytes": 83,
+      "sha256": "c4d1ba687cb4e193b41036d4cd8f9f06c5cce64cdadb329f86e5183078ae05e5"
+    },
+    {
+      "path": "infrastructure/utils/budget.py",
+      "bytes": 8073,
+      "sha256": "27bfba27704bb1f60619b4d3e0b7f6508706980e2c43a923aeeab1a0c1f39090"
+    },
+    {
+      "path": "infrastructure/utils/cli.py",
+      "bytes": 382,
+      "sha256": "8c44240e9c4eb84c9a2c8823196161695a3f0aed29a63f2ec00a185f9ca8cd75"
+    },
+    {
+      "path": "infrastructure/utils/files.py",
+      "bytes": 1864,
+      "sha256": "fe2c16624dc43f2440d25593fef9b6be6b0a3133767a45f857f7f6eb694a0570"
+    },
+    {
+      "path": "infrastructure/utils/paths.py",
+      "bytes": 1734,
+      "sha256": "e22907a0007e945e861a6111f13cee4e069a118e27c0e52e4b6ec9839d9de32b"
+    },
+    {
+      "path": "infrastructure/utils/processes.py",
+      "bytes": 4719,
+      "sha256": "181fcdb593aca8c91f5a1e960a0ebd4b6e0b27ff144225ce9330ee4853421647"
+    },
+    {
+      "path": "infrastructure/utils/presentation/__init__.py",
+      "bytes": 76,
+      "sha256": "254eabef788d8d9f2197a1344cae31c24ecd7d7e3342bb4650941f71450c4bb6"
+    },
+    {
+      "path": "infrastructure/utils/presentation/agent.py",
+      "bytes": 3746,
+      "sha256": "bf2ae27cdc52614de70afbbb060091902949c82e156603a1fe492307165ad88c"
+    },
+    {
+      "path": "infrastructure/utils/presentation/artifacts.py",
+      "bytes": 10513,
+      "sha256": "1a7efafa0b4c2766fc40ab1220222596c764ebbb501a418a69aac3c442055ead"
+    },
+    {
+      "path": "infrastructure/utils/presentation/console.py",
+      "bytes": 8471,
+      "sha256": "0ec0d5d9c4dcffff19525a270f90437e3810d05a5e45e35a930fd9483ca27a92"
+    },
+    {
+      "path": "infrastructure/utils/presentation/events.py",
+      "bytes": 18149,
+      "sha256": "a9a2cc2d63b0496c44d361319a61ad2982f2f0c41e4ee8b6c530fe7ef5271fb9"
+    },
+    {
+      "path": "infrastructure/utils/presentation/formatting.py",
+      "bytes": 4206,
+      "sha256": "a6b85c9c46237db97e4917fea25f19f6d1b05829f0bf8fc5630e29d63ecd467b"
+    },
+    {
+      "path": "infrastructure/utils/presentation/logging.py",
+      "bytes": 5302,
+      "sha256": "be9e8e7c103508a382997171a2a0221f24e058e6c102f08b53c530dcee9a8fef"
+    },
+    {
+      "path": "infrastructure/utils/presentation/model_io.py",
+      "bytes": 23963,
+      "sha256": "c024d9334390ce8b8edfc2d0aa96264e765a40d432137c47041b4709dcf3f23c"
+    },
+    {
+      "path": "infrastructure/utils/presentation/stages.py",
+      "bytes": 799,
+      "sha256": "bf6dd31a9fafb0faac3498305118bf558a4b9abfce516ecd668867e77cc26e49"
+    },
+    {
+      "path": "infrastructure/stages/__init__.py",
+      "bytes": 81,
+      "sha256": "4223dacfbc273935610fcbf56a06584288b41ed0bc222280ea7daf8dd1d36a48"
+    },
+    {
+      "path": "infrastructure/stages/requirements/__init__.py",
+      "bytes": 86,
+      "sha256": "4b44099efefb826c891dc37451b9b77407e964a9270f770bbe3da9f41955651e"
+    },
+    {
+      "path": "infrastructure/stages/requirements/batching.py",
+      "bytes": 9926,
+      "sha256": "d7247762d83e2d99fc87315c55e5d9dd4e52066a8893125bfdf952af785ca153"
+    },
+    {
+      "path": "infrastructure/stages/requirements/tree.py",
+      "bytes": 3540,
+      "sha256": "fc9d9f84e616744592157453b2e0eb4742422e0e35f59f2bf5d71be1c6aa9784"
+    },
+    {
+      "path": "infrastructure/stages/frontend/__init__.py",
+      "bytes": 71,
+      "sha256": "a5b4cd95e0a50d3f6c846c1bae18b642bfcecca747e53487a80a8e7a681bb008"
+    },
+    {
+      "path": "infrastructure/stages/frontend/context.py",
+      "bytes": 2943,
+      "sha256": "b0e6687e3c08253a47a3116b97242851906353ea033e74a2cf22d6d132ca61b3"
+    },
+    {
+      "path": "infrastructure/stages/frontend/ui/__init__.py",
+      "bytes": 71,
+      "sha256": "d0bab1aea22f11d13c4a718d080d253294ff3788656044986846cdad1556ee4d"
+    },
+    {
+      "path": "infrastructure/stages/frontend/ui/design.py",
+      "bytes": 8932,
+      "sha256": "fd5ebc1f550fe777185e74a65e1c586f8d23fd2fdf3f916e2ba12c10e816ed84"
+    },
+    {
+      "path": "infrastructure/stages/frontend/ui/implementation.py",
+      "bytes": 11590,
+      "sha256": "3b6438f7ef3dcda39cbe8d84f8a5366424238a8176ec4ee3b1b66f7aa616bcea"
+    },
+    {
+      "path": "infrastructure/stages/frontend/ui/proposals.py",
+      "bytes": 1307,
+      "sha256": "e00ddc6859fb7fcba5657c8e09184f7e07d22dd0439f426bf84e71c51d666321"
+    },
+    {
+      "path": "infrastructure/stages/frontend/ui/runtime.py",
+      "bytes": 4989,
+      "sha256": "9993937401191dfc6b83e78a1c90aa6edb2bf1eaedf5cf8c347fe47d4cfed7a6"
+    },
+    {
+      "path": "infrastructure/stages/frontend/ui/synthesis.py",
+      "bytes": 4285,
+      "sha256": "4e67b9e6542c125290b821947e5352fc8626c1d68994112f3d520dd0ea9d410e"
+    },
+    {
+      "path": "infrastructure/stages/frontend/ui/testing.py",
+      "bytes": 15724,
+      "sha256": "bdb0499c37a37c71feb8ac6d6cb39ed496828f13670eb465dd0a3ed8b4087171"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/__init__.py",
+      "bytes": 61,
+      "sha256": "1b68aea4ffd77ab0f42bcdc954914bd6c2a430f669065cb11914894fb48bd641"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/acceptance.py",
+      "bytes": 4910,
+      "sha256": "29c6ebc44f2f4580cea91443160251fa792615a534ae6a7c16b1bb45fd05dce5"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/acceptance_gate.py",
+      "bytes": 7476,
+      "sha256": "c178410ca2e2f7415ef18f63ba0634a682c84a4170033203fada74c490183e4c"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/context.py",
+      "bytes": 776,
+      "sha256": "9bc6d6a4b91c14e8e4631bb92c5d63b204c1a482996bc35e8571d6f49a7162f8"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/design.py",
+      "bytes": 2695,
+      "sha256": "d7a72bab16ae974593041025687c7acf4197c9575b72b6740bcf3878571f3e41"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/e2e_runtime.py",
+      "bytes": 8234,
+      "sha256": "03c3f95525a80b111f41bead123b9c89d34eda706898f84f28a622cb4328d688"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/implementation.py",
+      "bytes": 26869,
+      "sha256": "cbd4f851e98e94a7a8c83622f2c676192a43083b245874c11e8ccd3db66a3d9e"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/prompts.py",
+      "bytes": 4897,
+      "sha256": "4dbd83b2e5422bf536bc0acc75ad3b4e587507e5af679d4192dd555bcb6c1dee"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/scope.py",
+      "bytes": 1648,
+      "sha256": "9b0aee35ed7b050779c27e57925285e416881efefa7fab65343f3b6e07af7a92"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/synthesis.py",
+      "bytes": 4251,
+      "sha256": "5c25e303a3fe617207fd3c1ac9851bc5d46baa46790e97eae06f49cabfbcccd3"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/testing.py",
+      "bytes": 2827,
+      "sha256": "889ba68c871c29e82ddfa1c33962e3736bf6a46d6e368763b387ec39f2a8f233"
+    },
+    {
+      "path": "infrastructure/stages/frontend/triggers/wire_contract.mjs",
+      "bytes": 4254,
+      "sha256": "bd26d9283a5d04998284fed41ff53788c871790978924a7f1389ae7f0558967a"
+    },
+    {
+      "path": "infrastructure/stages/database/__init__.py",
+      "bytes": 86,
+      "sha256": "ebb861bfc077130de61e4037796bf970e21e05d59ea65e862a17f022bdf27374"
+    },
+    {
+      "path": "infrastructure/stages/database/implementation.py",
+      "bytes": 12157,
+      "sha256": "a092c81af2d49b2bdfc771a32f0253425006e1d19b6220744acbbcdc4a7daed3"
+    },
+    {
+      "path": "infrastructure/stages/database/implementation_agent.py",
+      "bytes": 8624,
+      "sha256": "adb9656b5b757cd42873bf9f8f96e7161de426c9eb690b1e3623d6964e371682"
+    },
+    {
+      "path": "infrastructure/stages/database/obligation_agent.py",
+      "bytes": 2801,
+      "sha256": "11f25cf93cb7898cbffe0dac58a72515449ae160d34a81a4bee3dd561137aca7"
+    },
+    {
+      "path": "infrastructure/stages/database/obligation_utils.py",
+      "bytes": 2383,
+      "sha256": "e724098f2e9d5f04478005f91b1b8dddf7a9bfac453edac9567cd7548c7cb343"
+    },
+    {
+      "path": "infrastructure/stages/database/order.py",
+      "bytes": 1949,
+      "sha256": "fe797db09720b4f6b23b856c40390ebedf7adc31da2f0c4660dad09acba2e1ae"
+    },
+    {
+      "path": "infrastructure/stages/database/runtime.py",
+      "bytes": 1334,
+      "sha256": "7d5b851988d2207838671c0e6a02d277315ea4acde1392f8838761348a0f9631"
+    },
+    {
+      "path": "infrastructure/stages/database/schema.py",
+      "bytes": 1430,
+      "sha256": "b92476b549267572abf5beb70d3b98afd3d4ac78543fa29edd4723a1210a5717"
+    },
+    {
+      "path": "infrastructure/stages/database/schema_agent.py",
+      "bytes": 2089,
+      "sha256": "b916a96b51920b2bf34bb31933e601aedf6c80d6aaa1e5d2085f85f521d04852"
+    },
+    {
+      "path": "infrastructure/stages/database/testing.py",
+      "bytes": 11351,
+      "sha256": "53ecd701eb615645914f1c3a7ba01697810094aec8996c01a45386ce396eecb3"
+    },
+    {
+      "path": "infrastructure/stages/backend/__init__.py",
+      "bytes": 88,
+      "sha256": "708366ae455065a326af4ce312c6ddc2ada8f1fff9c3b879018a2a4b1302baa3"
+    },
+    {
+      "path": "infrastructure/stages/backend/context.py",
+      "bytes": 2707,
+      "sha256": "180bf521dc424cbc3d0721df49902da2af5a928690094be3e4990363286b15cf"
+    },
+    {
+      "path": "infrastructure/stages/backend/design.py",
+      "bytes": 7268,
+      "sha256": "4cfea03c20b2ae6c9f06874d3b3799a717b73fc21ed8b9b3bf4e034d4021821f"
+    },
+    {
+      "path": "infrastructure/stages/backend/design_agent.py",
+      "bytes": 9926,
+      "sha256": "79b778f0ac5c7ccb36cefda47781726905e6b2942f6a0583d2fd8a888bc18a65"
+    },
+    {
+      "path": "infrastructure/stages/backend/primitives.py",
+      "bytes": 2215,
+      "sha256": "c95de98a5664c126f5c5432dfc252940135d26a065b0e105caa9372234775cbc"
+    },
+    {
+      "path": "infrastructure/stages/backend/runtime.py",
+      "bytes": 2611,
+      "sha256": "3bec59d9171a01c5a4885f5d5503332d29aeafa675943f0ca2c3edda7d887f2d"
+    },
+    {
+      "path": "infrastructure/stages/backend/testing.py",
+      "bytes": 6147,
+      "sha256": "e4ebe00051722884036746e44e151da12b8335fb27b642aaf6262c4ab05c2801"
+    },
+    {
+      "path": "infrastructure/shared/__init__.py",
+      "bytes": 84,
+      "sha256": "bda764f9595993ce513e103dca4d38de316cb4a3c1e8569c13ae2a090e27217b"
+    },
+    {
+      "path": "infrastructure/shared/rag/__init__.py",
+      "bytes": 82,
+      "sha256": "15321a14a5154e1f8b0a90efeb36b8ce6a78f875fb3ab2b214bf60c3a2e8d438"
+    },
+    {
+      "path": "infrastructure/shared/rag/apis.py",
+      "bytes": 1011,
+      "sha256": "eb43d260811401576ff3d40708c5627f864fbe531a0d9560f6fd777fdd5004ba"
+    },
+    {
+      "path": "infrastructure/shared/rag/backend.py",
+      "bytes": 2394,
+      "sha256": "c13ab478a1d218d295617ce82626b6aa82f9aace5f5abac6ef374aa62ea87e2b"
+    },
+    {
+      "path": "infrastructure/shared/rag/bm25.py",
+      "bytes": 1766,
+      "sha256": "60d8d4f1852a055817e7ea7d0dd1b0703a6445e663a5eee7b6526594f002e9a1"
+    },
+    {
+      "path": "infrastructure/shared/rag/pages.py",
+      "bytes": 1411,
+      "sha256": "44fa0bd9b77e50ae1f40b5b29baccefad6d76b0d64df91029dccefc51f6cb9ce"
+    },
+    {
+      "path": "infrastructure/shared/rag/schema.py",
+      "bytes": 1660,
+      "sha256": "6d9f1b9c67e911731c00da3944c5851b7ffd113606d266d930019ca87931b1d9"
+    },
+    {
+      "path": "infrastructure/shared/project/__init__.py",
+      "bytes": 82,
+      "sha256": "d8dc630fc155b997c4a8117d1c2101592e93353f25ba8dcdc037c305ba02ad16"
+    },
+    {
+      "path": "infrastructure/shared/project/dependencies.py",
+      "bytes": 2731,
+      "sha256": "b50bed5f8960648aad0469ce04dab528db66c24a86d11fbc0eb9c413ce4f6538"
+    },
+    {
+      "path": "infrastructure/shared/project/git.py",
+      "bytes": 11706,
+      "sha256": "56588bca5a63e3fdca128b1d5606b02b19105852e32ca27d0e1ac11d4f80191e"
+    },
+    {
+      "path": "infrastructure/shared/project/initialize.py",
+      "bytes": 3712,
+      "sha256": "30fb6d173757f1523b1d424380b77555e9465a32a8873f29a71807599313338a"
+    },
+    {
+      "path": "infrastructure/shared/project/provenance.py",
+      "bytes": 4803,
+      "sha256": "a518dc35ff9e21c22d914ef42a77a3b6b0089ef6113deb6ee4acce184e0ac15f"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/.gitignore",
+      "bytes": 62,
+      "sha256": "52e2c97c75a69ed4ee47fef1f58ee7a908f487f1ea84c21ead0b7e8d64865e9d"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/deploy.sh",
+      "bytes": 417,
+      "sha256": "f4c9e4058f84f139493fc99b76dd66cdf7adcf3d2e61a5d2f5e838ff33a00cd2"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/package.json",
+      "bytes": 562,
+      "sha256": "5b408ff222a3934e1970d5691f2b50fd9a3c1d482ebfc570a064fe1efd744971"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/README.md",
+      "bytes": 2097,
+      "sha256": "aff523707abc5b09f2bf5cccf2eb70476547701d285b70e1a57bf94ccd7276a6"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/frontend/index.html",
+      "bytes": 298,
+      "sha256": "73d14f89fe95d6af9e24f40add59420b296ffa6528cf8ff63ea5e705bf806d6b"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/frontend/package.json",
+      "bytes": 516,
+      "sha256": "fa796b270a7d0200dd1be4541eba96df878a8e46d32c0ce69ef099899177bc53"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/frontend/tsconfig.json",
+      "bytes": 358,
+      "sha256": "c70720d5546cbde48028c59b172d7a14ecf13f613c689fcc698b5294fea9ee3c"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/frontend/vite.config.ts",
+      "bytes": 254,
+      "sha256": "63b3c19691a9f2cbe04d88c6714930626c6c69e695ebf80024774236704af7b0"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/frontend/src/App.tsx",
+      "bytes": 129,
+      "sha256": "56b9c86c5808b740fa74e847e2bc358cf800a2865b578f986e4056559873b6cb"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/frontend/src/main.tsx",
+      "bytes": 225,
+      "sha256": "657d0e7d288bfe800cc070a139175b1e8854cf1090cfafa2811716853cf3fca5"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/frontend/src/style.css",
+      "bytes": 98,
+      "sha256": "365454f8b546fe0e4069af3284f2b676c349262df9aea00c15c3d32615cfd182"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/package.json",
+      "bytes": 560,
+      "sha256": "b378d3ac3b75eceb2bdbb7839f4dfea96940c0550bfdeee1247aab7c80890e3b"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/tsconfig.json",
+      "bytes": 354,
+      "sha256": "e04ece187fe8a1f89e70427ac8e1ac6e1e1a24cef6a34e23eedd22b6ae4ba7fe"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/tsconfig.test.json",
+      "bytes": 139,
+      "sha256": "594d1ec32aa62768eb2660d5f1ade4d8a64a25f6802d876fde8f0faf91576541"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/app.ts",
+      "bytes": 891,
+      "sha256": "5d2f16324b5e6a17d614b864d64b762ad256de9e1c84992b52a1bbb48e94a655"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/server.ts",
+      "bytes": 854,
+      "sha256": "ed448b130bff3af9fb0176131e4ab9c615d3b98b60e3ab04cad014c0bfba7d45"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/db/client.ts",
+      "bytes": 642,
+      "sha256": "c7b6286121ee157b6b320e7a7c7c7eb652dbc93e1b0d341133b06266b074cb56"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/db/initialize.ts",
+      "bytes": 966,
+      "sha256": "16611e2fbdd15c086577136dd47c0134c1028ac2ba14b09abe057d01cf7702fd"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/db/seed.ts",
+      "bytes": 1143,
+      "sha256": "869cd6e78a26b787d9ed9056b717ac4f85167c97a2dd0a6b5e7c2682b5f2ef81"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/db/setup.ts",
+      "bytes": 299,
+      "sha256": "d9770500ff74fa930ffbc7b160a945f3c85689dafacfadd22164a0f738ab5358"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/db/tables/.gitkeep",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/api/register.ts",
+      "bytes": 251,
+      "sha256": "c24ac53065ed4a2d282d4b3637162b730a74e7b3c870ed3199e1e57c505cc017"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/src/api/types.ts",
+      "bytes": 445,
+      "sha256": "0de12536f726f9d44d615e6148bf59377dc2071ba02381b2b75301df004b0803"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/scripts/copy-db.mjs",
+      "bytes": 306,
+      "sha256": "1b785f9c70c9e2f6ff014db2f82eee6c2d249415d303b1aa71292ad1dd1785b1"
+    },
+    {
+      "path": "infrastructure/shared/project/templates/backend/scripts/test-api.mjs",
+      "bytes": 4502,
+      "sha256": "b85a8060811aae588677cf944d67c91fbb305fef9674d24fbc1758379ee50eca"
+    },
+    {
+      "path": "infrastructure/shared/project/support/backend_context.ts",
+      "bytes": 1780,
+      "sha256": "471bfb0516bbb01839fbc43762078840415dfd631e42385f57057ac93ee4b08c"
+    },
+    {
+      "path": "infrastructure/shared/models/__init__.py",
+      "bytes": 88,
+      "sha256": "23ec1393ae58c3d50f176dd8b703288e15ca836a3146a4fd4eee7321edde575a"
+    },
+    {
+      "path": "infrastructure/shared/models/pricing.json",
+      "bytes": 280,
+      "sha256": "45e0050d6279e2b6a3ff6aacfdb9bf343b1aca8cb067b967eefb8a4186374e1b"
+    },
+    {
+      "path": "infrastructure/shared/models/pricing.py",
+      "bytes": 3010,
+      "sha256": "50b3fb7477a9faa2bbdb8dd1316bef286966c07fa6cbb01a84922bc36b2ea88e"
+    },
+    {
+      "path": "infrastructure/shared/models/text.py",
+      "bytes": 6818,
+      "sha256": "d059bc7415a473ea287929e393f1e79136e592373044d4de0eb9f2de3f7cca2b"
+    },
+    {
+      "path": "infrastructure/shared/models/vision.py",
+      "bytes": 6676,
+      "sha256": "6334b8f52e13032b250255a034fb4175d59520bb0842871f722328c4d0539fef"
+    },
+    {
+      "path": "infrastructure/shared/agent/__init__.py",
+      "bytes": 77,
+      "sha256": "6e29d4a065649b2baa3093cc94ef9c5c49476b33deea63d8aa7f23b14f7e48c9"
+    },
+    {
+      "path": "infrastructure/shared/agent/agent.py",
+      "bytes": 1006,
+      "sha256": "f6c6e75bbe5f5e40455607fcebe96617c5826a9b1799e29686dcc58bc9c21c7c"
+    },
+    {
+      "path": "infrastructure/shared/agent/context.py",
+      "bytes": 4205,
+      "sha256": "ed6910dd7cf7f55e69d1ddca406065471d481b982d68406de0dd9483ff4ebacd"
+    },
+    {
+      "path": "infrastructure/shared/agent/conventions.py",
+      "bytes": 3461,
+      "sha256": "2ff286e21bb12dc0057fd6372cc7e7cef65fbd555b156c5ef042a0982907efb3"
+    },
+    {
+      "path": "infrastructure/shared/agent/design_batches.py",
+      "bytes": 7889,
+      "sha256": "53b3868dfa58defb084697a2a6b84ed11eae9d1a7d1990f06795da79502f1b3d"
+    },
+    {
+      "path": "infrastructure/shared/agent/discovery.py",
+      "bytes": 5702,
+      "sha256": "70bcccdfe4e6dd2245d5b563dc5902a22651f5d5b04be543c215442fb17cf0f1"
+    },
+    {
+      "path": "infrastructure/shared/agent/feedback.py",
+      "bytes": 645,
+      "sha256": "1d6c465ab20543bab0e89d89367adbdc0de430599450ed89e40856f301265b1d"
+    },
+    {
+      "path": "infrastructure/shared/agent/files.py",
+      "bytes": 1855,
+      "sha256": "af0e96748cda35958fc2a665fa62dea4d424710bb4c3893e90cf3334d6af6756"
+    },
+    {
+      "path": "infrastructure/shared/agent/implementation_batches.py",
+      "bytes": 7850,
+      "sha256": "b958cd7bd7ddbb8112e5b5823da6c94d27d527db7f4656e0eebef9fc4d73fb43"
+    },
+    {
+      "path": "infrastructure/shared/agent/loop.py",
+      "bytes": 11874,
+      "sha256": "7c1cf2284d90619ca48d5f901e6f44c5e9132e6f1815a7840c603e64417de9a1"
+    },
+    {
+      "path": "infrastructure/shared/agent/proposals.py",
+      "bytes": 4961,
+      "sha256": "772404052881271303a52c273f83d171b8dbe424e15d725c5db4d8b060c64633"
+    },
+    {
+      "path": "infrastructure/shared/agent/recovery.py",
+      "bytes": 6742,
+      "sha256": "2c40c85047b39032a349b4bec6bfb0adc0e3a5c000efc1f2015579dccbb1aa56"
+    },
+    {
+      "path": "infrastructure/shared/agent/repair_implicit_any.mjs",
+      "bytes": 2126,
+      "sha256": "8dd6e61b1611a25f49a9cd9ad28e9bf3f50e772d43e85fedc606c9e5c109c668"
+    },
+    {
+      "path": "infrastructure/shared/agent/tasks.py",
+      "bytes": 1869,
+      "sha256": "d412dfece66a2e76830fbdff70c22e24a5803b85f261c4dfaa0e67a84cd424ee"
+    },
+    {
+      "path": "infrastructure/shared/agent/type_repair.py",
+      "bytes": 2228,
+      "sha256": "87e312791298e1ecc2e380260e19e62daeedf65fc01b35e1c476900b8d55d11c"
+    },
+    {
+      "path": "infrastructure/shared/agent/tools/__init__.py",
+      "bytes": 9771,
+      "sha256": "d6ee85a356b7d0feaf445a249b58b5c9c312cf6065b2680edbb440e238654066"
+    },
+    {
+      "path": "infrastructure/shared/agent/tools/file_tools.py",
+      "bytes": 11144,
+      "sha256": "397df1d98160c6b93c1e32c5f5c497f07b12750625a60552ff8443662c660367"
+    },
+    {
+      "path": "infrastructure/shared/agent/tools/files.py",
+      "bytes": 6715,
+      "sha256": "176ad70635a25f5650b137d3375fe0d1297ac9f9269723deb137a33c286d9346"
+    },
+    {
+      "path": "infrastructure/shared/agent/tools/protocol.py",
+      "bytes": 5594,
+      "sha256": "eb44e25ce8a50e262ad17b89ceafd64ff3105fbb8132108b4727bee3c47419f6"
+    },
+    {
+      "path": "infrastructure/shared/agent/tools/schemas.py",
+      "bytes": 1957,
+      "sha256": "e746aaba1940bd4bca4ce03c8f1b815893140e28763c7dbb8ec0b80fb819d9d7"
+    },
+    {
+      "path": "infrastructure/pipeline/__init__.py",
+      "bytes": 59,
+      "sha256": "fe312707c9915c91a63c1137ee9edf5b8f22471af07ad6fc8cf7005417b736df"
+    },
+    {
+      "path": "infrastructure/pipeline/backend_apis.py",
+      "bytes": 6002,
+      "sha256": "642352bdaf4457a8235f693efbca830cef89164bdf02571db6211d1140918ea3"
+    },
+    {
+      "path": "infrastructure/pipeline/backend_implementation.py",
+      "bytes": 16628,
+      "sha256": "b363bd11b139d80f1c1e1ba493909d2940ee2496eb2526774d2fe2a478a2f905"
+    },
+    {
+      "path": "infrastructure/pipeline/database.py",
+      "bytes": 6610,
+      "sha256": "42ba81e0f1083dc0614458804a3331ab2481941d1811520920e1f5f40980bec6"
+    },
+    {
+      "path": "infrastructure/pipeline/db_obligations.py",
+      "bytes": 4160,
+      "sha256": "80123921cc21e0adcfd934ce0c282131792e26d10d227192e6f681c135c6a256"
+    },
+    {
+      "path": "infrastructure/pipeline/db_schema.py",
+      "bytes": 3913,
+      "sha256": "6590a8b7e289491f452fedb7e72b70a2c3fbd9749dec09e33a8d72021844f3c3"
+    },
+    {
+      "path": "infrastructure/pipeline/frontend_implementation.py",
+      "bytes": 2768,
+      "sha256": "754ce281be4ea93abf709e8158070654b28c3bbf1306d7d71175b1b064ff4866"
+    },
+    {
+      "path": "infrastructure/pipeline/frontend_triggers.py",
+      "bytes": 1263,
+      "sha256": "db42a28c2a8864325ce5d18551e0e91f7b5470c8f91309afec1a3c36c6a82d5b"
+    },
+    {
+      "path": "infrastructure/pipeline/project_initialization.py",
+      "bytes": 1467,
+      "sha256": "efd335cfc052fa6c57e36b6280a247342a3f722662457ab9233473d9b1174cec"
+    },
+    {
+      "path": "infrastructure/pipeline/requirements.py",
+      "bytes": 16551,
+      "sha256": "0be1a4a5a24955e0c2f58bf01b816a53ad8edcc420af19d520354610aa498448"
+    },
+    {
+      "path": "infrastructure/pipeline/ui_design.py",
+      "bytes": 1030,
+      "sha256": "4a9ebcbe2affe024fda7d3df7e1dda8d4912df682d38a97c00ea08c72f33c5ec"
+    },
+    {
+      "path": "infrastructure/pipeline/ui_implementation.py",
+      "bytes": 2384,
+      "sha256": "ed5aa20b6853ebb3b076f5cb260e0631d455562c5bca3cf077947e00fec11c7e"
+    }
+  ],
+  "forbidden_entries": [],
+  "missing_root_files": [],
+  "rules": {
+    "benchmark_or_task_name": "(?i)book[ _-]*stack|presta[ _-]*shop|stack[ _-]*overflow|ctrip|携程|\\b12306\\b|google[ _-]*keep|keep[ _-]*notes|arc-bench-web--",
+    "keep_literal_for_review": "\\bKeep\\b",
+    "public_case_route": "(?i)bundled_suite|select_profile|suite_structure_key|acceptance_cases[/\\\\]|offline_eval[/\\\\]public|input[/\\\\]tests|repair_storefront_route_params",
+    "business_literal_review": "(?i)insert\\s+into\\s+[^\\r\\n]{1,120}?\\s+values\\s*\\(|[\\w.+-]+@[\\w.-]+\\.[a-z]{2,}|(?:password|cookie|session_token)\\s*[:=]\\s*['\\\"][^'\\\"\\r\\n]+['\\\"]",
+    "model_endpoint_review": "(?i)https?://[^\\s'\\\"<>]+",
+    "secret_shape": "(?i)\\b(?:sk-(?:proj-|ant-)?[a-z0-9_-]{16,}|gh[pousr]_[a-z0-9_]{20,}|github_pat_[a-z0-9_]{20,}|AKIA[A-Z0-9]{16}|xox[baprs]-[a-z0-9-]{12,})\\b|\\bBearer\\s+[a-z0-9._-]{24,}|^[ \\t]*OPENAI_API_KEY[ \\t]*=[ \\t]*[^\\s#]+",
+    "known_requirement_or_suite_fingerprint": "Exact search for 12 SHA-256 strings from the offline index"
+  },
+  "hits": {
+    "benchmark_or_task_name": [],
+    "keep_literal_for_review": [
+      {
+        "path": "infrastructure/utils/processes.py",
+        "line": 17
+      },
+      {
+        "path": "infrastructure/utils/presentation/logging.py",
+        "line": 26
+      },
+      {
+        "path": "infrastructure/utils/presentation/model_io.py",
+        "line": 37
+      },
+      {
+        "path": "infrastructure/utils/presentation/model_io.py",
+        "line": 299
+      },
+      {
+        "path": "infrastructure/stages/requirements/batching.py",
+        "line": 190
+      },
+      {
+        "path": "infrastructure/stages/frontend/ui/design.py",
+        "line": 73
+      },
+      {
+        "path": "infrastructure/stages/frontend/ui/implementation.py",
+        "line": 41
+      },
+      {
+        "path": "infrastructure/stages/frontend/ui/implementation.py",
+        "line": 51
+      },
+      {
+        "path": "infrastructure/stages/frontend/ui/implementation.py",
+        "line": 61
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/implementation.py",
+        "line": 85
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/implementation.py",
+        "line": 89
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/implementation.py",
+        "line": 90
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/implementation.py",
+        "line": 130
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/implementation.py",
+        "line": 144
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/scope.py",
+        "line": 13
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/testing.py",
+        "line": 52
+      },
+      {
+        "path": "infrastructure/stages/database/implementation.py",
+        "line": 93
+      },
+      {
+        "path": "infrastructure/stages/database/implementation_agent.py",
+        "line": 29
+      },
+      {
+        "path": "infrastructure/stages/database/implementation_agent.py",
+        "line": 37
+      },
+      {
+        "path": "infrastructure/stages/backend/design_agent.py",
+        "line": 110
+      },
+      {
+        "path": "infrastructure/stages/backend/testing.py",
+        "line": 101
+      },
+      {
+        "path": "infrastructure/shared/project/templates/README.md",
+        "line": 49
+      },
+      {
+        "path": "infrastructure/shared/agent/design_batches.py",
+        "line": 29
+      },
+      {
+        "path": "infrastructure/shared/agent/discovery.py",
+        "line": 69
+      },
+      {
+        "path": "infrastructure/shared/agent/feedback.py",
+        "line": 1
+      },
+      {
+        "path": "infrastructure/shared/agent/loop.py",
+        "line": 104
+      },
+      {
+        "path": "infrastructure/shared/agent/tools/__init__.py",
+        "line": 129
+      },
+      {
+        "path": "infrastructure/shared/agent/tools/protocol.py",
+        "line": 42
+      },
+      {
+        "path": "infrastructure/shared/agent/tools/protocol.py",
+        "line": 44
+      },
+      {
+        "path": "infrastructure/shared/agent/tools/protocol.py",
+        "line": 57
+      },
+      {
+        "path": "infrastructure/pipeline/requirements.py",
+        "line": 305
+      }
+    ],
+    "public_case_route": [],
+    "business_literal_review": [
+      {
+        "path": "infrastructure/stages/database/testing.py",
+        "line": 67
+      }
+    ],
+    "model_endpoint_review": [
+      {
+        "path": "uv.lock",
+        "line": 13
+      },
+      {
+        "path": "uv.lock",
+        "line": 14
+      },
+      {
+        "path": "uv.lock",
+        "line": 16
+      },
+      {
+        "path": "uv.lock",
+        "line": 22
+      },
+      {
+        "path": "uv.lock",
+        "line": 27
+      },
+      {
+        "path": "uv.lock",
+        "line": 29
+      },
+      {
+        "path": "uv.lock",
+        "line": 35
+      },
+      {
+        "path": "uv.lock",
+        "line": 36
+      },
+      {
+        "path": "uv.lock",
+        "line": 38
+      },
+      {
+        "path": "uv.lock",
+        "line": 44
+      },
+      {
+        "path": "uv.lock",
+        "line": 45
+      },
+      {
+        "path": "uv.lock",
+        "line": 47
+      },
+      {
+        "path": "uv.lock",
+        "line": 53
+      },
+      {
+        "path": "uv.lock",
+        "line": 58
+      },
+      {
+        "path": "uv.lock",
+        "line": 60
+      },
+      {
+        "path": "uv.lock",
+        "line": 66
+      },
+      {
+        "path": "uv.lock",
+        "line": 71
+      },
+      {
+        "path": "uv.lock",
+        "line": 73
+      },
+      {
+        "path": "uv.lock",
+        "line": 79
+      },
+      {
+        "path": "uv.lock",
+        "line": 86
+      },
+      {
+        "path": "uv.lock",
+        "line": 88
+      },
+      {
+        "path": "uv.lock",
+        "line": 94
+      },
+      {
+        "path": "uv.lock",
+        "line": 103
+      },
+      {
+        "path": "uv.lock",
+        "line": 105
+      },
+      {
+        "path": "uv.lock",
+        "line": 111
+      },
+      {
+        "path": "uv.lock",
+        "line": 112
+      },
+      {
+        "path": "uv.lock",
+        "line": 114
+      },
+      {
+        "path": "uv.lock",
+        "line": 120
+      },
+      {
+        "path": "uv.lock",
+        "line": 121
+      },
+      {
+        "path": "uv.lock",
+        "line": 123
+      },
+      {
+        "path": "uv.lock",
+        "line": 129
+      },
+      {
+        "path": "uv.lock",
+        "line": 130
+      },
+      {
+        "path": "uv.lock",
+        "line": 132
+      },
+      {
+        "path": "uv.lock",
+        "line": 133
+      },
+      {
+        "path": "uv.lock",
+        "line": 134
+      },
+      {
+        "path": "uv.lock",
+        "line": 135
+      },
+      {
+        "path": "uv.lock",
+        "line": 136
+      },
+      {
+        "path": "uv.lock",
+        "line": 137
+      },
+      {
+        "path": "uv.lock",
+        "line": 138
+      },
+      {
+        "path": "uv.lock",
+        "line": 139
+      },
+      {
+        "path": "uv.lock",
+        "line": 140
+      },
+      {
+        "path": "uv.lock",
+        "line": 141
+      },
+      {
+        "path": "uv.lock",
+        "line": 142
+      },
+      {
+        "path": "uv.lock",
+        "line": 143
+      },
+      {
+        "path": "uv.lock",
+        "line": 144
+      },
+      {
+        "path": "uv.lock",
+        "line": 145
+      },
+      {
+        "path": "uv.lock",
+        "line": 146
+      },
+      {
+        "path": "uv.lock",
+        "line": 147
+      },
+      {
+        "path": "uv.lock",
+        "line": 148
+      },
+      {
+        "path": "uv.lock",
+        "line": 149
+      },
+      {
+        "path": "uv.lock",
+        "line": 150
+      },
+      {
+        "path": "uv.lock",
+        "line": 151
+      },
+      {
+        "path": "uv.lock",
+        "line": 152
+      },
+      {
+        "path": "uv.lock",
+        "line": 153
+      },
+      {
+        "path": "uv.lock",
+        "line": 154
+      },
+      {
+        "path": "uv.lock",
+        "line": 155
+      },
+      {
+        "path": "uv.lock",
+        "line": 156
+      },
+      {
+        "path": "uv.lock",
+        "line": 157
+      },
+      {
+        "path": "uv.lock",
+        "line": 158
+      },
+      {
+        "path": "uv.lock",
+        "line": 159
+      },
+      {
+        "path": "uv.lock",
+        "line": 160
+      },
+      {
+        "path": "uv.lock",
+        "line": 161
+      },
+      {
+        "path": "uv.lock",
+        "line": 162
+      },
+      {
+        "path": "uv.lock",
+        "line": 163
+      },
+      {
+        "path": "uv.lock",
+        "line": 164
+      },
+      {
+        "path": "uv.lock",
+        "line": 165
+      },
+      {
+        "path": "uv.lock",
+        "line": 166
+      },
+      {
+        "path": "uv.lock",
+        "line": 167
+      },
+      {
+        "path": "uv.lock",
+        "line": 168
+      },
+      {
+        "path": "uv.lock",
+        "line": 169
+      },
+      {
+        "path": "uv.lock",
+        "line": 170
+      },
+      {
+        "path": "uv.lock",
+        "line": 171
+      },
+      {
+        "path": "uv.lock",
+        "line": 172
+      },
+      {
+        "path": "uv.lock",
+        "line": 173
+      },
+      {
+        "path": "uv.lock",
+        "line": 174
+      },
+      {
+        "path": "uv.lock",
+        "line": 175
+      },
+      {
+        "path": "uv.lock",
+        "line": 176
+      },
+      {
+        "path": "uv.lock",
+        "line": 177
+      },
+      {
+        "path": "uv.lock",
+        "line": 178
+      },
+      {
+        "path": "uv.lock",
+        "line": 179
+      },
+      {
+        "path": "uv.lock",
+        "line": 180
+      },
+      {
+        "path": "uv.lock",
+        "line": 181
+      },
+      {
+        "path": "uv.lock",
+        "line": 182
+      },
+      {
+        "path": "uv.lock",
+        "line": 183
+      },
+      {
+        "path": "uv.lock",
+        "line": 184
+      },
+      {
+        "path": "uv.lock",
+        "line": 185
+      },
+      {
+        "path": "uv.lock",
+        "line": 186
+      },
+      {
+        "path": "uv.lock",
+        "line": 187
+      },
+      {
+        "path": "uv.lock",
+        "line": 188
+      },
+      {
+        "path": "uv.lock",
+        "line": 189
+      },
+      {
+        "path": "uv.lock",
+        "line": 190
+      },
+      {
+        "path": "uv.lock",
+        "line": 191
+      },
+      {
+        "path": "uv.lock",
+        "line": 192
+      },
+      {
+        "path": "uv.lock",
+        "line": 193
+      },
+      {
+        "path": "uv.lock",
+        "line": 194
+      },
+      {
+        "path": "uv.lock",
+        "line": 195
+      },
+      {
+        "path": "uv.lock",
+        "line": 196
+      },
+      {
+        "path": "uv.lock",
+        "line": 197
+      },
+      {
+        "path": "uv.lock",
+        "line": 198
+      },
+      {
+        "path": "uv.lock",
+        "line": 199
+      },
+      {
+        "path": "uv.lock",
+        "line": 200
+      },
+      {
+        "path": "uv.lock",
+        "line": 201
+      },
+      {
+        "path": "uv.lock",
+        "line": 202
+      },
+      {
+        "path": "uv.lock",
+        "line": 203
+      },
+      {
+        "path": "uv.lock",
+        "line": 204
+      },
+      {
+        "path": "uv.lock",
+        "line": 205
+      },
+      {
+        "path": "uv.lock",
+        "line": 206
+      },
+      {
+        "path": "uv.lock",
+        "line": 207
+      },
+      {
+        "path": "uv.lock",
+        "line": 208
+      },
+      {
+        "path": "uv.lock",
+        "line": 209
+      },
+      {
+        "path": "uv.lock",
+        "line": 210
+      },
+      {
+        "path": "uv.lock",
+        "line": 211
+      },
+      {
+        "path": "uv.lock",
+        "line": 212
+      },
+      {
+        "path": "uv.lock",
+        "line": 213
+      },
+      {
+        "path": "uv.lock",
+        "line": 214
+      },
+      {
+        "path": "uv.lock",
+        "line": 215
+      },
+      {
+        "path": "uv.lock",
+        "line": 216
+      },
+      {
+        "path": "uv.lock",
+        "line": 217
+      },
+      {
+        "path": "uv.lock",
+        "line": 218
+      },
+      {
+        "path": "uv.lock",
+        "line": 219
+      },
+      {
+        "path": "uv.lock",
+        "line": 220
+      },
+      {
+        "path": "uv.lock",
+        "line": 221
+      },
+      {
+        "path": "uv.lock",
+        "line": 222
+      },
+      {
+        "path": "uv.lock",
+        "line": 223
+      },
+      {
+        "path": "uv.lock",
+        "line": 224
+      },
+      {
+        "path": "uv.lock",
+        "line": 225
+      },
+      {
+        "path": "uv.lock",
+        "line": 226
+      },
+      {
+        "path": "uv.lock",
+        "line": 227
+      },
+      {
+        "path": "uv.lock",
+        "line": 228
+      },
+      {
+        "path": "uv.lock",
+        "line": 229
+      },
+      {
+        "path": "uv.lock",
+        "line": 230
+      },
+      {
+        "path": "uv.lock",
+        "line": 231
+      },
+      {
+        "path": "uv.lock",
+        "line": 232
+      },
+      {
+        "path": "uv.lock",
+        "line": 233
+      },
+      {
+        "path": "uv.lock",
+        "line": 234
+      },
+      {
+        "path": "uv.lock",
+        "line": 235
+      },
+      {
+        "path": "uv.lock",
+        "line": 236
+      },
+      {
+        "path": "uv.lock",
+        "line": 242
+      },
+      {
+        "path": "uv.lock",
+        "line": 246
+      },
+      {
+        "path": "uv.lock",
+        "line": 248
+      },
+      {
+        "path": "uv.lock",
+        "line": 254
+      },
+      {
+        "path": "uv.lock",
+        "line": 255
+      },
+      {
+        "path": "uv.lock",
+        "line": 257
+      },
+      {
+        "path": "uv.lock",
+        "line": 263
+      },
+      {
+        "path": "uv.lock",
+        "line": 272
+      },
+      {
+        "path": "uv.lock",
+        "line": 274
+      },
+      {
+        "path": "uv.lock",
+        "line": 280
+      },
+      {
+        "path": "uv.lock",
+        "line": 281
+      },
+      {
+        "path": "uv.lock",
+        "line": 283
+      },
+      {
+        "path": "uv.lock",
+        "line": 284
+      },
+      {
+        "path": "uv.lock",
+        "line": 285
+      },
+      {
+        "path": "uv.lock",
+        "line": 286
+      },
+      {
+        "path": "uv.lock",
+        "line": 287
+      },
+      {
+        "path": "uv.lock",
+        "line": 288
+      },
+      {
+        "path": "uv.lock",
+        "line": 289
+      },
+      {
+        "path": "uv.lock",
+        "line": 290
+      },
+      {
+        "path": "uv.lock",
+        "line": 291
+      },
+      {
+        "path": "uv.lock",
+        "line": 292
+      },
+      {
+        "path": "uv.lock",
+        "line": 293
+      },
+      {
+        "path": "uv.lock",
+        "line": 294
+      },
+      {
+        "path": "uv.lock",
+        "line": 295
+      },
+      {
+        "path": "uv.lock",
+        "line": 296
+      },
+      {
+        "path": "uv.lock",
+        "line": 297
+      },
+      {
+        "path": "uv.lock",
+        "line": 298
+      },
+      {
+        "path": "uv.lock",
+        "line": 299
+      },
+      {
+        "path": "uv.lock",
+        "line": 300
+      },
+      {
+        "path": "uv.lock",
+        "line": 301
+      },
+      {
+        "path": "uv.lock",
+        "line": 302
+      },
+      {
+        "path": "uv.lock",
+        "line": 303
+      },
+      {
+        "path": "uv.lock",
+        "line": 304
+      },
+      {
+        "path": "uv.lock",
+        "line": 305
+      },
+      {
+        "path": "uv.lock",
+        "line": 306
+      },
+      {
+        "path": "uv.lock",
+        "line": 307
+      },
+      {
+        "path": "uv.lock",
+        "line": 308
+      },
+      {
+        "path": "uv.lock",
+        "line": 309
+      },
+      {
+        "path": "uv.lock",
+        "line": 310
+      },
+      {
+        "path": "uv.lock",
+        "line": 311
+      },
+      {
+        "path": "uv.lock",
+        "line": 312
+      },
+      {
+        "path": "uv.lock",
+        "line": 313
+      },
+      {
+        "path": "uv.lock",
+        "line": 314
+      },
+      {
+        "path": "uv.lock",
+        "line": 315
+      },
+      {
+        "path": "uv.lock",
+        "line": 316
+      },
+      {
+        "path": "uv.lock",
+        "line": 317
+      },
+      {
+        "path": "uv.lock",
+        "line": 318
+      },
+      {
+        "path": "uv.lock",
+        "line": 319
+      },
+      {
+        "path": "uv.lock",
+        "line": 320
+      },
+      {
+        "path": "uv.lock",
+        "line": 321
+      },
+      {
+        "path": "uv.lock",
+        "line": 322
+      },
+      {
+        "path": "uv.lock",
+        "line": 323
+      },
+      {
+        "path": "uv.lock",
+        "line": 324
+      },
+      {
+        "path": "uv.lock",
+        "line": 325
+      },
+      {
+        "path": "uv.lock",
+        "line": 326
+      },
+      {
+        "path": "uv.lock",
+        "line": 327
+      },
+      {
+        "path": "uv.lock",
+        "line": 328
+      },
+      {
+        "path": "uv.lock",
+        "line": 329
+      },
+      {
+        "path": "uv.lock",
+        "line": 330
+      },
+      {
+        "path": "uv.lock",
+        "line": 331
+      },
+      {
+        "path": "uv.lock",
+        "line": 332
+      },
+      {
+        "path": "uv.lock",
+        "line": 333
+      },
+      {
+        "path": "uv.lock",
+        "line": 334
+      },
+      {
+        "path": "uv.lock",
+        "line": 335
+      },
+      {
+        "path": "uv.lock",
+        "line": 336
+      },
+      {
+        "path": "uv.lock",
+        "line": 337
+      },
+      {
+        "path": "uv.lock",
+        "line": 338
+      },
+      {
+        "path": "uv.lock",
+        "line": 339
+      },
+      {
+        "path": "uv.lock",
+        "line": 340
+      },
+      {
+        "path": "uv.lock",
+        "line": 341
+      },
+      {
+        "path": "uv.lock",
+        "line": 342
+      },
+      {
+        "path": "uv.lock",
+        "line": 343
+      },
+      {
+        "path": "uv.lock",
+        "line": 344
+      },
+      {
+        "path": "uv.lock",
+        "line": 345
+      },
+      {
+        "path": "uv.lock",
+        "line": 346
+      },
+      {
+        "path": "uv.lock",
+        "line": 347
+      },
+      {
+        "path": "uv.lock",
+        "line": 348
+      },
+      {
+        "path": "uv.lock",
+        "line": 349
+      },
+      {
+        "path": "uv.lock",
+        "line": 350
+      },
+      {
+        "path": "uv.lock",
+        "line": 351
+      },
+      {
+        "path": "uv.lock",
+        "line": 352
+      },
+      {
+        "path": "uv.lock",
+        "line": 353
+      },
+      {
+        "path": "uv.lock",
+        "line": 354
+      },
+      {
+        "path": "uv.lock",
+        "line": 355
+      },
+      {
+        "path": "uv.lock",
+        "line": 356
+      },
+      {
+        "path": "uv.lock",
+        "line": 357
+      },
+      {
+        "path": "uv.lock",
+        "line": 358
+      },
+      {
+        "path": "uv.lock",
+        "line": 359
+      },
+      {
+        "path": "uv.lock",
+        "line": 365
+      },
+      {
+        "path": "uv.lock",
+        "line": 372
+      },
+      {
+        "path": "uv.lock",
+        "line": 374
+      },
+      {
+        "path": "uv.lock",
+        "line": 380
+      },
+      {
+        "path": "uv.lock",
+        "line": 384
+      },
+      {
+        "path": "uv.lock",
+        "line": 386
+      },
+      {
+        "path": "uv.lock",
+        "line": 387
+      },
+      {
+        "path": "uv.lock",
+        "line": 388
+      },
+      {
+        "path": "uv.lock",
+        "line": 389
+      },
+      {
+        "path": "uv.lock",
+        "line": 390
+      },
+      {
+        "path": "uv.lock",
+        "line": 391
+      },
+      {
+        "path": "uv.lock",
+        "line": 392
+      },
+      {
+        "path": "uv.lock",
+        "line": 393
+      },
+      {
+        "path": "uv.lock",
+        "line": 394
+      },
+      {
+        "path": "uv.lock",
+        "line": 395
+      },
+      {
+        "path": "uv.lock",
+        "line": 396
+      },
+      {
+        "path": "uv.lock",
+        "line": 397
+      },
+      {
+        "path": "uv.lock",
+        "line": 398
+      },
+      {
+        "path": "uv.lock",
+        "line": 399
+      },
+      {
+        "path": "uv.lock",
+        "line": 400
+      },
+      {
+        "path": "uv.lock",
+        "line": 401
+      },
+      {
+        "path": "uv.lock",
+        "line": 402
+      },
+      {
+        "path": "uv.lock",
+        "line": 403
+      },
+      {
+        "path": "uv.lock",
+        "line": 404
+      },
+      {
+        "path": "uv.lock",
+        "line": 405
+      },
+      {
+        "path": "uv.lock",
+        "line": 406
+      },
+      {
+        "path": "uv.lock",
+        "line": 407
+      },
+      {
+        "path": "uv.lock",
+        "line": 408
+      },
+      {
+        "path": "uv.lock",
+        "line": 409
+      },
+      {
+        "path": "uv.lock",
+        "line": 410
+      },
+      {
+        "path": "uv.lock",
+        "line": 411
+      },
+      {
+        "path": "uv.lock",
+        "line": 412
+      },
+      {
+        "path": "uv.lock",
+        "line": 413
+      },
+      {
+        "path": "uv.lock",
+        "line": 414
+      },
+      {
+        "path": "uv.lock",
+        "line": 415
+      },
+      {
+        "path": "uv.lock",
+        "line": 416
+      },
+      {
+        "path": "uv.lock",
+        "line": 417
+      },
+      {
+        "path": "uv.lock",
+        "line": 418
+      },
+      {
+        "path": "uv.lock",
+        "line": 419
+      },
+      {
+        "path": "uv.lock",
+        "line": 420
+      },
+      {
+        "path": "uv.lock",
+        "line": 421
+      },
+      {
+        "path": "uv.lock",
+        "line": 422
+      },
+      {
+        "path": "uv.lock",
+        "line": 423
+      },
+      {
+        "path": "uv.lock",
+        "line": 424
+      },
+      {
+        "path": "uv.lock",
+        "line": 425
+      },
+      {
+        "path": "uv.lock",
+        "line": 426
+      },
+      {
+        "path": "uv.lock",
+        "line": 427
+      },
+      {
+        "path": "uv.lock",
+        "line": 428
+      },
+      {
+        "path": "uv.lock",
+        "line": 429
+      },
+      {
+        "path": "uv.lock",
+        "line": 430
+      },
+      {
+        "path": "uv.lock",
+        "line": 431
+      },
+      {
+        "path": "uv.lock",
+        "line": 432
+      },
+      {
+        "path": "uv.lock",
+        "line": 433
+      },
+      {
+        "path": "uv.lock",
+        "line": 434
+      },
+      {
+        "path": "uv.lock",
+        "line": 435
+      },
+      {
+        "path": "uv.lock",
+        "line": 436
+      },
+      {
+        "path": "uv.lock",
+        "line": 437
+      },
+      {
+        "path": "uv.lock",
+        "line": 438
+      },
+      {
+        "path": "uv.lock",
+        "line": 439
+      },
+      {
+        "path": "uv.lock",
+        "line": 440
+      },
+      {
+        "path": "uv.lock",
+        "line": 441
+      },
+      {
+        "path": "uv.lock",
+        "line": 442
+      },
+      {
+        "path": "uv.lock",
+        "line": 443
+      },
+      {
+        "path": "uv.lock",
+        "line": 444
+      },
+      {
+        "path": "uv.lock",
+        "line": 445
+      },
+      {
+        "path": "uv.lock",
+        "line": 446
+      },
+      {
+        "path": "uv.lock",
+        "line": 447
+      },
+      {
+        "path": "uv.lock",
+        "line": 448
+      },
+      {
+        "path": "uv.lock",
+        "line": 449
+      },
+      {
+        "path": "uv.lock",
+        "line": 450
+      },
+      {
+        "path": "uv.lock",
+        "line": 451
+      },
+      {
+        "path": "uv.lock",
+        "line": 452
+      },
+      {
+        "path": "uv.lock",
+        "line": 453
+      },
+      {
+        "path": "uv.lock",
+        "line": 454
+      },
+      {
+        "path": "uv.lock",
+        "line": 455
+      },
+      {
+        "path": "uv.lock",
+        "line": 456
+      },
+      {
+        "path": "uv.lock",
+        "line": 457
+      },
+      {
+        "path": "uv.lock",
+        "line": 458
+      },
+      {
+        "path": "uv.lock",
+        "line": 459
+      },
+      {
+        "path": "uv.lock",
+        "line": 460
+      },
+      {
+        "path": "uv.lock",
+        "line": 461
+      },
+      {
+        "path": "uv.lock",
+        "line": 462
+      },
+      {
+        "path": "uv.lock",
+        "line": 463
+      },
+      {
+        "path": "uv.lock",
+        "line": 464
+      },
+      {
+        "path": "uv.lock",
+        "line": 465
+      },
+      {
+        "path": "uv.lock",
+        "line": 466
+      },
+      {
+        "path": "uv.lock",
+        "line": 467
+      },
+      {
+        "path": "uv.lock",
+        "line": 468
+      },
+      {
+        "path": "uv.lock",
+        "line": 469
+      },
+      {
+        "path": "uv.lock",
+        "line": 470
+      },
+      {
+        "path": "uv.lock",
+        "line": 471
+      },
+      {
+        "path": "uv.lock",
+        "line": 472
+      },
+      {
+        "path": "uv.lock",
+        "line": 473
+      },
+      {
+        "path": "uv.lock",
+        "line": 474
+      },
+      {
+        "path": "uv.lock",
+        "line": 475
+      },
+      {
+        "path": "uv.lock",
+        "line": 476
+      },
+      {
+        "path": "uv.lock",
+        "line": 477
+      },
+      {
+        "path": "uv.lock",
+        "line": 478
+      },
+      {
+        "path": "uv.lock",
+        "line": 479
+      },
+      {
+        "path": "uv.lock",
+        "line": 480
+      },
+      {
+        "path": "uv.lock",
+        "line": 481
+      },
+      {
+        "path": "uv.lock",
+        "line": 482
+      },
+      {
+        "path": "uv.lock",
+        "line": 483
+      },
+      {
+        "path": "uv.lock",
+        "line": 484
+      },
+      {
+        "path": "uv.lock",
+        "line": 485
+      },
+      {
+        "path": "uv.lock",
+        "line": 486
+      },
+      {
+        "path": "uv.lock",
+        "line": 487
+      },
+      {
+        "path": "uv.lock",
+        "line": 488
+      },
+      {
+        "path": "uv.lock",
+        "line": 489
+      },
+      {
+        "path": "uv.lock",
+        "line": 490
+      },
+      {
+        "path": "uv.lock",
+        "line": 491
+      },
+      {
+        "path": "uv.lock",
+        "line": 492
+      },
+      {
+        "path": "uv.lock",
+        "line": 493
+      },
+      {
+        "path": "uv.lock",
+        "line": 494
+      },
+      {
+        "path": "uv.lock",
+        "line": 495
+      },
+      {
+        "path": "uv.lock",
+        "line": 496
+      },
+      {
+        "path": "uv.lock",
+        "line": 497
+      },
+      {
+        "path": "uv.lock",
+        "line": 498
+      },
+      {
+        "path": "uv.lock",
+        "line": 499
+      },
+      {
+        "path": "uv.lock",
+        "line": 500
+      },
+      {
+        "path": "uv.lock",
+        "line": 501
+      },
+      {
+        "path": "uv.lock",
+        "line": 502
+      },
+      {
+        "path": "uv.lock",
+        "line": 503
+      },
+      {
+        "path": "uv.lock",
+        "line": 504
+      },
+      {
+        "path": "uv.lock",
+        "line": 505
+      },
+      {
+        "path": "uv.lock",
+        "line": 506
+      },
+      {
+        "path": "uv.lock",
+        "line": 507
+      },
+      {
+        "path": "uv.lock",
+        "line": 513
+      },
+      {
+        "path": "uv.lock",
+        "line": 514
+      },
+      {
+        "path": "uv.lock",
+        "line": 516
+      },
+      {
+        "path": "uv.lock",
+        "line": 522
+      },
+      {
+        "path": "uv.lock",
+        "line": 523
+      },
+      {
+        "path": "uv.lock",
+        "line": 525
+      },
+      {
+        "path": "uv.lock",
+        "line": 531
+      },
+      {
+        "path": "uv.lock",
+        "line": 532
+      },
+      {
+        "path": "uv.lock",
+        "line": 534
+      },
+      {
+        "path": "uv.lock",
+        "line": 535
+      },
+      {
+        "path": "uv.lock",
+        "line": 536
+      },
+      {
+        "path": "uv.lock",
+        "line": 537
+      },
+      {
+        "path": "uv.lock",
+        "line": 538
+      },
+      {
+        "path": "uv.lock",
+        "line": 539
+      },
+      {
+        "path": "uv.lock",
+        "line": 540
+      },
+      {
+        "path": "uv.lock",
+        "line": 541
+      },
+      {
+        "path": "uv.lock",
+        "line": 542
+      },
+      {
+        "path": "uv.lock",
+        "line": 543
+      },
+      {
+        "path": "uv.lock",
+        "line": 544
+      },
+      {
+        "path": "uv.lock",
+        "line": 545
+      },
+      {
+        "path": "uv.lock",
+        "line": 546
+      },
+      {
+        "path": "uv.lock",
+        "line": 547
+      },
+      {
+        "path": "uv.lock",
+        "line": 548
+      },
+      {
+        "path": "uv.lock",
+        "line": 549
+      },
+      {
+        "path": "uv.lock",
+        "line": 550
+      },
+      {
+        "path": "uv.lock",
+        "line": 551
+      },
+      {
+        "path": "uv.lock",
+        "line": 552
+      },
+      {
+        "path": "uv.lock",
+        "line": 553
+      },
+      {
+        "path": "uv.lock",
+        "line": 554
+      },
+      {
+        "path": "uv.lock",
+        "line": 555
+      },
+      {
+        "path": "uv.lock",
+        "line": 556
+      },
+      {
+        "path": "uv.lock",
+        "line": 557
+      },
+      {
+        "path": "uv.lock",
+        "line": 558
+      },
+      {
+        "path": "uv.lock",
+        "line": 559
+      },
+      {
+        "path": "uv.lock",
+        "line": 560
+      },
+      {
+        "path": "uv.lock",
+        "line": 561
+      },
+      {
+        "path": "uv.lock",
+        "line": 562
+      },
+      {
+        "path": "uv.lock",
+        "line": 563
+      },
+      {
+        "path": "uv.lock",
+        "line": 564
+      },
+      {
+        "path": "uv.lock",
+        "line": 565
+      },
+      {
+        "path": "uv.lock",
+        "line": 566
+      },
+      {
+        "path": "uv.lock",
+        "line": 567
+      },
+      {
+        "path": "uv.lock",
+        "line": 568
+      },
+      {
+        "path": "uv.lock",
+        "line": 569
+      },
+      {
+        "path": "uv.lock",
+        "line": 570
+      },
+      {
+        "path": "uv.lock",
+        "line": 571
+      },
+      {
+        "path": "uv.lock",
+        "line": 572
+      },
+      {
+        "path": "uv.lock",
+        "line": 573
+      },
+      {
+        "path": "uv.lock",
+        "line": 574
+      },
+      {
+        "path": "uv.lock",
+        "line": 575
+      },
+      {
+        "path": "uv.lock",
+        "line": 576
+      },
+      {
+        "path": "uv.lock",
+        "line": 577
+      },
+      {
+        "path": "uv.lock",
+        "line": 578
+      },
+      {
+        "path": "uv.lock",
+        "line": 579
+      },
+      {
+        "path": "uv.lock",
+        "line": 580
+      },
+      {
+        "path": "uv.lock",
+        "line": 609
+      },
+      {
+        "path": "uv.lock",
+        "line": 614
+      },
+      {
+        "path": "uv.lock",
+        "line": 616
+      },
+      {
+        "path": "uv.lock",
+        "line": 622
+      },
+      {
+        "path": "uv.lock",
+        "line": 623
+      },
+      {
+        "path": "uv.lock",
+        "line": 625
+      },
+      {
+        "path": "uv.lock",
+        "line": 631
+      },
+      {
+        "path": "uv.lock",
+        "line": 632
+      },
+      {
+        "path": "uv.lock",
+        "line": 634
+      },
+      {
+        "path": "uv.lock",
+        "line": 640
+      },
+      {
+        "path": "uv.lock",
+        "line": 641
+      },
+      {
+        "path": "uv.lock",
+        "line": 643
+      },
+      {
+        "path": "uv.lock",
+        "line": 649
+      },
+      {
+        "path": "uv.lock",
+        "line": 653
+      },
+      {
+        "path": "uv.lock",
+        "line": 655
+      },
+      {
+        "path": "infrastructure/stages/frontend/ui/runtime.py",
+        "line": 42
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/e2e_runtime.py",
+        "line": 26
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/e2e_runtime.py",
+        "line": 30
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/e2e_runtime.py",
+        "line": 34
+      },
+      {
+        "path": "infrastructure/stages/frontend/triggers/e2e_runtime.py",
+        "line": 36
+      },
+      {
+        "path": "infrastructure/stages/database/testing.py",
+        "line": 114
+      },
+      {
+        "path": "infrastructure/shared/project/initialize.py",
+        "line": 62
+      },
+      {
+        "path": "infrastructure/shared/project/templates/frontend/vite.config.ts",
+        "line": 7
+      },
+      {
+        "path": "infrastructure/shared/project/templates/backend/src/server.ts",
+        "line": 17
+      },
+      {
+        "path": "infrastructure/shared/project/templates/backend/scripts/test-api.mjs",
+        "line": 55
+      }
+    ],
+    "secret_shape": [],
+    "known_requirement_or_suite_fingerprint": []
+  },
+  "passed": true,
+  "extracted": true,
+  "manual_review": {
+    "keep_literal_for_review": "31 matches reviewed; common verb in instructions and comments.",
+    "business_literal_review": "One compiler-owned SQLite persistence marker in database/testing.py; no application business record.",
+    "model_endpoint_review": {
+      "origins": {
+        "pypi.org": 25,
+        "files.pythonhosted.org": 397,
+        "127.0.0.1": 10,
+        "localhost": 1
+      },
+      "review": "Package index/download hosts in uv.lock; remaining URLs are loopback checks and template addresses."
+    },
+    "scope": "Pattern and archive content audit, not a proof against arbitrary obfuscation."
+  }
+}

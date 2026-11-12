@@ -1,0 +1,462 @@
+{
+  "teacher": "b5ac6598139d0cb32c4adb0146945014b6ce4039",
+  "import_commit": "6e0296d",
+  "scope": "老师导入清单上的变动、新增的编译器文件及组配置；历史归档看 import-manifest.json",
+  "files": [
+    {
+      "path": "compiler/.env.example",
+      "change": "M",
+      "reason": "统一连接变量和运行依赖，提供锁定环境"
+    },
+    {
+      "path": "compiler/.gitignore",
+      "change": "M",
+      "reason": "限定模板和候选包的文件边界"
+    },
+    {
+      "path": "compiler/README.md",
+      "change": "M",
+      "reason": "说明不依赖题目及仓库外文件的入口与打包命令"
+    },
+    {
+      "path": "compiler/infrastructure/compiler.py",
+      "change": "M",
+      "reason": "预算阶段编排、非完整状态、来源检查和恢复"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/backend_apis.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/backend_implementation.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/database.py",
+      "change": "M",
+      "reason": "按数据库产物分批、保留种子来源及持久化验证"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/db_obligations.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/db_schema.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/frontend_implementation.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/frontend_triggers.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/project_initialization.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/requirements.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/pipeline/ui_design.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/shared/agent/design_batches.py",
+      "change": "A",
+      "reason": "共用设计与实现批次规划、拆分和证据"
+    },
+    {
+      "path": "compiler/infrastructure/shared/agent/implementation_batches.py",
+      "change": "A",
+      "reason": "共用设计与实现批次规划、拆分和证据"
+    },
+    {
+      "path": "compiler/infrastructure/shared/agent/loop.py",
+      "change": "M",
+      "reason": "有限修复、候选归档和可验证回滚"
+    },
+    {
+      "path": "compiler/infrastructure/shared/agent/proposals.py",
+      "change": "M",
+      "reason": "共用设计与实现批次规划、拆分和证据"
+    },
+    {
+      "path": "compiler/infrastructure/shared/agent/recovery.py",
+      "change": "M",
+      "reason": "有限修复、候选归档和可验证回滚"
+    },
+    {
+      "path": "compiler/infrastructure/shared/agent/repair_implicit_any.mjs",
+      "change": "A",
+      "reason": "只按明确 TS7006 诊断修复当前可写源码"
+    },
+    {
+      "path": "compiler/infrastructure/shared/agent/tasks.py",
+      "change": "M",
+      "reason": "共用设计与实现批次规划、拆分和证据"
+    },
+    {
+      "path": "compiler/infrastructure/shared/agent/type_repair.py",
+      "change": "A",
+      "reason": "只按明确 TS7006 诊断修复当前可写源码"
+    },
+    {
+      "path": "compiler/infrastructure/shared/models/pricing.py",
+      "change": "M",
+      "reason": "平台连接、定价与调用/进程边界的预算和统计"
+    },
+    {
+      "path": "compiler/infrastructure/shared/models/text.py",
+      "change": "M",
+      "reason": "平台连接、定价与调用/进程边界的预算和统计"
+    },
+    {
+      "path": "compiler/infrastructure/shared/models/vision.py",
+      "change": "M",
+      "reason": "平台连接、定价与调用/进程边界的预算和统计"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/dependencies.py",
+      "change": "M",
+      "reason": "共用设计与实现批次规划、拆分和证据"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/git.py",
+      "change": "M",
+      "reason": "预算阶段编排、非完整状态、来源检查和恢复"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/initialize.py",
+      "change": "M",
+      "reason": "保留可移植模板、固定验收支持和原生成路径"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/provenance.py",
+      "change": "A",
+      "reason": "预算阶段编排、非完整状态、来源检查和恢复"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/support/backend_context.ts",
+      "change": "A",
+      "reason": "保留原 HTTP/E2E 支持源，避免 ZIP 含 tests 目录"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/templates/.gitignore",
+      "change": "A",
+      "reason": "限定模板和候选包的文件边界"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/templates/backend/scripts/copy-db.mjs",
+      "change": "M",
+      "reason": "保留可移植模板、固定验收支持和原生成路径"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/templates/backend/tests/support/context.ts",
+      "change": "D",
+      "reason": "源文件改放编译器 support 目录，生成应用路径仍相同"
+    },
+    {
+      "path": "compiler/infrastructure/shared/project/templates/frontend/package.json",
+      "change": "M",
+      "reason": "保留可移植模板、固定验收支持和原生成路径"
+    },
+    {
+      "path": "compiler/infrastructure/stages/backend/design_agent.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/backend/runtime.py",
+      "change": "M",
+      "reason": "保留可移植模板、固定验收支持和原生成路径"
+    },
+    {
+      "path": "compiler/infrastructure/stages/backend/testing.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/database/implementation.py",
+      "change": "M",
+      "reason": "按数据库产物分批、保留种子来源及持久化验证"
+    },
+    {
+      "path": "compiler/infrastructure/stages/database/implementation_agent.py",
+      "change": "M",
+      "reason": "按数据库产物分批、保留种子来源及持久化验证"
+    },
+    {
+      "path": "compiler/infrastructure/stages/database/obligation_agent.py",
+      "change": "M",
+      "reason": "按数据库产物分批、保留种子来源及持久化验证"
+    },
+    {
+      "path": "compiler/infrastructure/stages/database/schema_agent.py",
+      "change": "M",
+      "reason": "按数据库产物分批、保留种子来源及持久化验证"
+    },
+    {
+      "path": "compiler/infrastructure/stages/database/testing.py",
+      "change": "M",
+      "reason": "按数据库产物分批、保留种子来源及持久化验证"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/triggers/acceptance.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/triggers/acceptance_gate.py",
+      "change": "A",
+      "reason": "按冻结用例验证接口、覆盖和候选回归"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/triggers/e2e_runtime.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/triggers/implementation.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/triggers/synthesis.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/triggers/testing.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/triggers/wire_contract.mjs",
+      "change": "A",
+      "reason": "按冻结用例验证接口、覆盖和候选回归"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/ui/design.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/ui/implementation.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/ui/synthesis.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/frontend/ui/testing.py",
+      "change": "M",
+      "reason": "按阶段增加任务无关的分批、契约或验收约束"
+    },
+    {
+      "path": "compiler/infrastructure/stages/requirements/batching.py",
+      "change": "A",
+      "reason": "共用设计与实现批次规划、拆分和证据"
+    },
+    {
+      "path": "compiler/infrastructure/utils/budget.py",
+      "change": "A",
+      "reason": "平台连接、定价与调用/进程边界的预算和统计"
+    },
+    {
+      "path": "compiler/infrastructure/utils/cli.py",
+      "change": "M",
+      "reason": "平台连接、定价与调用/进程边界的预算和统计"
+    },
+    {
+      "path": "compiler/infrastructure/utils/presentation/events.py",
+      "change": "M",
+      "reason": "平台连接、定价与调用/进程边界的预算和统计"
+    },
+    {
+      "path": "compiler/infrastructure/utils/presentation/model_io.py",
+      "change": "M",
+      "reason": "平台连接、定价与调用/进程边界的预算和统计"
+    },
+    {
+      "path": "compiler/infrastructure/utils/processes.py",
+      "change": "M",
+      "reason": "平台连接、定价与调用/进程边界的预算和统计"
+    },
+    {
+      "path": "compiler/pyproject.toml",
+      "change": "M",
+      "reason": "统一连接变量和运行依赖，提供锁定环境"
+    },
+    {
+      "path": "compiler/scripts/plan_design_batches.py",
+      "change": "A",
+      "reason": "共用设计与实现批次规划、拆分和证据"
+    },
+    {
+      "path": "compiler/tests/test_api_wiring.py",
+      "change": "D",
+      "reason": "归档不适用于现阶段接口的旧测试，保留原件供溯源"
+    },
+    {
+      "path": "compiler/tests/test_backend_contracts.py",
+      "change": "D",
+      "reason": "归档不适用于现阶段接口的旧测试，保留原件供溯源"
+    },
+    {
+      "path": "compiler/tests/test_bounded_context.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_budget.py",
+      "change": "A",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_budget_boundaries.py",
+      "change": "A",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_budget_pipeline.py",
+      "change": "A",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_compiler.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_console_logging.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_context_discovery.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_database_runtime.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_design_batches.py",
+      "change": "A",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_design_continuation.py",
+      "change": "D",
+      "reason": "归档不适用于现阶段接口的旧测试，保留原件供溯源"
+    },
+    {
+      "path": "compiler/tests/test_file_agent.py",
+      "change": "D",
+      "reason": "归档不适用于现阶段接口的旧测试，保留原件供溯源"
+    },
+    {
+      "path": "compiler/tests/test_file_tools.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_frontend_flow.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_git_checkpoints.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_implementation_batches.py",
+      "change": "A",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_implementation_recovery.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_independent_acceptance.py",
+      "change": "D",
+      "reason": "归档不适用于现阶段接口的旧测试，保留原件供溯源"
+    },
+    {
+      "path": "compiler/tests/test_obligation_integrity.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_pipeline_continuation.py",
+      "change": "D",
+      "reason": "归档不适用于现阶段接口的旧测试，保留原件供溯源"
+    },
+    {
+      "path": "compiler/tests/test_portability.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_schema_evolution.py",
+      "change": "D",
+      "reason": "归档不适用于现阶段接口的旧测试，保留原件供溯源"
+    },
+    {
+      "path": "compiler/tests/test_staged_pipeline.py",
+      "change": "A",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_step5_acceptance.py",
+      "change": "A",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_stress_test.py",
+      "change": "D",
+      "reason": "归档不适用于现阶段接口的旧测试，保留原件供溯源"
+    },
+    {
+      "path": "compiler/tests/test_test_repair.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/test_validation_policy.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/tests/tool_fixtures.py",
+      "change": "M",
+      "reason": "覆盖当前阶段接口、预算、批次、验收、恢复或可移植性"
+    },
+    {
+      "path": "compiler/uv.lock",
+      "change": "M",
+      "reason": "统一连接变量和运行依赖，提供锁定环境"
+    }
+  ]
+}

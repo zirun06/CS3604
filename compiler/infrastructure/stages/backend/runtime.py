@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import re
 
-from infrastructure.shared.project.initialize import enable_import_case_checks
+from infrastructure.shared.project.initialize import BACKEND_TEST_SUPPORT, enable_import_case_checks
 from infrastructure.utils.files import save_text
 
 
@@ -29,8 +29,8 @@ def prepare_runtime(output: Path) -> None:
     templates = Path(__file__).resolve().parents[2] / "shared/project/templates"
     if not (output / REGISTER_PATH).is_file():
         save_text(output / REGISTER_PATH, (templates / REGISTER_PATH).read_text(encoding="utf-8"))
-    for relative in (TEST_RUNNER_PATH, TEST_SUPPORT_PATH):
-        save_text(output / relative, (templates / relative).read_text(encoding="utf-8"))
+    save_text(output / TEST_RUNNER_PATH, (templates / TEST_RUNNER_PATH).read_text(encoding="utf-8"))
+    save_text(output / TEST_SUPPORT_PATH, BACKEND_TEST_SUPPORT.read_text(encoding="utf-8"))
     for relative, name, command in (("package.json", "test:backend", "npm run test -w @arc/backend"), ("backend/package.json", "test", "node scripts/test-api.mjs")):
         path = output / relative
         value = json.loads(path.read_text(encoding="utf-8-sig"))

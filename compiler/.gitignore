@@ -13,3 +13,4 @@ AGENTS.md
 # Python verification and local outputs stay outside runtime packages.
 /.pytest_cache/
 /tests/
+/infrastructure/shared/project/templates/**/tests/

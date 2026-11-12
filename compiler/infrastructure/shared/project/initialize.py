@@ -7,6 +7,7 @@ from infrastructure.utils.files import save_json
 
 
 DEFAULT_STACK = "react-express-sqlite"
+BACKEND_TEST_SUPPORT = Path(__file__).with_name("support") / "backend_context.ts"
 
 # --- Extension point: technology stacks --------------------------------------
 # Register another template directory and its empty directories here. New
@@ -15,6 +16,7 @@ STACKS = {
     DEFAULT_STACK: {
         "templates": Path(__file__).with_name("templates"),
         "directories": ("backend/src/db/tables", "backend/src/db/seeds"),
+        "extra_files": {Path("backend/tests/support/context.ts"): BACKEND_TEST_SUPPORT},
         "build_directories": ("backend/dist", "frontend/dist"),
     },
 }
@@ -48,10 +50,9 @@ def initialize_project(output_dir: Path, stack: str = DEFAULT_STACK, port: int =
 
     # copy template files to output directory, preserving existing application sources and data
     created = []
-    for source in sorted(templates.rglob("*")):
-        if not source.is_file():
-            continue
-        relative = source.relative_to(templates)
+    sources = {source.relative_to(templates): source for source in templates.rglob("*") if source.is_file()}
+    sources.update(configuration.get("extra_files", {}))
+    for relative, source in sorted(sources.items()):
         content = source.read_text(encoding="utf-8-sig")
 
         # process port configuration in backend and frontend files

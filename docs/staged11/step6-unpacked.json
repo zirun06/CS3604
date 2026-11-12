@@ -1,0 +1,536 @@
+{
+  "compiler": "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\unpacked",
+  "python": "3.13.9",
+  "commands": {
+    "git_ceiling": {
+      "command": [
+        "git",
+        "rev-parse",
+        "--show-toplevel"
+      ],
+      "exit_code": 128,
+      "expected": 128,
+      "log": "git_ceiling.log"
+    },
+    "help": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "main.py",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "help.log"
+    },
+    "imports": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-I",
+        "-B",
+        "-X",
+        "utf8",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\offline_eval\\verify_unpacked.py",
+        "--compiler",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\unpacked",
+        "--work",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2",
+        "--case",
+        "imports"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "imports.log"
+    },
+    "stage": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "main.py",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\simple",
+        "--output-dir",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\stage-zero",
+        "--stage",
+        "00_project_initialization"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "stage.log"
+    },
+    "bad_arguments": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "main.py",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\simple",
+        "--output-dir",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\bad",
+        "--stage",
+        "not-a-stage"
+      ],
+      "exit_code": 2,
+      "expected": 2,
+      "log": "bad_arguments.log"
+    },
+    "missing_api_key_init": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "main.py",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\connection",
+        "--output-dir",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\missing_api_key",
+        "--stage",
+        "00_project_initialization"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "missing_api_key_init.log"
+    },
+    "missing_api_key": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "main.py",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\connection",
+        "--output-dir",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\missing_api_key",
+        "--stage",
+        "01_explore_requirement"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "missing_api_key.log"
+    },
+    "missing_base_url_init": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "main.py",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\connection",
+        "--output-dir",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\missing_base_url",
+        "--stage",
+        "00_project_initialization"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "missing_base_url_init.log"
+    },
+    "missing_base_url": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-B",
+        "-X",
+        "utf8",
+        "main.py",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\connection",
+        "--output-dir",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2\\missing_base_url",
+        "--stage",
+        "01_explore_requirement"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "missing_base_url.log"
+    },
+    "interrupt": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-I",
+        "-B",
+        "-X",
+        "utf8",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\offline_eval\\verify_unpacked.py",
+        "--compiler",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\unpacked",
+        "--work",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2",
+        "--case",
+        "interrupt"
+      ],
+      "exit_code": 130,
+      "expected": 130,
+      "log": "interrupt.log"
+    },
+    "default_mock": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-I",
+        "-B",
+        "-X",
+        "utf8",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\offline_eval\\verify_unpacked.py",
+        "--compiler",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\unpacked",
+        "--work",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2",
+        "--case",
+        "default"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "default_mock.log"
+    },
+    "from_stage_mock": {
+      "command": [
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+        "-I",
+        "-B",
+        "-X",
+        "utf8",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\offline_eval\\verify_unpacked.py",
+        "--compiler",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\unpacked",
+        "--work",
+        "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\verification2",
+        "--case",
+        "resume"
+      ],
+      "exit_code": 0,
+      "expected": 0,
+      "log": "from_stage_mock.log"
+    }
+  },
+  "assertions": {
+    "help_stages": [
+      "00_project_initialization",
+      "01_explore_requirement",
+      "02_build_db_schema",
+      "03_infer_db_obligations",
+      "04_implement_db",
+      "05_design_backend_apis",
+      "06_implement_backend_tdd",
+      "07_design_ui",
+      "08_implement_ui",
+      "09_design_frontend_triggers",
+      "10_implement_frontend_tdd"
+    ],
+    "templates": [
+      "deploy.sh",
+      "frontend/src/App.tsx",
+      "backend/src/server.ts",
+      "backend/tests/support/context.ts"
+    ],
+    "default": {
+      "status": "GREEN",
+      "stages": {
+        "00_project_initialization": "GREEN",
+        "01_explore_requirement": "GREEN",
+        "02_build_db_schema": "GREEN",
+        "03_infer_db_obligations": "GREEN",
+        "04_implement_db": "GREEN",
+        "05_design_backend_apis": "GREEN",
+        "06_implement_backend_tdd": "GREEN",
+        "07_design_ui": "GREEN",
+        "08_implement_ui": "GREEN",
+        "09_design_frontend_triggers": "GREEN",
+        "10_implement_frontend_tdd": "GREEN"
+      },
+      "source_sha256": "51d9746f8886fb7ee53bdcdb00bd721f66bc711c69b785d9d4a0fc512331ca24"
+    },
+    "resume": {
+      "status": "GREEN",
+      "stages": {
+        "09_design_frontend_triggers": "GREEN",
+        "10_implement_frontend_tdd": "GREEN"
+      },
+      "source_sha256": "51d9746f8886fb7ee53bdcdb00bd721f66bc711c69b785d9d4a0fc512331ca24"
+    },
+    "import_count": 105,
+    "fixture_sha256": "5b7e1ae38ab3ab0452df37887931d67fff8b99b2dffe6005658f8aed4f0ca6c4"
+  },
+  "mock_runtime": {
+    "seconds": 41.150006399999256,
+    "usage": {
+      "calls": 0,
+      "usage_calls": 0,
+      "logical_calls": 16,
+      "http_attempts": 0,
+      "failed_calls": 1,
+      "failed_sdk_calls": 0,
+      "missing_usage_calls": 0,
+      "http_missing_usage": 0,
+      "reasoning_tokens": 0,
+      "local_check_seconds": 0.059401899998192675,
+      "priced_calls": 0,
+      "input_tokens": 0,
+      "cached_input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "model_seconds": 0,
+      "cost_cny": 0,
+      "currency": "CNY",
+      "cost_complete": true
+    },
+    "package_sha256": "9c62357b75c201ad75005afbb283ab83c24dc511681ee05eaaec631c365128d2",
+    "mode": "mock model and replacement local checks"
+  },
+  "outside_worktree": {
+    "mode": "fresh physical directory outside the source repository, with copied harness and fixture",
+    "compiler": "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\unpacked",
+    "commands": {
+      "git_ceiling": {
+        "command": [
+          "git",
+          "rev-parse",
+          "--show-toplevel"
+        ],
+        "exit_code": 128,
+        "expected": 128,
+        "log": "git_ceiling.log"
+      },
+      "help": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "main.py",
+          "--help"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "help.log"
+      },
+      "imports": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-I",
+          "-B",
+          "-X",
+          "utf8",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\verify_unpacked.py",
+          "--compiler",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\unpacked",
+          "--work",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks",
+          "--case",
+          "imports"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "imports.log"
+      },
+      "stage": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "main.py",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\simple",
+          "--output-dir",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\stage-zero",
+          "--stage",
+          "00_project_initialization"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "stage.log"
+      },
+      "bad_arguments": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "main.py",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\simple",
+          "--output-dir",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\bad",
+          "--stage",
+          "not-a-stage"
+        ],
+        "exit_code": 2,
+        "expected": 2,
+        "log": "bad_arguments.log"
+      },
+      "missing_api_key_init": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "main.py",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\connection",
+          "--output-dir",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\missing_api_key",
+          "--stage",
+          "00_project_initialization"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "missing_api_key_init.log"
+      },
+      "missing_api_key": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "main.py",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\connection",
+          "--output-dir",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\missing_api_key",
+          "--stage",
+          "01_explore_requirement"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "missing_api_key.log"
+      },
+      "missing_base_url_init": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "main.py",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\connection",
+          "--output-dir",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\missing_base_url",
+          "--stage",
+          "00_project_initialization"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "missing_base_url_init.log"
+      },
+      "missing_base_url": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-B",
+          "-X",
+          "utf8",
+          "main.py",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\connection",
+          "--output-dir",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks\\missing_base_url",
+          "--stage",
+          "01_explore_requirement"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "missing_base_url.log"
+      },
+      "interrupt": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-I",
+          "-B",
+          "-X",
+          "utf8",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\verify_unpacked.py",
+          "--compiler",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\unpacked",
+          "--work",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks",
+          "--case",
+          "interrupt"
+        ],
+        "exit_code": 130,
+        "expected": 130,
+        "log": "interrupt.log"
+      },
+      "default_mock": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-I",
+          "-B",
+          "-X",
+          "utf8",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\verify_unpacked.py",
+          "--compiler",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\unpacked",
+          "--work",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks",
+          "--case",
+          "default"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "default_mock.log"
+      },
+      "from_stage_mock": {
+        "command": [
+          "D:\\爱学习\\课程\\大三上\\软件工程项目管理\\LAB\\CS3604-staged11\\compiler\\outputs\\staged11-step6\\clean-venv\\Scripts\\python.exe",
+          "-I",
+          "-B",
+          "-X",
+          "utf8",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\verify_unpacked.py",
+          "--compiler",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\unpacked",
+          "--work",
+          "C:\\Users\\35303\\AppData\\Local\\Temp\\staged11-isolated-m4rm1kv2\\checks",
+          "--case",
+          "resume"
+        ],
+        "exit_code": 0,
+        "expected": 0,
+        "log": "from_stage_mock.log"
+      }
+    },
+    "assertions": {
+      "help_stages": [
+        "00_project_initialization",
+        "01_explore_requirement",
+        "02_build_db_schema",
+        "03_infer_db_obligations",
+        "04_implement_db",
+        "05_design_backend_apis",
+        "06_implement_backend_tdd",
+        "07_design_ui",
+        "08_implement_ui",
+        "09_design_frontend_triggers",
+        "10_implement_frontend_tdd"
+      ],
+      "templates": [
+        "deploy.sh",
+        "frontend/src/App.tsx",
+        "backend/src/server.ts",
+        "backend/tests/support/context.ts"
+      ],
+      "default": {
+        "status": "GREEN",
+        "stages": {
+          "00_project_initialization": "GREEN",
+          "01_explore_requirement": "GREEN",
+          "02_build_db_schema": "GREEN",
+          "03_infer_db_obligations": "GREEN",
+          "04_implement_db": "GREEN",
+          "05_design_backend_apis": "GREEN",
+          "06_implement_backend_tdd": "GREEN",
+          "07_design_ui": "GREEN",
+          "08_implement_ui": "GREEN",
+          "09_design_frontend_triggers": "GREEN",
+          "10_implement_frontend_tdd": "GREEN"
+        },
+        "source_sha256": "51d9746f8886fb7ee53bdcdb00bd721f66bc711c69b785d9d4a0fc512331ca24"
+      },
+      "resume": {
+        "status": "GREEN",
+        "stages": {
+          "09_design_frontend_triggers": "GREEN",
+          "10_implement_frontend_tdd": "GREEN"
+        },
+        "source_sha256": "51d9746f8886fb7ee53bdcdb00bd721f66bc711c69b785d9d4a0fc512331ca24"
+      },
+      "import_count": 105,
+      "fixture_sha256": "5b7e1ae38ab3ab0452df37887931d67fff8b99b2dffe6005658f8aed4f0ca6c4"
+    }
+  }
+}
