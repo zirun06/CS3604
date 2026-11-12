@@ -1,0 +1,641 @@
+{
+  "fixture": "artifact-groups",
+  "mode": "mock model and replacement local checks",
+  "stage_statuses": {
+    "00_project_initialization": "GREEN",
+    "01_explore_requirement": "GREEN",
+    "02_build_db_schema": "GREEN",
+    "03_infer_db_obligations": "GREEN",
+    "04_implement_db": "GREEN",
+    "05_design_backend_apis": "GREEN",
+    "06_implement_backend_tdd": "GREEN",
+    "07_design_ui": "GREEN",
+    "08_implement_ui": "GREEN",
+    "09_design_frontend_triggers": "GREEN",
+    "10_implement_frontend_tdd": "GREEN"
+  },
+  "compilation_status": "GREEN",
+  "implementation_batches": {
+    "04_ddl": {
+      "attempts": [
+        {
+          "batch_id": "04-ddl-001",
+          "units": [
+            "Note",
+            "Entry"
+          ],
+          "retained": [],
+          "input_chars": 502,
+          "requirements": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "status": "GREEN",
+          "accepted": [
+            "Note",
+            "Entry"
+          ],
+          "pending": []
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 448,
+            "batches": [
+              "04-ddl-001"
+            ]
+          },
+          {
+            "id": "R-SECOND",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 407,
+            "batches": [
+              "04-ddl-001"
+            ]
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "04-ddl-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "04-ddl-001"
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "04-ddl-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "04-ddl-001"
+            ]
+          }
+        ]
+      },
+      "accepted_units": [
+        "Note",
+        "Entry"
+      ]
+    },
+    "04_seed": {
+      "attempts": [
+        {
+          "batch_id": "04-seed-001",
+          "units": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "retained": [],
+          "input_chars": 143,
+          "requirements": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "status": "GREEN",
+          "accepted": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "pending": []
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 448,
+            "batches": [
+              "04-seed-001"
+            ]
+          },
+          {
+            "id": "R-SECOND",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 407,
+            "batches": [
+              "04-seed-001"
+            ]
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "04-seed-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "04-seed-001"
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "04-seed-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "04-seed-001"
+            ]
+          }
+        ]
+      },
+      "accepted_units": [
+        "R-COUNT",
+        "R-SECOND"
+      ]
+    },
+    "06": {
+      "attempts": [
+        {
+          "batch_id": "06-main-001",
+          "units": [
+            "API-COUNT",
+            "API-ENTRY"
+          ],
+          "retained": [],
+          "input_chars": 1277,
+          "requirements": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "status": "GREEN",
+          "accepted": [
+            "API-COUNT",
+            "API-ENTRY"
+          ],
+          "pending": []
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 448,
+            "batches": [
+              "06-main-001"
+            ]
+          },
+          {
+            "id": "R-SECOND",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 407,
+            "batches": [
+              "06-main-001"
+            ]
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "06-main-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "06-main-001"
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "06-main-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "06-main-001"
+            ]
+          }
+        ]
+      },
+      "accepted_units": [
+        "API-COUNT",
+        "API-ENTRY"
+      ]
+    },
+    "08": {
+      "attempts": [
+        {
+          "batch_id": "08-main-001",
+          "units": [
+            "notes",
+            "entries"
+          ],
+          "retained": [],
+          "input_chars": 580,
+          "requirements": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "status": "GREEN",
+          "accepted": [
+            "notes",
+            "entries"
+          ],
+          "pending": []
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 448,
+            "batches": [
+              "08-main-001"
+            ]
+          },
+          {
+            "id": "R-SECOND",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 407,
+            "batches": [
+              "08-main-001"
+            ]
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "08-main-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "08-main-001"
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "08-main-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "08-main-001"
+            ]
+          }
+        ]
+      },
+      "accepted_units": [
+        "notes",
+        "entries"
+      ]
+    },
+    "10": {
+      "attempts": [
+        {
+          "batch_id": "10-main-001",
+          "units": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "retained": [],
+          "input_chars": 3758,
+          "requirements": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "status": "GREEN",
+          "accepted": [
+            "R-COUNT",
+            "R-SECOND"
+          ],
+          "pending": []
+        }
+      ],
+      "coverage": {
+        "leaves": [
+          {
+            "id": "R-COUNT",
+            "source": [
+              0,
+              0
+            ],
+            "input_chars": 448,
+            "batches": [
+              "10-main-001"
+            ]
+          },
+          {
+            "id": "R-SECOND",
+            "source": [
+              0,
+              1
+            ],
+            "input_chars": 407,
+            "batches": [
+              "10-main-001"
+            ]
+          }
+        ],
+        "scenarios": [
+          {
+            "requirement": "R-COUNT",
+            "id": "scenario-R-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "10-main-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "id": "scenario-R-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "10-main-001"
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "requirement": "R-COUNT",
+            "scenario": "scenario-R-COUNT",
+            "id": "S-COUNT",
+            "source": [
+              0,
+              0,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "10-main-001"
+            ]
+          },
+          {
+            "requirement": "R-SECOND",
+            "scenario": "scenario-R-SECOND",
+            "id": "S-SECOND",
+            "source": [
+              0,
+              1,
+              "scenarios",
+              0,
+              "steps",
+              0
+            ],
+            "organizational": false,
+            "batches": [
+              "10-main-001"
+            ]
+          }
+        ]
+      },
+      "accepted_units": [
+        "R-COUNT",
+        "R-SECOND"
+      ]
+    }
+  },
+  "seed_provenance": {
+    "R-COUNT": [
+      {
+        "table": "Note",
+        "sql": "INSERT INTO Note (id) SELECT 11 WHERE NOT EXISTS (SELECT 1 FROM Note WHERE id = 11);",
+        "source": "S-COUNT",
+        "quote": "Note 11 already exists",
+        "identity": "11"
+      }
+    ],
+    "R-SECOND": [
+      {
+        "table": "Entry",
+        "sql": "INSERT INTO Entry (id, note_id) SELECT 7, 11 WHERE NOT EXISTS (SELECT 1 FROM Entry WHERE id = 7);",
+        "source": "S-SECOND",
+        "quote": "Entry 7 already exists",
+        "identity": "7"
+      }
+    ]
+  },
+  "mock_calls_asserted_by_test": {
+    "04": 2,
+    "06": 2,
+    "08": 1,
+    "10": 3
+  }
+}

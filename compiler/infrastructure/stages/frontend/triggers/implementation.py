@@ -1,16 +1,12 @@
-"""Complete each leaf requirement through acceptance tests, implementation and regression.
-
-Tests derive business expectations from the original requirement. Implementation
-repairs cannot edit tests. Finish one requirement before advancing, then run final checks.
-"""
-
-import json
+"""Generate and review grouped acceptance suites, then integrate their interactions."""
 
 from infrastructure.shared.agent.files import editable_application_path
 from infrastructure.shared.agent.loop import run_file_agent
+from infrastructure.shared.agent.implementation_batches import ImplementationBatches, passing_checks, require_any
+from infrastructure.stages.frontend.ui.implementation import page_layout_signals
 from infrastructure.shared.agent.tools import FileTools
 from infrastructure.stages.frontend.triggers.acceptance import INSTRUCTIONS as TEST_INSTRUCTIONS, REVIEW_INSTRUCTIONS
-from infrastructure.shared.agent.recovery import implementation_task, final_checks, complete_report
+from infrastructure.shared.agent.recovery import implementation_task, reject_paths, final_checks, complete_report
 from infrastructure.stages.frontend.triggers.e2e_runtime import CONFIG, FIXTURE, prepare_e2e
 from infrastructure.stages.frontend.triggers.testing import E2EChecks, test_path
 from infrastructure.stages.frontend.ui.runtime import APPLICATION_ENTRYPOINTS, prepare_frontend
@@ -44,7 +40,7 @@ def scenario_context(ui, design, rid):
 
 def editable_runtime_path(output, path):
     """Allow evidence-driven database runtime repairs alongside application repairs."""
-    if "/tests/" in path:
+    if "/tests/" in path or path.startswith("backend/src/db/seeds/") or path == "backend/src/db/seed.ts":
         return False
     if editable_application_path(output, path):
         return True
@@ -67,7 +63,7 @@ def require_stable_acceptance(result):
         raise ValueError("Requirement acceptance includes skipped or unstable tests")
 
 
-IMPLEMENT_INSTRUCTIONS = """Implement the current requirement's interactions in the actual application.
+IMPLEMENT_INSTRUCTIONS = """Implement the interactions of all active entries in task.scenarios in the actual application.
 Step 09's triggers are a reference prototype: preserve their requirement-defined behavior,
 not a fixed handler/context ABI, event dispatcher, store or routing implementation.
 Read the actual entrypoints, relevant components and supplied package/configuration first.
@@ -124,7 +120,7 @@ state and requirement defaults; never seed UI state from reference images/test r
 Build edit drafts from real loaded objects and cancel to their snapshots. Handle expected
 errors visibly and prevent stale requests from overwriting a later selection/result.
 
-Only task.target_trigger_ids belong to this implementation task. Other controls on supplied
+Only each active scenario's target_trigger_ids belong to this implementation task. Other controls on supplied
 pages are context, not a demand to build future workflows. Required entry/loading behavior
 should be explicitly associated by step 09. Read missing designs/sources on demand; do not
 recursively implement all mount/navigation behavior of every reachable page. Preserve any
@@ -160,11 +156,7 @@ If a necessary correction is outside tool scope, explain the exact blocker in di
 
 def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts,
         model, console, report, max_turns=10):
-    """Implement design one requirement at a time through real-app E2E TDD.
-
-    Prepare dependencies/runtime, generate initial requirement acceptance tests, then
-    integrate and repair the current requirement before advancing. Regress
-    accepted requirement scenarios, build the app, and update the caller's report."""
+    """Implement page- and capability-related requirements as real-app TDD groups."""
     output = arc_dir.parent.resolve()
     prepare_frontend(output)
     prepare_e2e(output, backend)
@@ -174,7 +166,6 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
     checks.install_browser()
     checkpoint(output, stage="10", task="runtime", action="Prepare real-app browser tests and isolated database fixtures",
         details={"pages": list(ui["pages"]), "trigger_ids": list(design["triggers"])})
-    accepted, implemented = [], set()
     ui_checks = FrontendChecks(output)
     report["status"] = "IMPLEMENTING"
     save_json(arc_dir / "frontend_e2e.json", report)
@@ -218,155 +209,135 @@ def run_trigger_tdd(arc_dir, tree, schema, backend, ui, design, images, contexts
             report["baseline"]["repair_turns"] = repair["turns"]
         report["baseline"].update(status="GREEN", checks=baseline)
     save_json(arc_dir / "frontend_e2e.json", report)
-    for number, rid in enumerate(tree.leaves, 1):
-        tids = set(design["requirements"].get(rid, []))
-        steps = tree.own_steps[rid]
-        label = f"E2E requirement {number}/{len(tree.leaves)} {rid}"
+    values, signals = {}, {}
+    for rid in tree.leaves:
         context = scenario_context(ui, design, rid)
+        tids = set(context["triggers"])
         pages = context["page_subtrees"]
         if not pages:
-            report["requirements"][rid] = {"status": "FAILED", "triggers": sorted(tids),
+            report["requirements"][rid] = {"status": "FAILED", "requirements": [rid], "triggers": sorted(tids),
                 "error": "No UI interface available for requirement acceptance; not verified"}
-            save_json(arc_dir / "frontend_e2e.json", report)
-            console.show(label + " | FAILED; continuing", report["requirements"][rid]["error"])
             continue
-        targets = tids
-        relative = test_path(rid)
-        ui_files = [ui_test_path(pid) for pid in pages if (output / ui_test_path(pid)).is_file()]
         called = {aid for trigger in context["triggers"].values() for aid in api_ids(trigger)}
-        context["obligations"] = {tid: trigger_obligations(trigger, backend) for tid, trigger in context["triggers"].items()}
-        context.update({"requirement": contexts[rid],
-            "target_trigger_ids": sorted(targets),
-            "backend_apis": {aid: backend["apis"][aid] for aid in sorted(called)}})
-        console.show(label + " | Scenario context", json.dumps(context, ensure_ascii=False, indent=2))
-        report["requirements"][rid] = {"status": "GENERATING_TESTS", "triggers": sorted(tids),
-            "target_triggers": sorted(targets), "test_path": relative}
-        save_json(arc_dir / "frontend_e2e.json", report)
-        with implementation_task(output, report["requirements"][rid], console, "12 / " + rid):
-            regression_files = [test_path(key) for key in [*accepted, rid]]
+        context.update(requirement=contexts[rid], target_trigger_ids=sorted(tids),
+            obligations={tid: trigger_obligations(trigger, backend) for tid, trigger in context["triggers"].items()},
+            backend_apis={aid: backend["apis"][aid] for aid in sorted(called)})
+        values[rid] = {**model_context(context), "test_path": test_path(rid),
+            "schema": related_schema(schema, context["backend_apis"].values())}
+        signals[rid] = {*(f"page:{pid}" for pid in pages), *(f"trigger:{tid}" for tid in tids),
+            *(f"api:{aid}" for aid in called),
+            *(key for pid in pages for key in page_layout_signals(ui, pid))}
+    batches = ImplementationBatches(arc_dir, "10", console).register(values, {rid: [rid] for rid in values}, signals)
+    reference = ["frontend/src/ui-runtime.ts", CONFIG, FIXTURE, "backend/tests/support/context.ts",
+        *APPLICATION_ENTRYPOINTS, "frontend/package.json", "frontend/tsconfig.json", "frontend/vite.config.ts",
+        "backend/src/db/initialize.ts", "backend/src/db/seed.ts", "backend/src/db/client.ts",
+        "backend/src/api/register.ts", "backend/src/api/types.ts", "backend/src/app.ts"]
 
-            def generation_checks():
-                """Typecheck selected tests; test_gate also runs the real application."""
-                nonlocal relative, regression_files
-                relative = test_path(rid)
-                regression_files = [test_path(key) for key in [*accepted, rid]]
-                return checks.typecheck(regression_files, full_source=False)
+    def process(batch, entry):
+        regression = [test_path(rid) for rid in batches.accepted]
+        paths = [test_path(rid) for rid in batch.units]
+        previous = {path: (output / path).read_bytes() for path in paths if (output / path).is_file()}
+        scenarios = {rid: values[rid] for rid in batch.units}
+        pages = {pid for context in scenarios.values() for pid in context["page_subtrees"]}
+        called = {aid for context in scenarios.values() for aid in context["backend_apis"]}
+        ui_files = [ui_test_path(pid) for pid in sorted(pages) if (output / ui_test_path(pid)).is_file()]
+        tables = {name for context in scenarios.values() for name in context["schema"]}
+        db_files = [f"backend/src/db/tables/{name}.sql" for name in sorted(tables)] + [
+            f"backend/src/db/seeds/{name}.sql" for name in sorted(tables)
+            if (output / f"backend/src/db/seeds/{name}.sql").is_file()]
+        task = batches.context(batch, {"scenarios": scenarios,
+            "application_entrypoints": list(APPLICATION_ENTRYPOINTS),
+            "backend_entrypoints": {"registry": "backend/src/api/register.ts",
+                "app": "backend/src/app.ts", "server": "backend/src/server.ts"}})
 
-            def test_gate():
-                """Compile the suite, then preserve real execution failures for implementation repair."""
-                compiled = generation_checks()
-                if compiled["returncode"]:
-                    raise ValueError(compiled["output"])
+        def authorship_gate(units):
+            selected = [test_path(rid) for rid in units]
+            compiled = checks.typecheck(selected, full_source=False)
+            if compiled["returncode"]:
+                raise TriggerCheckFailure("Acceptance test compilation failed", compiled)
+            def observe(rid):
+                if not (output / test_path(rid)).is_file():
+                    raise ValueError(f"Missing canonical acceptance test for {rid}")
                 try:
-                    behavior = checks.tests([relative])
+                    behavior = checks.tests([test_path(rid)])
                 except (ValueError, RuntimeError) as error:
                     behavior = {"returncode": 1, "output": str(error), "errors": [str(error)]}
-                return {"typecheck": compiled, "behavior": behavior, "status": test_run_status(behavior)}
+                return {"behavior": behavior, "status": test_run_status(behavior)}
+            passed, rejected = passing_checks(units, observe, lambda _: None)
+            require_any(passed, rejected)
+            return {"typecheck": compiled, "passed": passed, "rejected": rejected}
 
-            test_context = {**model_context(context), "schema": related_schema(schema, context["backend_apis"].values()), "test_path": relative}
-            test_workspace = FileTools(output, ["frontend", "backend"], requirements=[rid], stage="frontend",
-                writable=[relative], files=[relative, "frontend/src/ui-runtime.ts", CONFIG, FIXTURE, "backend/tests/support/context.ts",
-                    *APPLICATION_ENTRYPOINTS,
-                    "frontend/package.json", "frontend/tsconfig.json", "frontend/vite.config.ts",
-                    "backend/src/db/initialize.ts", "backend/src/db/seed.ts", "backend/src/db/client.ts",
-                    "backend/src/api/register.ts", "backend/src/api/types.ts", "backend/src/app.ts",
-                    *[f"backend/src/db/tables/{name}.sql" for name in related_schema(schema, context["backend_apis"].values())],
-                    *[f"backend/src/db/seeds/{name}.sql" for name in related_schema(schema, context["backend_apis"].values())
-                        if (output / f"backend/src/db/seeds/{name}.sql").is_file()]])
-            agent, generation_feedback = None, None
-            if (output / relative).is_file():
-                try:
-                    agent = {"turns": 0, "checks": test_gate()}
-                except (ValueError, RuntimeError) as error:
-                    generation_feedback = getattr(error, "feedback", {"error": str(error)})
-            if agent is None:
-                agent = run_file_agent(model, TEST_INSTRUCTIONS, test_context,
-                    test_workspace, test_gate, max_turns, console, label + " / Test Generation",
-                    feedback=generation_feedback, test_phase="generation")
-            report["requirements"][rid]["test_turns"] = agent["turns"]
-            if agent["checks"]["status"] != "GREEN":
-                review = run_file_agent(model, REVIEW_INSTRUCTIONS, test_context,
-                    test_workspace, test_gate, max_turns, console, label + " / Test Review",
-                    feedback=agent["checks"]["behavior"], test_phase="review")
-                report["requirements"][rid]["review_turns"] = review["turns"]
-                agent = review
-            report["requirements"][rid]["test_path"] = relative
+        def author(units, instructions, phase, feedback=None):
+            selected = [test_path(rid) for rid in units]
+            workspace = FileTools(output, ["frontend", "backend"], requirements=batches.requirement_ids(units),
+                stage="frontend", writable=selected, files=[*paths, *reference, *db_files])
+            scoped = {**task, "units": list(units), "scenarios": {rid: scenarios[rid] for rid in units},
+                "test_paths": selected}
+            return run_file_agent(model, instructions, scoped, workspace, lambda: authorship_gate(units),
+                max_turns, console, batch.id + " / " + phase, feedback=feedback, test_phase=phase, batch_limits=True)
 
-            workspace = None
+        generated = author(batch.units, TEST_INSTRUCTIONS, "generation")
+        candidate = dict(generated["checks"]["passed"])
+        rejected = dict(generated["checks"]["rejected"])
+        needs_review = tuple(rid for rid, record in candidate.items() if record["status"] != "GREEN")
+        review = None
+        if needs_review:
+            review = author(needs_review, REVIEW_INSTRUCTIONS, "review",
+                {rid: candidate[rid]["behavior"] for rid in needs_review})
+            for rid in needs_review:
+                candidate.pop(rid)
+            candidate.update(review["checks"]["passed"])
+            rejected.update(review["checks"]["rejected"])
+        require_any(candidate, rejected)
 
-            def implementation_checks():
-                """Compile sources and run accepted functional scenarios; regress APIs if edited."""
-                compiled = checks.typecheck(regression_files)
-                result = {"typecheck": compiled, "e2e": None}
-                if compiled["returncode"]:
-                    return result
-                if workspace and any(path.startswith(("backend/src/", "backend/tests/")) for path in workspace.changed_paths):
-                    api_checks = BackendChecks(output)
-                    result["backend_typecheck"] = api_checks.typecheck()
-                    if result["backend_typecheck"]["returncode"]:
-                        return result
-                    suites = api_test_paths(output, backend["apis"])
-                    if suites:
-                        result["backend_tests"] = api_checks.tests(suites)
-                        if result["backend_tests"]["returncode"]:
-                            return result
-                result["e2e"] = checks.tests(regression_files)
-                if ui_files:
-                    result["ui"] = ui_checks.tests(ui_files)
-                return result
+        workspace = FileTools(output, ["frontend", "backend"], requirements=batches.requirement_ids(candidate),
+            stage="frontend", files=[*paths, *ui_files, *reference, *db_files, *api_test_paths(output, called)],
+            allow_write=lambda path: editable_runtime_path(output, path))
 
-            def implementation_gate():
-                """Require real implementations, compilation and stable requirement acceptance."""
-                result = implementation_checks()
-                try:
-                    for kind in ("typecheck", "backend_typecheck"):
-                        if result.get(kind) and result[kind]["returncode"]:
-                            raise ValueError(result[kind]["output"])
-                    if "backend_tests" in result:
-                        require_backend_green(result["backend_tests"])
-                    if test_run_status(result["e2e"]) != "GREEN":
-                        raise ValueError("Requirement acceptance requires passing, unskipped and stable results")
-                    if "ui" in result:
-                        require_green(result["ui"])
-                except ValueError as error:
-                    raise TriggerCheckFailure("Functional integration or compilation failed", result) from error
-                return result
+        def implementation_gate():
+            compiled = checks.typecheck([*[test_path(rid) for rid in candidate], *regression])
+            if compiled["returncode"]:
+                raise TriggerCheckFailure("Application compilation failed", compiled)
+            if any(path.startswith("backend/src/") for path in workspace.changed_paths):
+                api_checks = BackendChecks(output)
+                checked = api_checks.typecheck()
+                if checked["returncode"]:
+                    raise TriggerCheckFailure("Backend compilation failed", checked)
+                suites = api_test_paths(output, backend["apis"])
+                if suites:
+                    require_backend_green(api_checks.tests(suites))
+            if regression:
+                require_stable_acceptance(checks.tests(regression))
+            if ui_files:
+                require_green(ui_checks.tests(ui_files))
+            passed, failed = passing_checks(candidate, lambda rid: checks.tests([test_path(rid)]), require_stable_acceptance)
+            require_any(passed, failed)
+            return {"typecheck": compiled, "passed": passed, "rejected": failed}
 
-            generated = agent["checks"]
-            current = {"typecheck": generated["typecheck"], "e2e": generated["behavior"]}
-            report["requirements"][rid]["status"] = generated["status"]
-            save_json(arc_dir / "frontend_e2e.json", report)
-            checkpoint(output, stage="10", task=rid, action="Publish requirement acceptance tests before implementation",
-                status=generated["status"], details={"test_path": relative, "checks": generated})
-            report["requirements"][rid]["status"] = "IMPLEMENTING"
-            task = {**model_context(context),
-                "application_entrypoints": list(APPLICATION_ENTRYPOINTS),
-                "backend_entrypoints": {"registry": "backend/src/api/register.ts",
-                    "app": "backend/src/app.ts", "server": "backend/src/server.ts"}}
-            workspace = FileTools(output, ["frontend", "backend"], requirements=[rid], stage="frontend",
-                files=[relative, *ui_files, "backend/tests/support/context.ts", "frontend/src/ui-runtime.ts",
-                    CONFIG, *APPLICATION_ENTRYPOINTS, "frontend/src/style.css",
-                    *api_test_paths(output, called), "frontend/package.json", "frontend/tsconfig.json"],
-                allow_write=lambda path: editable_runtime_path(output, path))
-            agent = None
-            if generated["status"] == "GREEN":
-                try:
-                    agent = {"turns": 0, "checks": implementation_gate()}
-                except (ValueError, RuntimeError) as error:
-                    current = getattr(error, "feedback", {"error": str(error)})
-            if agent is None:
-                agent = run_file_agent(model, IMPLEMENT_INSTRUCTIONS, task, workspace,
-                    implementation_gate, max_turns, console, label + " / Interaction Implementation",
-                    feedback=current)
-            accepted.append(rid)
-            reused = tids & implemented
-            implemented.update(targets)
-            result = agent["checks"]["e2e"]
-            report["requirements"][rid].update({"status": "GREEN", "implementation_turns": agent["turns"],
-                "steps": list(steps), "passed": result["passed"], "reused_triggers": sorted(reused)})
-            save_json(arc_dir / "frontend_e2e.json", report)
-            console.show(label + " | GREEN", result["output"])
-        save_json(arc_dir / "frontend_e2e.json", report)
+        implemented = None
+        if all(record["status"] == "GREEN" for record in candidate.values()):
+            try:
+                implemented = {"turns": 0, "checks": implementation_gate()}
+            except (ValueError, RuntimeError):
+                pass
+        if implemented is None:
+            scoped = {**task, "units": list(candidate), "scenarios": {rid: scenarios[rid] for rid in candidate}}
+            implemented = run_file_agent(model, IMPLEMENT_INSTRUCTIONS, scoped, workspace, implementation_gate,
+                max_turns, console, batch.id + " / interaction implementation",
+                feedback={rid: data["behavior"] for rid, data in candidate.items()}, batch_limits=True)
+        results = implemented["checks"]
+        rejected.update(results["rejected"])
+        for rid in rejected:
+            relative = test_path(rid)
+            rejected[rid]["test_archive"] = reject_paths(output, batch.id + " / " + rid, previous, [relative])
+        entry["rejected_checks"] = rejected
+        return {rid: {"requirements": [rid], "triggers": values[rid]["target_trigger_ids"],
+            "target_triggers": values[rid]["target_trigger_ids"], "test_path": test_path(rid),
+            "steps": tree.own_steps[rid], "passed": evidence["passed"],
+            "test_turns": generated["turns"], "review_turns": review["turns"] if review and rid in needs_review else 0,
+            "implementation_turns": implemented["turns"]} for rid, evidence in results["passed"].items()}
+
+    report["requirements"].update(batches.run(process))
     return verify_frontend(arc_dir, tree, backend, ui, console, report)
 
 

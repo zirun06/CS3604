@@ -145,12 +145,8 @@ class DesignPlan:
     def split(self, batch):
         """Split near half the source size, retaining order and the full leaf records."""
         leaves = batch.leaves
-        if len(leaves) < 2:
-            raise ValueError("Cannot split a single leaf without changing its validation boundary")
-        total = sum(self.size[rid] for rid in leaves)
-        index = min(range(1, len(leaves)), key=lambda i: abs(total - 2 * sum(self.size[rid] for rid in leaves[:i])))
         return tuple(DesignBatch(batch.id + suffix, batch.module, part)
-            for suffix, part in zip((".a", ".b"), (leaves[:index], leaves[index:])))
+            for suffix, part in zip((".a", ".b"), split_by_size(leaves, self.size)))
 
     def describe(self, batch):
         size = sum(self.size[rid] for rid in batch.leaves)
@@ -188,3 +184,27 @@ class DesignPlan:
             "batches": [self.describe(b) for b in self.batches], "coverage": self.audit(self.batches),
             "explicit_dependencies": {rid: deps for rid, deps in self.dependencies.items() if deps},
             "shared_symbol_candidates": {name: owners for name, owners in self.symbols.items() if len(owners) > 1}}
+
+
+def split_by_size(units, sizes):
+    """Keep unit order and split near half the source size."""
+    if len(units) < 2:
+        raise ValueError("Cannot split a single unit without changing its validation boundary")
+    total = sum(sizes[unit] for unit in units)
+    cut = min(range(1, len(units)), key=lambda i: abs(total - 2 * sum(sizes[key] for key in units[:i])))
+    return units[:cut], units[cut:]
+
+
+def pack_related(identities, signals, sizes, *, max_items=MAX_LEAVES, max_chars=MAX_INPUT_CHARS):
+    """Pack adjacent related artifacts without disturbing a dependency-first order."""
+    group, keys, size = [], set(), 0
+    for item in identities:
+        item_keys, weight = set(signals[item]), sizes[item]
+        if group and (len(group) >= max_items or size + weight > max_chars or keys.isdisjoint(item_keys)):
+            yield tuple(group)
+            group, keys, size = [], set(), 0
+        group.append(item)
+        keys.update(item_keys)
+        size += weight
+    if group:
+        yield tuple(group)

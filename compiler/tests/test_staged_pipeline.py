@@ -104,7 +104,7 @@ def replace_once(output, path, old, new):
         "old_content": old, "new_content": new}]})
 
 
-def fixture_model(output, rid, sid, calls, *, other=None):
+def fixture_model(output, rid, sid, calls, *, other=None, artifacts=False):
     object_schema = {"type": "object", "properties": {}}
     api = {"description": "Read the note count", "read": ["Note.id"], "write": [],
         "signature": {"name": "countNotes", "method": "GET", "path": "/api/note-count"},
@@ -117,89 +117,156 @@ def fixture_model(output, rid, sid, calls, *, other=None):
     module = {"description": "Count notes in SQLite", "name": "selectNoteCount", "input": object_schema,
         "output": api["response"]["success"]["body"], "direct_read": ["Note.id"], "direct_write": [],
         "read": ["Note.id"], "write": [], "callees": [], "precondition": [], "postcondition": []}
-    obligations = {"read": ["Note.id"], "write": []}
+    apis = {"API-COUNT": api}
+    modules = {"MOD-COUNT": module}
+    step_ids = {rid: sid, **(dict([other]) if other else {})}
+    entry = other[0] if artifacts else None
+    targets = {owner: "API-ENTRY" if owner == entry else "API-COUNT" for owner in step_ids}
+    extra_path = "/api/note-count/entries"
+    page_route = "/notes/entries"
+    if artifacts:
+        apis["API-ENTRY"] = {**api, "read": ["Entry.id"], "callees": ["MOD-ENTRY"],
+            "signature": {"name": "countEntries", "method": "GET", "path": extra_path}}
+        modules["MOD-ENTRY"] = {**module, "name": "selectEntryCount", "read": ["Entry.id"],
+            "direct_read": ["Entry.id"]}
+    field = {"description": "Identity", "type": "integer", "nullable": False, "primary_key": True,
+        "unique": False, "references": None, "constraints": []}
+    entities = {"Note": {"description": "Persisted note", "fields": {"id": field}},
+        "Entry": {"description": "Persisted entry", "fields": {"id": field,
+            "note_id": {**field, "primary_key": False, "nullable": True, "references": "Note.id"}}}}
+
+    def labels(owner):
+        return ("entries", "UI-entry", "UI-entry-button", "Count entries", "TR-ENTRY", page_route) if owner == entry else (
+            "notes", "UI-count", "UI-button", "Count notes", "TR-COUNT", "/")
+
+    page_body = PAGE_BODY
+    interactive = INTERACTIVE_PAGE
+    api_source = API_IMPLEMENTATION.rstrip()
+    if artifacts:
+        page_body = (
+            '  if (location.pathname === "/notes/entries") {\n'
+            '    presentationData("entries", {});\n'
+            '    return <main data-testid="UI-entry"><h1>Entries</h1><button data-testid="UI-entry-button">Count entries</button><p role="status">Ready</p></main>;\n'
+            '  }\n' + PAGE_BODY)
+        interactive = """import { useState } from "react";
+export function App() {
+  const [status, setStatus] = useState("Ready");
+  if (location.pathname === "/notes/entries") {
+    presentationData("entries", {});
+    return <main data-testid="UI-entry"><h1>Entries</h1><button data-testid="UI-entry-button" onClick={async () => {
+      const result = await (await fetch("/api/note-count/entries")).json() as { count: number };
+      setStatus(String(result.count));
+    }}>Count entries</button><p role="status">{status}</p></main>;
+  }
+""" + INTERACTIVE_PAGE[INTERACTIVE_PAGE.index('  presentationData("notes"'):]
+        api_source = api_source[:-1] + API_IMPLEMENTATION.split("\n", 1)[1].rstrip()[:-1].replace(
+            '"/api/note-count"', '"' + extra_path + '"').replace("FROM Note", "FROM Entry") + "}"
 
     def reply(_client, args, **_):
         number = session_info()["stage"].split()[1]
         calls.append(number)
-        prompt = args["messages"][-1]["content"]
+        request = json.loads(args["messages"][-1]["content"])
         if number in {"02", "03", "05", "07", "09"}:
-            request = json.loads(prompt)
             owners = request["order"]
-            known_steps = {rid: sid, **(dict([other]) if other else {})}
-            assert set(owners) <= set(known_steps)
-            assert all(known_steps[owner] in prompt for owner in owners)
+            assert set(owners) <= set(step_ids)
+            assert all(step_ids[owner] in args["messages"][-1]["content"] for owner in owners)
             assert {"identity", "session", "naming", "errors", "data"} == set(request["shared_catalog"]["policies"])
         if number == "02":
             if len(owners) > 1:
                 return response(finish_reason="length")
-            exists = "Note" in request["shared_catalog"]["accepted_symbols"].get("entities", {})
-            return response({"entities": {} if exists else {"Note": {"description": "Persisted note", "fields": {"id": {
-                "description": "Note identity", "type": "integer", "nullable": False,
-                "primary_key": True, "unique": False, "references": None, "constraints": []}}}},
-                "requirements": {owner: {"related_fields": ["Note.id"]} for owner in owners}})
+            exists = request["shared_catalog"]["accepted_symbols"].get("entities", {})
+            used = {field.split(".", 1)[0] for owner in owners for field in apis[targets[owner]]["read"]}
+            return response({"entities": {name: entities[name] for name in sorted(used - exists.keys())},
+                "requirements": {owner: {"related_fields": apis[targets[owner]]["read"]} for owner in owners}})
         if number == "03":
-            assert "Note.id" in request["shared_catalog"]["accepted_symbols"]["fields"]
-            return response({"requirements": {owner: {"requirement": obligations,
-                "steps": {known_steps[owner]: obligations}} for owner in owners}})
+            effects = {owner: {"read": apis[targets[owner]]["read"], "write": []} for owner in owners}
+            return response({"requirements": {owner: {"requirement": effects[owner],
+                "steps": {step_ids[owner]: effects[owner]}} for owner in owners}})
         if number == "04":
-            if SQL_PATH in prompt and not (output / SQL_PATH).exists():
-                return response(tools=[("edit_file", edit(output, SQL_PATH, SQL))])
-            assert (output / SQL_PATH).is_file()
-            return response()
+            if "prerequisites" in request:
+                assert "requirement_evidence" not in request
+                rows = {owner: {"rows": []} for owner in request["units"]}
+                if artifacts and rid in rows:
+                    rows[rid]["rows"].append({"table": "Note",
+                        "sql": "INSERT INTO Note (id) SELECT 11 WHERE NOT EXISTS (SELECT 1 FROM Note WHERE id = 11);",
+                        "evidence": {"source": sid, "quote": "Note 11 already exists", "identity": "11"}})
+                if entry in rows:
+                    rows[entry]["rows"].append({"table": "Entry",
+                        "sql": "INSERT INTO Entry (id, note_id) SELECT 7, 11 WHERE NOT EXISTS (SELECT 1 FROM Entry WHERE id = 7);",
+                        "evidence": {"source": step_ids[entry], "quote": "Entry 7 already exists", "identity": "7"}})
+                return response({"requirements": rows})
+            statements = {"Note": SQL,
+                "Entry": "CREATE TABLE IF NOT EXISTS Entry (id INTEGER PRIMARY KEY, note_id INTEGER REFERENCES Note(id));\n"}
+            return response(tools=[("edit_file", edit(output, record["output_path"], statements[name]))
+                for name, record in request["tables"].items()])
         if number == "05":
-            assert all(request["requirements"][owner]["required_obligations"]["read"] == ["Note.id"] for owner in owners)
-            return response({"apis": {"API-COUNT": api}, "modules": {"MOD-COUNT": module},
-                "requirements": {owner: {"api_ids": ["API-COUNT"], "module_ids": [],
+            assert all(request["requirements"][owner]["required_obligations"]["read"] == apis[targets[owner]]["read"]
+                for owner in owners)
+            return response({"apis": apis, "modules": modules,
+                "requirements": {owner: {"api_ids": [targets[owner]], "module_ids": [],
                     "conventions": {"count": "Use integer count for note counts."}} for owner in owners}})
         if number == "07":
             assert "One panel" in json.dumps(request)
             assert "count" in request["shared_catalog"]["shared_conventions"]
-            root = "UI-count"
-            return response({"requirements": {owner: {
-                "pages": {"notes": {"route": "/", "name": "Notes", "root": root, "images": []}} if i == 0 else {},
-                "elements": {
-                    root: {"type": "page", "parent": None},
-                    "UI-button": {"type": "button", "parent": root, "prop": {"text": "Count notes"}},
-                } if i == 0 else {}, "requirement_ui": [root, "UI-button"], "step_ui": {known_steps[owner]: ["UI-button"]}}
-                for i, owner in enumerate(owners)}})
+            result, seen = {}, set()
+            for owner in owners:
+                pid, root, button, caption, _, route = labels(owner)
+                result[owner] = {"pages": {}, "elements": {}, "requirement_ui": [root, button],
+                    "step_ui": {step_ids[owner]: [button]}}
+                if pid not in seen:
+                    seen.add(pid)
+                    result[owner]["pages"][pid] = {"route": route, "name": pid.title(), "root": root,
+                        "images": [], "layout": "notes"}
+                    result[owner]["elements"].update({root: {"type": "page", "parent": None},
+                        button: {"type": "button", "parent": root, "prop": {"text": caption}}})
+            return response({"requirements": result})
         if number == "09":
-            assert request["backend_apis"]["API-COUNT"]["read"] == ["Note.id"]
-            assert all("UI-button" in request["requirements"][owner]["ui"]["elements"] for owner in owners)
-            return response({"requirements": {owner: {
-                "triggers": {"TR-COUNT": {"source": "UI-button", "event": "click",
-                    "guard": None, "read": [], "write": [], "action": [{"kind": "api",
-                        "api": "API-COUNT", "description": "Fetch and display count"}]}} if i == 0 else {},
-                "requirement_triggers": ["TR-COUNT"], "step_triggers": {known_steps[owner]: ["TR-COUNT"]}}
-                for i, owner in enumerate(owners)}})
-        request = json.loads(prompt)
+            result, seen = {}, set()
+            for owner in owners:
+                _, _, button, _, tid, _ = labels(owner)
+                assert button in request["requirements"][owner]["ui"]["elements"]
+                result[owner] = {"triggers": {}, "requirement_triggers": [tid], "step_triggers": {step_ids[owner]: [tid]}}
+                if tid not in seen:
+                    seen.add(tid)
+                    result[owner]["triggers"][tid] = {"source": button, "event": "click", "guard": None,
+                        "read": [], "write": [], "action": [{"kind": "api", "api": targets[owner],
+                            "description": "Fetch and display count"}]}
+            return response({"requirements": result})
         task = request["task"]
         if number == "06":
-            assert task["api_id"] == "API-COUNT"
-            if "test_path" in task:
-                return response({"tool_calls": [{"tool": "edit_file", **edit(output, task["test_path"], HTTP_TEST)}]})
+            if "test_paths" in task:
+                records = []
+                for aid, record in task["apis"].items():
+                    content = HTTP_TEST if aid == "API-COUNT" else HTTP_TEST.replace(
+                        '"/api/note-count"', '"' + extra_path + '"').replace("{ count: 0 }", "{ count: 1 }")
+                    if artifacts:
+                        content = content.replace("{ count: 0 }", "{ count: 1 }")
+                    records.append({"tool": "edit_file", **edit(output, record["test_path"], content)})
+                return response({"tool_calls": records})
             return replace_once(output, REGISTER,
-                "export function registerApis(_app: Express, _connection: Database.Database): void {}",
-                API_IMPLEMENTATION.rstrip())
-        elif number == "08":
-            assert task["page"]["root"] == "UI-count"
+                "export function registerApis(_app: Express, _connection: Database.Database): void {}", api_source)
+        if number == "08":
+            assert "notes" in task["pages"]
             old = ('export function App() {\n'
                 '  return <main><h1>Application</h1><p>The project is ready for requirement implementation.</p></main>;')
-            new = 'import { presentationData } from "./ui-runtime";\nexport function App() {\n' + PAGE_BODY
+            new = 'import { presentationData } from "./ui-runtime";\nexport function App() {\n' + page_body
             return replace_once(output, APP, old, new)
-        elif number == "10":
-            assert "TR-COUNT" in task["triggers"]
-            if "test_path" in task:
-                path = task["test_path"]
-                if (output / path).exists():
-                    return response({"tool_calls": []})  # Review keeps the original business assertion.
-                content = E2E_TEST
-            else:
-                return replace_once(output, APP, "export function App() {\n" + PAGE_BODY + "\n}",
-                    INTERACTIVE_PAGE.rstrip())
-        else:
-            raise AssertionError(f"Unexpected mock request in {number}")
-        return response({"tool_calls": [{"tool": "edit_file", **edit(output, path, content)}]})
+        if number == "10":
+            if "test_paths" in task:
+                records = []
+                for owner, scenario in task["scenarios"].items():
+                    path = scenario["test_path"]
+                    if (output / path).exists():
+                        continue  # Review keeps the original business assertion.
+                    content = E2E_TEST if owner != entry else E2E_TEST.replace('goto("/")', 'goto("' + page_route + '")').replace(
+                        '"/api/note-count"', '"' + extra_path + '"').replace("UI-count", "UI-entry").replace(
+                        "UI-button", "UI-entry-button").replace('toHaveText("0")', 'toHaveText("1")')
+                    if artifacts:
+                        content = content.replace('toHaveText("0")', 'toHaveText("1")')
+                    records.append({"tool": "edit_file", **edit(output, path, content)})
+                return response({"tool_calls": records})
+            return replace_once(output, APP, "export function App() {\n" + page_body + "\n}", interactive.rstrip())
+        raise AssertionError(f"Unexpected mock request in {number}")
 
     return reply
 
@@ -222,7 +289,10 @@ def mock_local_checks(stack):
 
     def backend_test(checks, files):
         assert all((checks.output / path).is_file() for path in files)
-        passed = "SELECT count(id)" in (checks.output / REGISTER).read_text(encoding="utf-8")
+        source = (checks.output / REGISTER).read_text(encoding="utf-8")
+        suite = "\n".join((checks.output / path).read_text(encoding="utf-8") for path in files)
+        endpoints = re.findall(r'ARC_API_BASE_URL \+ "([^"]+)"', suite)
+        passed = not files or bool(endpoints) and all(f'app.get("{endpoint}"' in source for endpoint in endpoints)
         return {**ok, "returncode": int(not passed), "output": "mocked HTTP assertion" if passed else "ERR_ASSERTION",
             "tests": 1, "pass": int(passed), "fail": int(not passed)}
 
@@ -233,7 +303,8 @@ def mock_local_checks(stack):
         ids = re.findall(r'getByTestId\(["\']([^"\']+)', spec)
         passed = bool(ids) and all(f'data-testid="{element_id}"' in source for element_id in ids)
         if isinstance(checks, E2EChecks):
-            passed &= 'fetch("/api/note-count")' in source and "onClick=" in source
+            endpoints = re.findall(r'pathname === "([^"]+)"', spec)
+            passed &= bool(endpoints) and all(f'fetch("{endpoint}")' in source for endpoint in endpoints) and "onClick=" in source
         return {**ok, "returncode": int(not passed), "passed": int(passed), "failed": int(not passed),
             "skipped": 0, "flaky": 0, "errors": [],
             "failures": [] if passed else ["AssertionError: expect(button or count)"],
@@ -248,6 +319,7 @@ def mock_local_checks(stack):
     ("ROOT", "R-COUNT", "S-COUNT", "original"),
     ("NEW-ROOT", "RENAMED-REQ", "RENAMED-STEP", "unseen-project"),
     ("ROOT-BATCH", "R-COUNT", "S-COUNT", "multi-leaf"),
+    ("ROOT-ARTIFACTS", "R-COUNT", "S-COUNT", "artifact-groups"),
 ])
 def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, dirname):
     source, output = tmp_path / dirname, tmp_path / "application"
@@ -258,7 +330,8 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
         "scenarios": [{"id": "scenario-" + rid, "name": "Count notes", "steps": [{"id": sid,
             "Given": "There are no notes", "When": "Click Count notes", "Then": "Show 0"}]}]}]}
     other = None
-    if dirname == "multi-leaf":
+    artifacts = dirname == "artifact-groups"
+    if dirname in ("multi-leaf", "artifact-groups"):
         from copy import deepcopy
         other = ("R-SECOND", "S-SECOND")
         first = raw["children"][0]
@@ -266,12 +339,18 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
         second["id"], second["scenarios"][0]["steps"][0]["id"] = other
         second["scenarios"][0]["id"] = "scenario-" + other[0]
         second["description"]["text"] = r"Show the same count as \ref[requirement](R-COUNT)."
+        if artifacts:
+            first["scenarios"][0]["steps"][0].update(Given="Note 11 already exists", Then="Show 1")
+            second["name"] = "Count entries"
+            second["description"]["image"] = []
+            second["scenarios"][0]["steps"][0].update(Given="Entry 7 already exists",
+                When="Click Count entries", Then="Show 1")
         raw["children"] = [{"id": "module-notes", "name": "Notes", "children": [first, second]}]
     (source / "requirements.yaml").write_text(yaml.safe_dump(raw), encoding="utf-8")
     monkeypatch.setenv("OPENAI_BASE_URL", "https://example.invalid/v1")
     monkeypatch.setenv("OPENAI_API_KEY", "mock-only")
     calls = []
-    fake = fixture_model(output, rid, sid, calls, other=other)
+    fake = fixture_model(output, rid, sid, calls, other=other, artifacts=artifacts)
     with ExitStack() as stack:
         stack.enter_context(patch.object(text, "invoke", fake))
         def fake_vision(_client, args):
@@ -306,7 +385,7 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
     assert read("ui_checks")["requirements"][rid]["status"] == "GREEN"
     assert read("frontend_triggers")["steps"][sid] == ["TR-COUNT"]
     assert read("frontend_e2e")["requirements"][rid]["status"] == "GREEN"
-    assert read("frontend_e2e")["summary"]["triggers"] == 1
+    assert read("frontend_e2e")["summary"]["triggers"] == (2 if artifacts else 1)
     if other:
         second, second_step = other
         attempts = read("design_batches_02")["attempts"]
@@ -318,10 +397,23 @@ def test_nonempty_pipeline_handoffs(tmp_path, monkeypatch, root_id, rid, sid, di
         for stage in ("03", "05", "07", "09"):
             assert calls.count(stage) == 1
             assert read("design_batches_" + stage)["attempts"][0]["leaves"] == [rid, second]
-        assert read("db_obligations")["steps"][second_step]["read"] == ["Note.id"]
-        assert read("backend_apis")["requirements"][second] == ["API-COUNT"]
-        assert read("ui_design")["steps"][second_step] == ["UI-button"]
-        assert read("frontend_triggers")["steps"][second_step] == ["TR-COUNT"]
+        assert read("db_obligations")["steps"][second_step]["read"] == ["Entry.id" if artifacts else "Note.id"]
+        assert read("backend_apis")["requirements"][second] == ["API-ENTRY" if artifacts else "API-COUNT"]
+        assert read("ui_design")["steps"][second_step] == ["UI-entry-button" if artifacts else "UI-button"]
+        assert read("frontend_triggers")["steps"][second_step] == ["TR-ENTRY" if artifacts else "TR-COUNT"]
+    if artifacts:
+        expected = {"04_ddl": {"Note", "Entry"}, "04_seed": {rid, other[0]},
+            "06": {"API-COUNT", "API-ENTRY"}, "08": {"notes", "entries"}, "10": {rid, other[0]}}
+        for stage, units in expected.items():
+            grouped = read("implementation_batches_" + stage)
+            assert len(grouped["attempts"]) == 1
+            assert set(grouped["attempts"][0]["units"]) == units
+            assert grouped["attempts"][0]["status"] == "GREEN"
+            assert all(row["batches"] for row in grouped["coverage"]["steps"])
+        seed = read("implementation_batches_04_seed")["results"][other[0]]["rows"]
+        assert seed[0]["source"] == other[1] and seed[0]["quote"] == "Entry 7 already exists"
+        assert {stage: calls.count(stage) for stage in ("04", "06", "08", "10")} == {
+            "04": 2, "06": 2, "08": 1, "10": 3}
     assert set(calls) == {"01", "02", "03", "04", "05", "06", "07", "08", "09", "10"}
     assert "fetch(" in (output / APP).read_text(encoding="utf-8")
     assert (output / "deploy.sh").is_file()

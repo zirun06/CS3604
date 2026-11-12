@@ -22,33 +22,52 @@ def _snapshot(output):
     return {path: (output / path).read_bytes() for path in paths}
 
 
+def _archive(output, label, before, after, status, details):
+    changed = {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)}
+    name = re.sub(r"[^\w.-]+", "_", label).strip("._")[:100] or "task"
+    directory = output / ".arc/failures" / f"{name}.{uuid4().hex[:8]}"
+    for path in sorted(changed):
+        if path in after:
+            save_bytes(directory / "files" / path, after[path])
+    result = {**details, "status": status, "task": label, "changed_files": sorted(changed),
+        "deleted_files": sorted(changed - after.keys()), "archive": directory.relative_to(output).as_posix()}
+    save_json(directory / "failure.json", result)
+    return result
+
+
+def reject_paths(output, label, baseline, paths):
+    """Archive and restore failed unit-owned paths without reverting shared accepted edits."""
+    before = {path: baseline[path] for path in paths if path in baseline}
+    after = {path: (output / path).read_bytes() for path in paths if (output / path).is_file()}
+    if before == after:
+        return None
+    archive = _archive(output, label, before, after, "REJECTED_UNIT_FILES", {})
+    for path in archive["changed_files"]:
+        if path in before:
+            save_bytes(output / path, before[path])
+        else:
+            (output / path).unlink(missing_ok=True)
+    return archive["archive"]
+
+
 @contextmanager
-def implementation_task(output, entry, console, label):
+def implementation_task(output, entry, console, label, *, batch_id=None):
     """Archive rejected files, restore the task baseline, and continue on acceptance failure.
 
     Missing prerequisites are checked before this boundary. Disk errors, interrupts,
     and unexpected compiler exceptions propagate; they are not business failures.
     """
-    with task_scope(label, entry.get("requirements"), result=entry):
+    with task_scope(label, entry.get("requirements"), result=entry, batch_id=batch_id):
         before = _snapshot(output)
         try:
             yield
         except (ValueError, BudgetExhausted) as error:
             after = _snapshot(output)
-            changed = {path for path in before.keys() | after.keys() if before.get(path) != after.get(path)}
-            name = re.sub(r"[^\w.-]+", "_", label).strip("._")[:100] or "task"
-            directory = output / ".arc/failures" / f"{name}.{uuid4().hex[:8]}"
-            for path in sorted(changed):
-                if path in after:
-                    save_bytes(directory / "files" / path, after[path])
             status = "BUDGET_EXHAUSTED" if isinstance(error, BudgetExhausted) else "FAILED"
-            failure = {"status": status, "task": label, "phase": entry.get("status"),
-                "error": str(error), "turns": getattr(error, "turns", 0),
-                "feedback": getattr(error, "feedback", None), "changed_files": sorted(changed),
-                "deleted_files": sorted(changed - after.keys()),
-                "archive": directory.relative_to(output).as_posix()}
-            save_json(directory / "failure.json", failure)
-            for path in sorted(changed):
+            failure = _archive(output, label, before, after, status, {
+                "phase": entry.get("status"), "error": str(error), "error_type": type(error).__name__,
+                "turns": getattr(error, "turns", 0), "feedback": getattr(error, "feedback", None)})
+            for path in failure["changed_files"]:
                 if path in before:
                     save_bytes(output / path, before[path])
                 else:
@@ -65,6 +84,11 @@ def implementation_task(output, entry, console, label):
                 details={"error": str(error), "error_type": type(error).__name__})
             raise
         else:
+            if entry.get("status") == "PARTIAL":
+                archive = _archive(output, label, before, _snapshot(output), "PARTIAL", {
+                    "accepted": entry["accepted"], "pending": entry["pending"],
+                    "feedback": entry.get("rejected_checks", {})})
+                entry["archive"] = archive["archive"]
             checkpoint(output, task=label, action="Publish accepted implementation task",
                 status=entry.get("status", "GREEN"), details=entry)
 

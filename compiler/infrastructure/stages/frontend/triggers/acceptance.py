@@ -4,13 +4,13 @@ import yaml
 
 from infrastructure.stages.requirements.tree import RequirementTree
 
-INSTRUCTIONS = '''Write requirement acceptance tests for ONE original requirement before its implementation.
+INSTRUCTIONS = '''Write one requirement acceptance suite for each active entry in task.scenarios before implementation.
 Derive expected results from requirement and its Given/When/Then scenarios.
 Read project files as needed to understand test configuration, database initialization,
 fixtures, UI locators and API wiring. Source code and existing tests describe how to run
 the application; they are not authority for expected business behavior. Derive assertions
 from the original requirement, not the current implementation or process smoke tests.
-Only test_path is writable. Reading a file does not grant permission to modify it.
+Only the selected test_paths are writable. Reading a file does not grant permission to modify it.
 
 Write a small Playwright suite at test_path using the supplied test/expect/database
 fixture. Drive When actions through the real browser without mocks or injected state.

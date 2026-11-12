@@ -19,6 +19,11 @@ class DesignInputTooLarge(ValueError):
     """Split before dispatch when assembled evidence exceeds the request target."""
 
 
+def check_request_size(request, count):
+    if count > 1 and len(packed(request)) > MAX_REQUEST_CHARS:
+        raise DesignInputTooLarge(f"Batch exceeds the {MAX_REQUEST_CHARS}-character design input target")
+
+
 POLICIES = {
     "identity": "Reuse the canonical persisted identity and exact field names for the same entity across modules.",
     "session": "Keep one session identity and credential transport per authentication flow; never expose secrets in business data.",
@@ -100,8 +105,7 @@ class DesignBatches:
             return accept(proposal)
 
         self.records[-1]["request_chars"] = len(packed(request))
-        if len(batch.leaves) > 1 and self.records[-1]["request_chars"] > MAX_REQUEST_CHARS:
-            raise DesignInputTooLarge(f"{batch.id} exceeds the {MAX_REQUEST_CHARS}-character design input target")
+        check_request_size(request, len(batch.leaves))
         result, _ = propose_json(model, instructions + OUTPUT, request, verify,
             self.console, batch.id, max_attempts, context_index=context_index, split_on_truncation=True)
         return result

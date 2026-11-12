@@ -134,6 +134,7 @@ def begin_run(output, input_dir, stage, settings=None):
         "price_table": prices,
         "price_source": source,
         "test_costs": restored_effort.get("costs", {}),
+        "test_cost_files": restored_effort.get("group_files", {}),
         "validation_owners": {path: set(owners) for path, owners in restored_effort.get("owners", {}).items()},
         "validations": {},
         "first_feedback_seconds": None,
@@ -212,6 +213,7 @@ def finish_stage(stage, status):
     if run["test_costs"]:
         save_json(run["output"] / ".arc/test_model_effort.json", {
             "costs": run["test_costs"],
+            "group_files": run["test_cost_files"],
             "owners": {path: sorted(owners) for path, owners in run["validation_owners"].items()},
         })
     emit("stage_finished", status=status, **result)
@@ -418,11 +420,18 @@ def test_authoring(path, phase):
     if run is None:
         yield
         return
+    paths = (path,) if isinstance(path, str) else tuple(sorted(set(path)))
     with run["lock"]:
-        counts = run["test_costs"].setdefault(path, {}).setdefault(phase, totals())
+        # Store a single authoring cost per group; a validation covering two of
+        # its suites must not count the same model call twice.
+        key = paths[0] if len(paths) == 1 else json.dumps(paths, ensure_ascii=False)
+        if len(paths) > 1:
+            run["test_cost_files"][key] = paths
+        counts = run["test_costs"].setdefault(key, {}).setdefault(phase, totals())
         task = _task.get()
         if task:
-            run["validation_owners"].setdefault(path, set()).update(task["requirement_ids"])
+            for file in paths:
+                run["validation_owners"].setdefault(file, set()).update(task["requirement_ids"])
     token = _authoring.set(counts)
     try:
         yield
@@ -453,9 +462,12 @@ def validation_event(kind, seconds, status, *, source="deterministic", files=(),
         if not owners and not files and kind in {"build", "typecheck", "startup_check", "database_check"}:
             owners.update(run["requirements"])
         effort = {}
-        for phase in ("generation", "review"):
-            for file in set(files):
-                for name, value in run["test_costs"].get(file, {}).get(phase, {}).items():
+        selected_files = set(files)
+        for key, costs in run["test_costs"].items():
+            if selected_files.isdisjoint(run["test_cost_files"].get(key, (key,))):
+                continue
+            for phase in ("generation", "review"):
+                for name, value in costs.get(phase, {}).items():
                     if name in {"logical_calls", "http_attempts", "input_tokens", "output_tokens", "total_tokens", "missing_usage_calls"}:
                         selected = effort.setdefault(phase, {})
                         selected[name] = selected.get(name, 0) + value

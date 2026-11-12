@@ -4,10 +4,12 @@ from contextlib import nullcontext
 import json
 
 from infrastructure.shared.agent.conventions import task_conventions
+from infrastructure.shared.agent.design_batches import DesignInputTooLarge, check_request_size
 from infrastructure.shared.agent.feedback import compact_feedback
 
 from infrastructure.shared.agent.tools import FileTools, FileToolError
 from infrastructure.shared.agent.tools.protocol import FILE_TOOL_RULES
+from infrastructure.shared.models.text import ModelOutputTruncated
 from infrastructure.shared.agent.proposals import RESPONSE_ERRORS, response_feedback
 from infrastructure.shared.project.git import checkpoint
 from infrastructure.utils.files import read_source
@@ -24,7 +26,7 @@ class AgentExhausted(ValueError):
 
 
 def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
-        max_turns: int, console, label: str, feedback=None, feedback_filter=None, *, test_phase=None) -> dict:
+        max_turns: int, console, label: str, feedback=None, feedback_filter=None, *, test_phase=None, batch_limits=False) -> dict:
     """Refresh files and paths; optionally select failure-related files before repair.
 
     The stage-owned feedback filter may add writable sources/read-only references
@@ -73,7 +75,10 @@ def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
                     request["context_result"] = context_result
                 rules = instructions + "\n\n" + FILE_TOOL_RULES
                 rules += "\nImplementation uses the supplied requirement, design, scope and related files. Semantic queries are not available."
-                with (test_authoring(task["test_path"], test_phase) if test_phase else nullcontext()):
+                if batch_limits:
+                    check_request_size(request, len(task["units"]))
+                test_targets = task.get("test_path", task.get("test_paths"))
+                with (test_authoring(test_targets, test_phase) if test_phase else nullcontext()):
                     return model.generate_json(rules, request)
             response = request_model()
             while isinstance(response, dict):
@@ -142,6 +147,8 @@ def run_file_agent(model, instructions: str, task: dict, files: FileTools, gate,
                 details={"round": turn, "checks": checks})
             return {"turns": turn, "checks": checks, "files": sorted(files.changed_paths)}
         except (*RESPONSE_ERRORS, RuntimeError, OSError) as error:
+            if batch_limits and isinstance(error, (ModelOutputTruncated, DesignInputTooLarge)):
+                raise
             message = str(error)
             phase = "acceptance" if checking else "tool_protocol"
             title = "Acceptance failed" if checking else "Tool feedback (checks not run)"

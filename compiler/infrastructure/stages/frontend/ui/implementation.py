@@ -1,16 +1,14 @@
-"""Step 08: incrementally implement leaf requirements and regress accepted UI.
+"""Implement complete page groups and retain independently verified pages."""
 
-Each requirement owns its related UI slice. Shared pages accumulate accepted
-requirements; their presence suites never demand future requirements' controls.
-"""
-
-import json
 from pathlib import Path
 
 from infrastructure.shared.agent.tools import FileTools
 from infrastructure.shared.agent.loop import run_file_agent
-from infrastructure.shared.agent.recovery import implementation_task, final_checks, complete_report
-from infrastructure.stages.frontend.ui.design import owners, page_context, page_elements, requirement_ui
+from infrastructure.shared.agent.implementation_batches import ImplementationBatches, passing_checks, require_any
+from infrastructure.shared.agent.feedback import CheckFailure
+from infrastructure.shared.agent.recovery import reject_paths, final_checks, complete_report
+from infrastructure.shared.agent.files import editable_application_path
+from infrastructure.stages.frontend.ui.design import owners, page_context, page_elements
 from infrastructure.stages.requirements.tree import RequirementTree
 from infrastructure.stages.frontend.ui.runtime import APPLICATION_ENTRYPOINTS, prepare_frontend
 from infrastructure.stages.frontend.ui.testing import FrontendChecks, existence_suite, require_green, test_path
@@ -18,19 +16,16 @@ from infrastructure.shared.project.dependencies import install_dependencies
 from infrastructure.utils.files import read_artifact, save_json, save_text
 from infrastructure.shared.project.git import checkpoint
 
-INSTRUCTIONS = """Implement the current requirement's UI on task.page.
-The supplied page is a requirement-scoped slice: owned elements plus structural ancestors,
-not the complete final page. Add only this requirement's presentation, editing and navigation.
-Do not implement future requirements just because they share this page or appear in an image.
-Read the existing related components before editing. Extend shared pages incrementally and
-preserve accepted_element_ids and every previously accepted requirement's UI and data bindings.
+INSTRUCTIONS = """Implement every complete page in task.pages, including the UI of all its owning requirements.
+Use task.requirement_evidence for exact names and behavior. Implement shared layouts once.
+Read existing related components before editing and preserve all previously accepted UI and data bindings.
 Read the supplied package/configuration and actual source to use the project's technology
 stack. Read related files and incrementally edit or create components inside the frontend scope, using exports, props and
 state appropriate to the actual components. The design is a
 reference prototype, not a fixed executable host or mandatory component API.
 
 You own the application entrypoints, routing, component composition and state bindings.
-Read task.application_entrypoints as needed and incrementally connect this page to the
+Read task.application_entrypoints as needed and incrementally connect these pages to the
 existing application. Preserve all earlier routes/pages/exports and their behavior; never
 rebuild the application with only this page. Support parameterized routes using the actual
 router/framework or appropriate application code. Do not require a dynamic route pattern
@@ -67,164 +62,109 @@ Preserve the presentation-test adapter in frontend/src/ui-runtime.ts. Call prese
 with this page ID and a projection of the actual declared frontend values when rendering.
 It supplies display-test overrides and exposes actual data keys; it does not own your state.
 Do not copy display-test records into production initial values. If representative records
-are needed, arrange them only in the writable presence suite's __ARC_UI_TEST_DATA__ setup.
+are needed, use the compiler-owned presence suite's __ARC_UI_TEST_DATA__ setup as reference.
 
-The compiler updates presence suites for the current and previously accepted requirements,
-then compiles, runs regression checks and builds; it never regenerates
-App, routes, handlers or stores. Repair relevant writable sources without removing previous
-behavior. Diagnose incorrect tests against original requirements and preserve meaningful
-control/data-key assertions. Shared test/build infrastructure remains read-only.
+The compiler generates immutable presence suites for complete pages and checks already
+accepted related pages. Repair writable sources without removing existing behavior.
+Presence tests, shared test adapters and build infrastructure are read-only.
 """
+
+
+
+def page_layout_signals(design, pid):
+    page = design["pages"][pid]
+    route = page["route"].strip("/").split("/")[0]
+    return {*(f"owner:{rid}" for rid in owners(design, pid)),
+        *(f"element:{uid}" for uid in page_elements(design, pid)),
+        *([f"layout:{page['layout']}"] if page.get("layout") else []),
+        *([f"route:{route}"] if route and not route.startswith(("{", ":")) else [])}
 
 
 def implement_ui(arc_dir: Path, design: dict, model, console, report: dict, max_turns: int = 10,
         images: dict | None = None, requirement_contexts: dict | None = None) -> dict:
-    """Traverse leaf requirements; implement only their UI slices on each affected page."""
+    """Generate a deterministic suite once per page; implement by page group."""
     output = arc_dir.parent.resolve()
     tree = RequirementTree(read_artifact(arc_dir, "requirements.json"))
-    report["requirements"] = {
-        rid: {"status": "PENDING" if not tree.children[rid] else "NO_DIRECT_UI",
-            "requirement": rid, "requirements": [rid], "pages": []}
-        for rid in tree.requirements
-    }
-    report["pages"] = {
-        pid: {"status": "PENDING", "requirements": owners(design, pid),
-            "test_path": test_path(pid)}
-        for pid in design["pages"]
-    }
-    report["status"] = "IMPLEMENTING"
-    save_json(arc_dir / "ui_checks.json", report)
+    pages = {pid: page_context(design, pid) for pid in design["pages"]}
+    page_owners = {pid: owners(design, pid) for pid in pages}
+    signals = {pid: page_layout_signals(design, pid) for pid in pages}
+    batches = ImplementationBatches(arc_dir, "08", console).register(pages, page_owners, signals)
+    report.update(status="IMPLEMENTING", requirements={}, pages={})
+    path = arc_dir / "ui_checks.json"
+    save_json(path, report)
     prepare_frontend(output)
-    console.show("UI TDD preparation | Dependencies", "Install workspace dependencies and Playwright Chromium. No backend is started.")
     install_dependencies(output)
     checks = FrontendChecks(output)
     checks.install_browser()
-    checkpoint(output, stage="08", task="runtime", action="Prepare requirement-driven UI implementation",
-        details={"requirements": tree.leaves, "pages": list(design["pages"])})
-    accepted = []
-    accepted_pages = []
-    for number, rid in enumerate(tree.leaves, 1):
-        entry = report["requirements"][rid]
-        requirement = (requirement_contexts or {}).get(rid, {
-            **tree.requirements[rid], "steps": [tree.steps[sid] for sid in tree.own_steps[rid]]})
-        label = f"UI requirement {number}/{len(tree.leaves)} {rid}"
-        console.show(label + " | Requirement and related UI", json.dumps(requirement, ensure_ascii=False, indent=2))
-        entry["status"] = "PREPARING"
-        entry["page_results"] = {}
-        # A requirement is the rollback boundary, including all pages it touches.
-        with implementation_task(output, entry, console, "08 / " + rid):
-            current_design = requirement_ui(design, [rid])
-            accepted_design = requirement_ui(design, accepted)
-            cumulative_design = requirement_ui(design, [*accepted, rid])
-            entry["pages"] = list(current_design["pages"])
-            entry["test_paths"] = [test_path(pid) for pid in entry["pages"]]
-            if not entry["pages"]:
-                entry["status"] = "NO_UI"
-                console.show(label + " | No direct UI", "No UI nodes are associated with this leaf requirement.")
-            completed_pages = list(accepted_pages)
-            for pid in entry["pages"]:
-                entry["current_page"] = pid
-                relative = test_path(pid)
-                # Refresh only the current page's cumulative contract. Other accepted
-                # pages keep their suites; future requirements are excluded.
-                save_text(output / relative, existence_suite(cumulative_design, pid))
-                files = [test_path(key) for key in dict.fromkeys([*completed_pages, pid])]
-                entry["status"] = "TESTS_READY"
-                save_json(arc_dir / "ui_checks.json", report)
-                console.show(label + " / " + pid + " | Scoped existence tests", (output / relative).read_text(encoding="utf-8"))
-                checkpoint(output, stage="08", task=rid, action="Publish cumulative UI presence suite",
-                    status="TESTS_READY", details={"page": pid, "requirements": [*accepted, rid], "test_path": relative})
+    checkpoint(output, stage="08", task="runtime", action="Prepare grouped page implementation",
+        details={"requirements": tree.leaves, "pages": list(pages)})
 
-                def implementation_checks():
-                    compiled = checks.typecheck(files)
-                    if compiled["returncode"]:
-                        return {"typecheck": compiled, "tests": None}
-                    return {"typecheck": compiled, "tests": checks.tests(files)}
+    def process(batch, entry):
+        selected = {pid: pages[pid] for pid in batch.units}
+        relatives = {pid: test_path(pid) for pid in selected}
+        reg = [test_path(pid) for pid in batches.accepted]
+        baseline = {path: (output / path).read_bytes() for path in relatives.values() if (output / path).is_file()}
+        for pid, relative in relatives.items():
+            save_text(output / relative, existence_suite(design, pid))
 
-                def implementation_gate():
-                    result = implementation_checks()
-                    if result["typecheck"]["returncode"]:
-                        raise ValueError(f"TypeScript failed: {result['typecheck']['output']}")
-                    require_green(result["tests"])
-                    return result
+        def gate():
+            compiled = checks.typecheck([*relatives.values(), *reg])
+            if compiled["returncode"]:
+                raise CheckFailure("Frontend TypeScript failed", compiled)
+            if reg:
+                require_green(checks.tests(reg))
+            passed, rejected = passing_checks(batch.units, lambda pid: checks.tests([relatives[pid]]), require_green)
+            require_any(passed, rejected)
+            return {"typecheck": compiled, "passed": passed, "rejected": rejected}
 
-                try:
-                    current = implementation_checks()
-                except (ValueError, RuntimeError) as error:
-                    current = {"error": str(error), "typecheck": None, "tests": None}
-                if (current["tests"] and current["tests"]["returncode"] == 0
-                        and current["tests"].get("passed") and not current["tests"].get("errors")
-                        and not current["tests"].get("failed")):
-                    agent = {"turns": 0, "checks": current}
-                else:
-                    entry["status"] = "IMPLEMENTING"
-                    save_json(arc_dir / "ui_checks.json", report)
-                    context = {
-                        "requirement": {key: value for key, value in requirement.items() if key != "images"},
-                        "page": page_context(current_design, pid),
-                        "accepted_requirements": list(accepted),
-                        "accepted_element_ids": list(page_elements(accepted_design, pid))
-                            if pid in accepted_design["pages"] else [],
-                        "application_entrypoints": list(APPLICATION_ENTRYPOINTS),
-                        "visual_references": {iid: (images or {}).get(iid, image)
-                            for iid, image in requirement.get("images", {}).items()},
-                    }
-                    workspace = FileTools(output, ["frontend"], requirements=[rid], stage="ui",
-                        files=["frontend/src/ui-runtime.ts", *files, "frontend/package.json",
-                            "frontend/tsconfig.json", "frontend/playwright.ui.config.ts", *APPLICATION_ENTRYPOINTS])
-                    agent = run_file_agent(model, INSTRUCTIONS, context, workspace, implementation_gate,
-                        max_turns, console, label + " / " + pid + " / Implementation", feedback=current)
-                entry["page_results"][pid] = {
-                    "status": "GREEN", "turns": agent["turns"],
-                    "files": agent.get("files", []),
-                    "checks": {key: value for key, value in agent["checks"]["tests"].items() if key != "output"},
-                }
-                if pid not in completed_pages:
-                    completed_pages.append(pid)
-                console.show(label + " / " + pid + " | GREEN", agent["checks"]["tests"]["output"])
-            if entry["pages"]:
-                entry["status"] = "GREEN"
-                entry.pop("current_page", None)
-        if entry["status"] == "GREEN":
-            accepted.append(rid)
-            accepted_pages = completed_pages
-        elif entry["status"] == "FAILED":
-            for result in entry["page_results"].values():
-                result["status"] = "ROLLED_BACK"
-        for pid, page in report["pages"].items():
-            statuses = [report["requirements"][owner]["status"] for owner in page["requirements"]]
-            results = [report["requirements"][owner]["page_results"][pid]
-                for owner in page["requirements"]
-                if pid in report["requirements"][owner].get("page_results", {})
-                and report["requirements"][owner]["status"] == "GREEN"]
-            page["files"] = sorted({path for result in results for path in result["files"]})
-            page["turns"] = sum(result["turns"] for result in results)
-            if results:
-                page["checks"] = results[-1]["checks"]
-            if not statuses:
-                page["status"] = "NO_DIRECT_UI"
-            elif "FAILED" in statuses:
-                page["status"] = "FAILED"
-            elif all(status == "GREEN" for status in statuses):
-                page["status"] = "GREEN"
-            else:
-                page["status"] = "PENDING"
-        save_json(arc_dir / "ui_checks.json", report)
+        # Observe the real starting point, but still implement a multi-page group
+        # if any page in it lacks acceptance.
+        try:
+            before = gate()
+        except (ValueError, RuntimeError) as error:
+            before = {"error": str(error), "feedback": getattr(error, "feedback", None)}
+        if len(before.get("passed", {})) == len(batch.units):
+            agent = {"turns": 0, "files": [], "checks": before}
+        elif before.get("passed"):
+            # Preserve pages already green and retry only pages still missing.
+            agent = {"turns": 0, "files": [], "checks": before}
+        else:
+            context = batches.context(batch, {"pages": selected,
+                "application_entrypoints": list(APPLICATION_ENTRYPOINTS),
+                "visual_references": {iid: image for iid, image in (images or {}).items()
+                    if any(iid in design["pages"][pid]["images"] for pid in selected)}})
+            workspace = FileTools(output, ["frontend"], requirements=entry["requirements"], stage="ui",
+                files=["frontend/src/ui-runtime.ts", *relatives.values(), *reg, "frontend/package.json",
+                    "frontend/tsconfig.json", "frontend/playwright.ui.config.ts", *APPLICATION_ENTRYPOINTS],
+                allow_write=lambda name: "/tests/" not in name and editable_application_path(output, name))
+            agent = run_file_agent(model, INSTRUCTIONS, context, workspace, gate,
+                max_turns, console, batch.id + " / page group", feedback=before, batch_limits=True)
+        result = agent["checks"]
+        for pid, evidence in result["rejected"].items():
+            evidence["test_archive"] = reject_paths(output, batch.id + " / " + pid, baseline, [relatives[pid]])
+        entry["rejected_checks"] = result["rejected"]
+        return {pid: {"requirements": page_owners[pid], "test_path": relatives[pid],
+            "files": agent["files"], "turns": agent["turns"], "checks": evidence}
+            for pid, evidence in result["passed"].items()}
 
-    console.show("UI final verification", "All leaf requirements were attempted. Regress accepted UI and build, retaining requirement failures.")
-    files = [test_path(pid) for pid in accepted_pages]
-    final_commands = {"typecheck": (lambda: checks.typecheck(files), None)}
+    report["pages"] = batches.run(process)
+    for rid in tree.requirements:
+        used = [pid for pid in pages if rid in page_owners[pid]]
+        report["requirements"][rid] = {"requirement": rid, "requirements": [rid], "pages": used,
+            "test_paths": [test_path(pid) for pid in used if pid in batches.accepted],
+            "status": ("NO_DIRECT_UI" if tree.children[rid] else "NO_UI") if not used
+                else "GREEN" if all(pid in batches.accepted for pid in used) else "FAILED",
+            "page_results": {pid: report["pages"][pid] for pid in used}}
+    files = [test_path(pid) for pid in batches.accepted]
+    commands = {"typecheck": (lambda: checks.typecheck(files), None), "build": (checks.build, None)}
     if files:
-        final_commands["tests"] = (lambda: checks.tests(files), require_green)
-    final_commands["build"] = (checks.build, None)
-    verification = final_checks(console, **final_commands)
+        commands["tests"] = (lambda: checks.tests(files), require_green)
+    verification = final_checks(console, **commands)
     final = verification.get("tests", {}).get("result") or {}
-    report["summary"] = {
-        "requirements": len(tree.leaves), "accepted_requirements": len(accepted),
+    report["summary"] = {"requirements": len(tree.leaves),
+        "accepted_requirements": sum(entry["status"] == "GREEN" for entry in report["requirements"].values()),
         "failed_requirements": sum(entry["status"] == "FAILED" for entry in report["requirements"].values()),
-        "pages": sum(page["status"] == "GREEN" for page in report["pages"].values()),
-        "tests": final.get("passed", 0), "failed": final.get("failed", 0),
-    }
-    complete_report(report, report["requirements"].values(), verification)
-    save_json(arc_dir / "ui_checks.json", report)
+        "pages": len(batches.accepted), "tests": final.get("passed", 0), "failed": final.get("failed", 0)}
+    complete_report(report, report["pages"].values(), verification)
+    save_json(path, report)
     return report

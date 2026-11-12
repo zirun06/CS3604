@@ -19,7 +19,7 @@ from infrastructure.utils import processes
 from infrastructure.utils.budget import BudgetExhausted, RunBudget, budget_scope
 from infrastructure.utils.presentation import model_io
 from infrastructure.utils.presentation.events import (
-    begin_run, begin_stage, finish_run, finish_stage, test_authoring as authoring, validation,
+    begin_run, begin_stage, finish_run, finish_stage, task_scope, test_authoring as authoring, validation,
 )
 
 
@@ -164,20 +164,24 @@ description:
     assert set(visual) == {"a.png"} and budget.snapshot()["reserved_tokens"] == 0
 
 
-def test_verification_effort_and_result_are_observed_without_changing_result(run):
-    path = "backend/tests/sample.test.ts"
+@pytest.mark.parametrize("paths", [("backend/tests/sample.test.ts",), ("backend/tests/a.test.ts", "backend/tests/b.test.ts")])
+def test_verification_effort_and_result_are_observed_without_changing_result(run, paths):
     class Checker:
         @validation("http_test", source="model", selected_files=True)
         def check(self, files):
             return {"returncode": 0, "pass": 1}
     model = offline_model(TextModel, lambda _: answer({}, usage=USAGE))
-    with budget_scope(RunBudget({})):
+    owners = ["A"] if len(paths) == 1 else ["A", "B"]
+    with budget_scope(RunBudget({})), task_scope("group", owners, batch_id="06-main-001"):
         for phase in ("generation", "review"):
-            with authoring(path, phase):
+            with authoring(paths[0] if len(paths) == 1 else paths, phase):
                 model.generate_json("Reply with JSON", {})
-        assert Checker().check([path]) == {"returncode": 0, "pass": 1}
+        assert Checker().check(list(paths)) == {"returncode": 0, "pass": 1}
     model.client.close()
     result, = events(run, "validation")
+    assert result["requirement_ids"] == owners and result["batch_id"] == "06-main-001"
+    wire = events(run, "http_attempt_started")
+    assert len(wire) == 2 and all(row["requirement_ids"] == owners and row["batch_id"] == "06-main-001" for row in wire)
     assert result["result"] == "passed" and result["test_source"] == "model"
     assert {phase: (entry["logical_calls"], entry["total_tokens"])
         for phase, entry in result["test_model_effort"].items()} == {"generation": (1, 20), "review": (1, 20)}
