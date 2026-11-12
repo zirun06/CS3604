@@ -16,6 +16,7 @@ from rich.rule import Rule
 from rich.text import Text
 
 from infrastructure.utils.presentation.logging import full_detail, session_info
+from infrastructure.utils.presentation.events import begin_action
 
 
 _activity = ContextVar("compiler_activity", default="Model request")
@@ -136,6 +137,7 @@ class DemoConsole:
         self.artifacts = {}
 
     def show(self, title: str, body: str) -> None:
+        begin_action(title)
         _activity.set(title)
         session = session_info()
         label = f"{session['stage']} | {title}" if session else title
@@ -184,9 +186,9 @@ def show_dashboard(stage: str, artifacts: dict) -> None:
     from infrastructure.utils.presentation.artifacts import ARTIFACTS, inventory, table, text
     number = stage.removeprefix("Stage ").split(" | ", 1)[0]
     passes = Text()
-    names = {"00": "Init", "01": "Requirements", "02": "Schema", "03": "R/W", "04": "Review*",
-        "05": "SQL", "06": "APIs + P/Q", "07": "API review", "08": "Backend TDD", "09": "UI",
-        "10": "UI TDD", "11": "Triggers", "12": "E2E"}
+    names = {"00": "Init", "01": "Requirements", "02": "Schema", "03": "R/W", "04": "SQL",
+        "05": "APIs + P/Q", "06": "Backend TDD", "07": "UI", "08": "UI TDD",
+        "09": "Triggers", "10": "E2E"}
     for index, (key, name) in enumerate(names.items()):
         if index:
             passes.append(" → ", style="dim")

@@ -6,7 +6,7 @@ from infrastructure.stages.frontend.triggers.prompts import INSTRUCTIONS
 from infrastructure.stages.frontend.triggers.design import apply_decomposition, empty_triggers, relevant_pages, trigger_obligations, api_ids, validate_coverage
 from infrastructure.stages.frontend.ui.design import data_symbols
 from infrastructure.utils.files import save_json, read_artifact
-from infrastructure.stages.database.obligations.records import normalize_obligations
+from infrastructure.stages.database.obligation_utils import normalize_obligations
 from infrastructure.shared.agent.proposals import propose_json
 from infrastructure.shared.agent.tasks import TaskFailures
 from infrastructure.shared.agent.discovery import ContextIndex
@@ -18,7 +18,7 @@ def synthesize_triggers(arc_dir, ui, tree, backend, contexts, model, console, ma
     result = empty_triggers(tree)
     obligations = normalize_obligations(read_artifact(arc_dir, "db_obligations.json"), tree)
     accepted = []
-    failures = TaskFailures(arc_dir, "11_design_frontend_triggers", console)
+    failures = TaskFailures(arc_dir, "09_design_frontend_triggers", console)
     save_json(arc_dir / "frontend_triggers.json", result)
     for rid in tree.leaves:
         with failures.task(rid):

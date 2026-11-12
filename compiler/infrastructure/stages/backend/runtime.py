@@ -24,7 +24,7 @@ def prepare_runtime(output: Path) -> None:
     """Publish fixed test infrastructure without overwriting application wiring."""
     for relative in ("package.json", "backend/package.json", "backend/src/app.ts", "backend/src/server.ts", "backend/src/api/types.ts", "backend/tsconfig.test.json"):
         if not (output / relative).is_file():
-            raise ValueError(f"Missing {relative}; run 00_project_initialization.py first")
+            raise ValueError(f"Missing {relative}; run main.py --stage 00 first")
     enable_import_case_checks(output, "backend")
     templates = Path(__file__).resolve().parents[2] / "shared/project/templates"
     if not (output / REGISTER_PATH).is_file():
@@ -36,3 +36,19 @@ def prepare_runtime(output: Path) -> None:
         value = json.loads(path.read_text(encoding="utf-8-sig"))
         value.setdefault("scripts", {})[name] = command
         save_text(path, json.dumps(value, indent=2) + "\n")
+
+
+def api_test_paths(output: Path, api_ids=None) -> list[str]:
+    """Read actual accepted/generated suites from the backend report."""
+    from infrastructure.utils.files import read_artifact
+
+    path = output / ".arc/backend_tdd.json"
+    if not path.is_file():
+        return []
+    report = read_artifact(output / ".arc", "backend_tdd.json")
+    result = set()
+    for tests in report.get("tests", {}).values():
+        for aid, relative in tests.items():
+            if (api_ids is None or aid in api_ids) and (output / relative).is_file():
+                result.add(relative)
+    return sorted(result)

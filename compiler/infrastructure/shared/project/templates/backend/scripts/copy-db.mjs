@@ -1,6 +1,6 @@
-import { cp } from "node:fs/promises";
+import { cpSync } from "node:fs";
 
 // SQL stays in separate files and is copied beside the compiled DB modules.
 for (const directory of ["tables", "seeds"]) {
-  await cp(new URL(`../src/db/${directory}/`, import.meta.url), new URL(`../dist/db/${directory}/`, import.meta.url), { recursive: true });
+  cpSync(new URL(`../src/db/${directory}/`, import.meta.url), new URL(`../dist/db/${directory}/`, import.meta.url), { recursive: true });
 }

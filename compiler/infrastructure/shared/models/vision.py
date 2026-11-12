@@ -56,7 +56,7 @@ class VisualModel:
         api_key = os.getenv("VISUAL_API_KEY") or os.getenv("OPENAI_API_KEY")
         base_url = os.getenv("VISUAL_BASE_URL") or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1"
         if not api_key:
-            raise ValueError("Set OPENAI_API_KEY or VISUAL_API_KEY; the model must accept images")
+            raise ValueError("Set VISUAL_API_KEY or OPENAI_API_KEY in compiler/.env; the model must accept images")
         self.reasoning = os.getenv("VISUAL_REASONING", os.getenv("MODEL_REASONING", "low")).lower()
         if self.reasoning not in {"auto", "provider", "none", "low", "high", "max"}:
             raise ValueError("VISUAL_REASONING must be auto, provider, none, low, high or max")

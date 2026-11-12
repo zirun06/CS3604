@@ -50,7 +50,7 @@ Unchanged records may be omitted from their maps; include all four root keys eve
 Reuse canonical variable names and element IDs. Query relevant elements/pages when needed.
 mode declares how the user interacts with the element; implementation chooses framework
 bindings and routing. No fixed host synchronizes inputs or interprets this design. Additional
-interaction behavior belongs to step 11; real data loading and updates belong to step 12.
+interaction behavior belongs to step 09; real data loading and updates belong to step 10.
 Preserve visible labels in their original language. UI has no DB field-mapping model.
 """
 
@@ -94,6 +94,30 @@ def data_symbols(elements: dict) -> dict:
 def page_context(design: dict, pid: str) -> dict:
     """Return a page and its UI subtree, including inline variable declarations."""
     return {"id": pid, **deepcopy(design["pages"][pid]), "elements": page_elements(design, pid)}
+
+
+def requirement_ui(design: dict, requirement_ids: list[str]) -> dict:
+    """Select directly owned UI nodes and their ancestor structure, never future siblings."""
+    selected = set()
+    for rid in requirement_ids:
+        for uid in design["requirements"].get(rid, []):
+            current = uid
+            ancestors = set()
+            while current is not None and current not in selected:
+                if current in ancestors:
+                    raise ValueError(f"UI parent cycle for {rid}: {current}")
+                if current not in design["elements"]:
+                    raise ValueError(f"Unknown UI element for {rid}: {current}")
+                ancestors.add(current)
+                current = design["elements"][current].get("parent")
+            selected.update(ancestors)
+    return {
+        **design,
+        "pages": {pid: deepcopy(page) for pid, page in design["pages"].items()
+            if page["root"] in selected},
+        "elements": {uid: deepcopy(node) for uid, node in design["elements"].items()
+            if uid in selected},
+    }
 
 
 def owners(design: dict, pid: str) -> list[str]:

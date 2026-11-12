@@ -7,25 +7,16 @@ from tempfile import TemporaryDirectory
 
 from infrastructure.stages.frontend.triggers.e2e_runtime import RUNNER
 from infrastructure.stages.frontend.ui.testing import FrontendChecks, parse_playwright_result
-from infrastructure.shared.project.entrypoints import selected_path
 
 
-def test_path(rid, output=None):
+def test_path(rid):
     """Return a safe, stable E2E spec path for one requirement."""
-    chosen = selected_path(output, "e2e_test", rid) if output is not None else None
-    if chosen:
-        return chosen
     slug = rid if re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", rid) else "requirement-" + sha256(rid.encode()).hexdigest()[:12]
     return f"frontend/tests/e2e/{slug}.spec.ts"
 
 
 class E2EChecks(FrontendChecks):
     """Real-app Playwright checks with isolated test data."""
-    def __init__(self, output, maximum=2):
-        """Reuse the ten-minute frontend command timeout and a per-requirement test-count hint."""
-        super().__init__(output)
-        self.maximum = maximum
-
     def typecheck(self, files, full_source=True):
         """Compile UI and E2E tests, optionally restricting application sources during test generation."""
         return super().typecheck(files, test_roots=("frontend/tests/ui", "frontend/tests/e2e"),

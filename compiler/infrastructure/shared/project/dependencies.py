@@ -7,10 +7,10 @@ from threading import Thread
 from infrastructure.utils.processes import npm_command, start_process, stop_process
 
 
-def install_dependencies(output_dir: Path, timeout: int = 600) -> None:
+def install_dependencies(output_dir: Path) -> None:
     """Run npm install in the generated workspace, stream its output, and fail on timeout or nonzero exit."""
     if not (output_dir / "package.json").is_file():
-        raise ValueError("Run 00_project_initialization.py before installing project dependencies")
+        raise ValueError("Run main.py --stage 00 before installing project dependencies")
     command = npm_command()
     print(f"Installing dependencies in {output_dir}: npm install --include=dev --no-audit --no-fund", flush=True)
     with start_process(
@@ -27,10 +27,10 @@ def install_dependencies(output_dir: Path, timeout: int = 600) -> None:
         reader = Thread(target=forward_output, daemon=True)
         reader.start()
         try:
-            process.wait(timeout=timeout)
+            process.wait(timeout=600)
         except subprocess.TimeoutExpired as error:
             stop_process(process)
-            raise RuntimeError(f"npm install timed out after {timeout} seconds") from error
+            raise RuntimeError("npm install timed out after 600 seconds") from error
         except BaseException:
             stop_process(process)
             raise

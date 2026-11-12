@@ -2,15 +2,13 @@
 
 import json
 import re
-from contextlib import ExitStack
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import yaml
 
-from infrastructure.utils.cli import create_parser, resolve_directories
 from infrastructure.shared.models.vision import VisualModel
 from infrastructure.utils.presentation.console import DemoConsole
-from infrastructure.utils.presentation.logging import console_log
 from infrastructure.utils.files import save_json, save_text
 from infrastructure.stages.requirements.tree import RequirementTree
 from infrastructure.shared.project.git import checkpoint
@@ -276,12 +274,14 @@ def explore_requirement(input_dir: Path, arc_dir: Path, pause: bool = False) -> 
     # collect_images() defines which references count as visual evidence.
     # Extend discovery for other document formats; keep paths input-relative.
     references = collect_images(requirements)
+    unique_images = {}
     for reference in references:
         image = (input_dir / reference).resolve()
         if not image.is_relative_to(input_dir.resolve()):
             raise ValueError(f"Referenced image must be inside the input directory: {reference}")
         if not image.is_file():
             raise ValueError(f"Referenced image does not exist: {reference}")
+        unique_images.setdefault(image, []).append(reference)
     console.show("2. Referenced images", "\n".join(references) or "(No referenced images.)")
 
     # --- Extension point 01C: visual analysis ----------------------------------
@@ -295,59 +295,20 @@ def explore_requirement(input_dir: Path, arc_dir: Path, pause: bool = False) -> 
     analysis = {}
     if references:
         model = VisualModel()
-        for reference in references:
-            print(f"Analyzing image: {reference}", flush=True)
-            analysis[reference] = model.analyze(input_dir / reference)
-            save_json(arc_dir / "visual_analysis.json", analysis)
-            checkpoint(arc_dir.parent, stage="01", task=reference, action="Publish visual reference analysis",
-                details={"reference": reference, "analysis": analysis[reference]})
-            console.show(f"3. Visual analysis | {reference}", json.dumps(analysis[reference], ensure_ascii=False, indent=2))
+        images = list(unique_images.items())
+        for start in range(0, len(images), 5):
+            batch = images[start:start + 5]
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                results = list(executor.map(lambda item: model.analyze(item[0]), batch))
+            for (image_path, image_references), result in zip(batch, results):
+                for reference in image_references:
+                    analysis[reference] = result
+                    checkpoint(arc_dir.parent, stage="01", task=reference, action="Publish visual reference analysis",
+                        details={"reference": reference, "path": str(image_path), "analysis": result})
+                    console.show(f"3. Visual analysis | {reference}", json.dumps(result, ensure_ascii=False, indent=2))
+                save_json(arc_dir / "visual_analysis.json", analysis)
     else:
         console.show("3. Visual analysis", "No referenced images; no model call is needed.")
     save_json(arc_dir / "visual_analysis.json", analysis)
     print(f"Results saved: {arc_dir / 'requirements.json'}, {arc_dir / 'visual_analysis.json'}")
     return requirements
-
-
-def main() -> None:
-    parser = create_parser("Step 01: Explore Requirement Tree")
-    parser.add_argument(
-        "--browse", action="store_true",
-        help="Skip analysis and browse requirements interactively",
-    )
-    parser.add_argument(
-        "--no-browse", action="store_true",
-        help="Run analysis only (used by non-interactive pipelines)",
-    )
-    args = parser.parse_args()
-
-    if args.browse and args.no_browse:
-        parser.error("--browse and --no-browse cannot be used together")
-
-    input_dir = args.input.expanduser().resolve()
-    source = input_dir / "requirements.yaml"
-    if args.browse:
-        try:
-            if not input_dir.is_dir():
-                raise ValueError(f"Input directory does not exist or is not a directory: {input_dir}")
-            root = load_requirements(source)
-            RequirementExplorer(source, root).run()
-        except (OSError, ValueError, yaml.YAMLError) as error:
-            parser.exit(1, f"Cannot browse requirements: {error}\n")
-        return
-
-    with ExitStack() as stack:
-        try:
-            input_dir, output_dir = resolve_directories(args)
-            stack.enter_context(console_log(output_dir, debug_model_io=args.debug_model_io))
-            if not input_dir.is_dir():
-                raise ValueError(f"Input directory does not exist or is not a directory: {input_dir}")
-            requirements = explore_requirement(input_dir, output_dir / ".arc", args.pause)
-            if not args.no_browse:
-                RequirementExplorer(source, requirements).run()
-        except (OSError, ValueError, RuntimeError) as error:
-            parser.exit(1, f"Execution failed: {error}\n")
-
-
-if __name__ == "__main__":
-    main()
