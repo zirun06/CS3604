@@ -1,6 +1,6 @@
 # 第 7 步 BookStack 真实运行手册
 
-从 `CS3604-staged11` 根目录用 PowerShell 操作。真实生成由组长在沙箱外执行。已确认单次预算为 40 分钟、150 万 token、220 次逻辑调用，累计先按 3 次完整运行、约 450 万 token 管理。**不要在聊天、Git 或日志中填写密钥；只在 `compiler/.env` 本地填写。**
+从 `CS3604-staged11` 根目录用 PowerShell 操作。真实生成由组长在沙箱外执行。前三次使用的单次上限为 40 分钟、150 万 token、220 次逻辑调用。累计上限为 450 万 token，第 4 次前约已使用 170 万。**不要在聊天、Git 或日志中填写密钥；只在 `compiler/.env` 本地填写。**
 
 ```powershell
 $root = (Get-Location).Path
@@ -15,19 +15,19 @@ if (-not (Test-Path '.env')) { Copy-Item '.env.example' '.env' }
 
 使用经复验的 **Node 22.23.5**，模板要求 22 系列至少 22.12。还需要 npm、Git、Python 3.11+ 和 uv。若本机未使用上面的隔离目录，先把本机 Node 22 的目录放在 PATH 首位。编辑 `.env` 中的 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`MODEL`、`VISUAL_MODEL`；文本与视觉共用一个连接。需要时设置 `MODEL_REASONING`、`VISUAL_REASONING`（文本初次提案 `none`、修复 `MODEL_REPAIR_REASONING=low`、视觉 `low`）和 `COMPILER_PRICE_TABLE`。系统已注入的同名变量优先。
 
-组长批准的单次预算如下，累计先按三次完整运行、约 450 万 token。4a＋4b 的 BookStack 首轮估算为 111–195 个逻辑调用；修复、发现新上下文和截断可能增加调用。
+第 4 次建议的参数如下。2,700,000 token 给约 280 万的剩余额度留出约 10 万余量，实际剩余额度以网关账单为准。时间与调用额度为第 4 次建议值。[用量估算](STEP7_RUN3.md)
 
 | 变量 | 建议起点 | 含义 |
 | --- | ---: | --- |
-| `COMPILER_BUDGET_SECONDS` | 2400 | 一次编译的墙钟时间，含本地检查 |
-| `COMPILER_BUDGET_TOKENS` | 1500000 | 一次编译的 token 总预算，发出前做预留 |
-| `COMPILER_BUDGET_CALLS` | 220 | 逻辑模型调用，包括读取上下文和修复 |
-| `COMPILER_BUDGET_HTTP_ATTEMPTS` | 280 | 实际请求次数上限，重试和协议回退也计入 |
+| `COMPILER_BUDGET_SECONDS` | 3600 | 一次编译的墙钟时间，含本地检查 |
+| `COMPILER_BUDGET_TOKENS` | 2700000 | 一次编译的 token 总预算，发出前做预留 |
+| `COMPILER_BUDGET_CALLS` | 260 | 逻辑模型调用，包括读取上下文和修复 |
+| `COMPILER_BUDGET_HTTP_ATTEMPTS` | 330 | 实际请求次数上限，重试和协议回退也计入 |
 | `MAX_OUTPUT_TOKENS` | 24000 | 文本单次输出上限，含推理 token；以网关支持为准 |
 
-当前累计额度约 450 万 token，按 3 次完整运行管理。连接探测、失败请求、诊断和所有重跑都纳入用量记录。分别记上报 token 和无 usage 的保守结算，并按网关账单核对差额。定价表用 `currency: CNY`、`unit_tokens` 和每个模型的 `input`、`cached`（可选）、`output`；用网关确认的价格覆盖随包提供的估算表。
+当前累计额度约 450 万 token。连接探测、失败请求、诊断和所有重跑都纳入用量记录。分别记上报 token 和无 usage 的保守结算，并按网关账单核对差额。定价表用 `currency: CNY`、`unit_tokens` 和每个模型的 `input`、`cached`（可选）、`output`；用网关确认的价格覆盖随包提供的估算表。
 
-新连接先做文本探测，通过且预算允许时再做单图探测。以下命令分别限制一次实际 HTTP 尝试并保存记录。第 3 次沿用已探测连接时，先跑下一节的回环回归。
+新连接先做文本探测，通过且预算允许时再做单图探测。以下命令分别限制一次实际 HTTP 尝试并保存记录。第 4 次沿用已探测连接时，先跑下一节的回环回归。
 
 ```powershell
 $rev = (git rev-parse HEAD).Trim()
@@ -84,15 +84,15 @@ if ($LASTEXITCODE -ne 0) { throw 'Image probe failed; confirm the cause before f
 
 如果同一网关不支持图片，先记录探测原因。当前入口需要视觉阶段产物，整批图像请求会消耗已确认预算。
 
-## 第 3 次运行
+## 第 4 次运行
 
-第 2 次在 SDK 进入网络 I/O 前失败。沿用已探测的模型连接和预算，先从仓库根目录跑下面的回环回归，确认本机装的 SDK 可发送请求。该测试只访问本机假服务。[第 2 次分析](STEP7_RUN2.md)
+第 3 次部署通过，公开用例 0/35。第 4 次沿用已探测的模型连接，先在仓库根目录用回环服务验证 SDK、05 的拆批恢复和阶段预算。[第 3 次分析](STEP7_RUN3.md)
 
 ```powershell
-uv run --project compiler --locked --with pytest==9.2.0 python -m pytest -q compiler/tests/test_sdk_loopback.py
+uv run --project compiler --locked --with pytest==9.2.0 python -m pytest -q compiler/tests/test_sdk_loopback.py --basetemp compiler/outputs/sdk-loopback-run4
 ```
 
-回归通过后，从仓库根目录复制以下命令，用新的输出目录启动。阶段预算和推理配置见 [第 1 次分析](STEP7_RUN1.md)。
+回归通过后，从仓库根目录复制以下命令，用新的输出目录启动。阶段预算和 05 推理设置见 [第 3 次分析](STEP7_RUN3.md)。
 
 ```powershell
 $root = (Get-Location).Path
@@ -101,13 +101,13 @@ $env:PATH = (Resolve-Path 'outputs/node22/node_modules/node/bin').Path + ';' + $
 node --version
 $rev = (git rev-parse HEAD).Trim()
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$record = Join-Path $root "compiler/outputs/bookstack-evidence-$stamp-run3"
-$app = Join-Path $root "compiler/outputs/bookstack-app-$stamp-run3"
+$record = Join-Path $root "compiler/outputs/bookstack-evidence-$stamp-run4"
+$app = Join-Path $root "compiler/outputs/bookstack-app-$stamp-run4"
 New-Item -ItemType Directory -Path $record -ErrorAction Stop | Out-Null
-$env:COMPILER_BUDGET_SECONDS = '2400'
-$env:COMPILER_BUDGET_TOKENS = '1500000'
-$env:COMPILER_BUDGET_CALLS = '220'
-$env:COMPILER_BUDGET_HTTP_ATTEMPTS = '280'
+$env:COMPILER_BUDGET_SECONDS = '3600'
+$env:COMPILER_BUDGET_TOKENS = '2700000'
+$env:COMPILER_BUDGET_CALLS = '260'
+$env:COMPILER_BUDGET_HTTP_ATTEMPTS = '330'
 $env:MAX_OUTPUT_TOKENS = '24000'
 $env:MODEL_REASONING = 'none'
 $env:MODEL_REPAIR_REASONING = 'low'
@@ -116,7 +116,7 @@ $env:COMPILER_MODEL_FAILURE_THRESHOLD = '3'
 if (Test-Path $app) { throw 'Choose a new output directory' }
 $encoding = [Text.UTF8Encoding]::new($false)
 [IO.File]::WriteAllText((Join-Path $record 'revision.txt'), $rev + [Environment]::NewLine, $encoding)
-$log = [IO.StreamWriter]::new((Join-Path $record 'run3-console.log'), $false, $encoding)
+$log = [IO.StreamWriter]::new((Join-Path $record 'run4-console.log'), $false, $encoding)
 try {
     uv run --locked python main.py '../requirements/arc-bench-web--bookstack' --output-dir $app 2>&1 |
         ForEach-Object { $line = [string]$_; $log.WriteLine($line); Write-Host $line }
@@ -141,4 +141,4 @@ $suite = (Resolve-Path 'offline_eval/public/8189d63bbffef9e873d3c27589dbe26532f4
 uv run --project compiler --locked python offline_eval/verify_app.py $suite $app --report (Join-Path $record 'public-acceptance.json')
 ```
 
-每次保存：冻结的提交、ZIP 哈希、模型名及参数、已确认的预算和价格表（不含密钥）、探测报告、`.arc/compilation.json`、`compilation_events.jsonl`、`compiler.log`、`.arc/acceptance/` 与失败归档、部署 JSON、公开用例通过／失败／跳过数、实际 token／费用／耗时。标注“新生成”“同产物诊断”或“同配置重复运行”；最终成绩必须来自一次从空目录完整生成。35/35 是目标，当前无真实结果。
+每次保存：冻结的提交、ZIP 哈希、模型名及参数、已确认的预算和价格表（不含密钥）、探测报告、`.arc/compilation.json`、`compilation_events.jsonl`、`compiler.log`、`.arc/acceptance/` 与失败归档、部署 JSON、公开用例通过／失败／跳过数、实际 token／费用／耗时。标注“新生成”“同产物诊断”或“同配置重复运行”；最终成绩必须来自一次从空目录完整生成。第 3 次真实结果为 0/35，第 4 次使用新的产物重新评估。

@@ -41,7 +41,8 @@ def response_feedback(error, response):
     return feedback
 
 
-def propose_json(model, instructions, request, accept, console, label, max_attempts=10, context_index=None, *, split_on_truncation=False, log_checkpoints=True, compact_feedback=False):
+def propose_json(model, instructions, request, accept, console, label, max_attempts=10, context_index=None, *, split_on_truncation=False, log_checkpoints=True, compact_feedback=False,
+        generate_response=None, repair_instructions=REPAIR_INSTRUCTIONS):
     """Generate and repair a proposal within a finite total model-call budget."""
     if max_attempts < 1:
         raise ValueError("--max-attempts must be positive")
@@ -53,11 +54,11 @@ def propose_json(model, instructions, request, accept, console, label, max_attem
 
     def generate(prompt):
         with reasoning_scope("correction" in request):
-            return model.generate_json(prompt, request)
+            return (generate_response or model.generate_json)(prompt, request)
 
     def record(action, attempt, details, status="GREEN"):
         emit("design_proposal", proposal=attempt, status=status, label=label,
-            error=details.get("error"), error_type=details.get("error_type"))
+            error=details.get("error"), error_type=details.get("error_type"), reasoning_tokens=details.get("reasoning_tokens"))
         if log_checkpoints:
             checkpoint(task=label, action=f"{action} design proposal {attempt}", status=status, details=details)
     for attempt in range(1, max_attempts + 1):
@@ -65,7 +66,7 @@ def propose_json(model, instructions, request, accept, console, label, max_attem
         console.show(f"{label} | Model proposal {progress}", "Generate the proposal; response-reading and obligation errors receive repair feedback.")
         response = None
         try:
-            prompt = instructions if "correction" not in request else instructions + "\n\n" + REPAIR_INSTRUCTIONS
+            prompt = instructions if "correction" not in request else instructions + "\n\n" + repair_instructions
             if "correction" in request:
                 correction = request["correction"]
                 prompt += "\nActual failure: " + correction["error"]
@@ -84,6 +85,8 @@ def propose_json(model, instructions, request, accept, console, label, max_attem
             return accepted, response
         except RESPONSE_ERRORS as error:
             if split_on_truncation and isinstance(error, ModelOutputTruncated):
+                record("Reject", attempt, {"error": str(error), "error_type": type(error).__name__,
+                    "reasoning_tokens": error.reasoning_tokens}, "TRUNCATED")
                 raise
             feedback = response_feedback(error, response)
             feedback["failed_attempt"] = attempt

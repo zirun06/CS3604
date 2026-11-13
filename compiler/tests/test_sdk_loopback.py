@@ -30,6 +30,8 @@ def service():
                 "id": "local-fixture", "object": "chat.completion", "created": 0, "model": "fixture",
                 "choices": [{"index": 0, "finish_reason": "stop",
                     "message": {"role": "assistant", "content": json.dumps(RESULT)}}], "usage": USAGE}
+            if status == 200 and self.server.reply is not None:
+                reply = self.server.reply(request, reply)
             body = json.dumps(reply).encode("utf-8")
             sleep(delay)
             try:
@@ -50,7 +52,11 @@ def service():
         def log_message(self, *args):
             pass
 
-    with ThreadingHTTPServer(("127.0.0.1", 0), Handler) as server:
+    class TestServer(ThreadingHTTPServer):
+        daemon_threads = False
+
+    with TestServer(("127.0.0.1", 0), Handler) as server:
+        server.reply = None
         server.mode = (200, 0, 0)
         server.requests = []
         server.finished = Event()
@@ -222,3 +228,158 @@ def test_pipeline_stops_and_records_circuit_reason(monkeypatch, service, tmp_pat
     assert len(service.requests) == 2
     assert report["budget"]["used"]["tokens"] == 0
     assert not (output / ".arc/db_schema.json").exists()
+
+
+@pytest.fixture
+def backend_design_input(tmp_path, monkeypatch, service):
+    from infrastructure.utils.files import save_json
+
+    arc = tmp_path / ".arc"
+    ids = ("left", "right")
+    leaves = [{"id": rid, "name": rid, "scenarios": [{"id": "C-" + rid, "name": rid,
+        "steps": [{"id": "S-" + rid, "When": "Open", "Then": "Read note"}]}]} for rid in ids]
+    save_json(arc / "requirements.json", {"id": "root", "name": "Fixture", "children": [
+        {"id": "feature", "name": "Feature", "children": leaves}]})
+    save_json(arc / "db_schema.json", {"entities": {"Note": {"fields": {"id": {}}}}, "requirements": {}})
+    effects = {"read": ["Note.id"], "write": []}
+    empty = {"read": [], "write": []}
+    save_json(arc / "db_obligations.json", {
+        "requirements": {"root": empty, "feature": empty, **dict.fromkeys(ids, effects)},
+        "steps": {"S-" + rid: effects for rid in ids}})
+    monkeypatch.setenv("OPENAI_API_KEY", "loopback-fixture")
+    monkeypatch.setenv("OPENAI_BASE_URL", endpoint(service))
+    monkeypatch.setenv("MODEL", "deepseek-fixture")
+    monkeypatch.setenv("MODEL_REASONING", "none")
+    monkeypatch.setenv("MODEL_REPAIR_REASONING", "low")
+    monkeypatch.setenv("MAX_OUTPUT_TOKENS", "12288")
+    return arc
+
+
+def contract_line(rid):
+    return json.dumps({"requirement_id": rid, "api_ids": ["api-" + rid], "module_ids": [],
+        "apis": {"api-" + rid: {"description": "Read the note", "signature": {
+            "name": "read_" + rid, "method": "GET", "path": "/api/" + rid},
+            "response": {"success": [200, {"fields": {"id": "integer", "label?": "string"}}]},
+            "callees": ["mod-" + rid], "precondition": [],
+            "postcondition": [{"id": "Q1", "description": "Returns the note", "status": 200}]}},
+        "modules": {"mod-" + rid: {"description": "Read the note", "name": "find_" + rid,
+            "input": {"fields": {}}, "output": {"fields": {"id": "integer"}},
+            "direct_read": ["Note.id"], "direct_write": [], "callees": [],
+            "precondition": [], "postcondition": []}}})
+
+
+def wire_order(request):
+    return json.loads(request["messages"][-1]["content"])["order"]
+
+
+def respond_with_records(request, reply):
+    reply["choices"][0]["message"]["content"] = "\n".join(map(contract_line, wire_order(request)))
+    return reply
+
+
+def test_backend_truncation_retains_only_validated_leaf_and_retries_gap(service, backend_design_input):
+    from infrastructure.pipeline.backend_apis import design_backend_apis
+    from infrastructure.utils.files import read_artifact
+
+    def respond(request, reply):
+        if len(service.requests) == 1:
+            reply["choices"][0].update(finish_reason="length", message={"role": "assistant",
+                "content": contract_line("left") + '\n{"requirement_id":"right",' })
+            reply["usage"] = {"prompt_tokens": 11, "completion_tokens": 4096, "total_tokens": 4107,
+                "completion_tokens_details": {"reasoning_tokens": 3500}}
+            return reply
+        assert "api-left" in read_artifact(backend_design_input, "backend_apis.json")["apis"]
+        return respond_with_records(request, reply)
+
+    service.reply = respond
+    budget = RunBudget({"tokens": 50000})
+    budget.select_stage(0, "05")
+    with budget_scope(budget):
+        design = design_backend_apis(backend_design_input)
+    requests = [request for _, request in service.requests]
+    assert [wire_order(request) for request in requests] == [["left", "right"], ["right"]]
+    report = read_artifact(backend_design_input, "design_batches_05.json")
+    assert report["attempts"][0]["retained"] == ["left"]
+    assert design["apis"]["api-left"]["read"] == ["Note.id"]
+    assert design["apis"]["api-right"]["response"]["success"]["body"]["required"] == ["id"]
+    assert design["modules"]["mod-left"]["callers"] == ["api-left"]
+    assert budget.snapshot()["used"]["tokens"] == 4127
+
+
+def test_backend_reasoning_only_truncation_splits_and_correction_stays_disabled(service, backend_design_input):
+    from infrastructure.pipeline.backend_apis import design_backend_apis
+
+    def respond(request, reply):
+        order = wire_order(request)
+        if len(service.requests) == 1:
+            cap = request["max_completion_tokens"]
+            reply["choices"][0].update(finish_reason="length", message={"role": "assistant", "content": ""})
+            reply["usage"] = {"prompt_tokens": 11, "completion_tokens": cap, "total_tokens": 11 + cap,
+                "completion_tokens_details": {"reasoning_tokens": cap}}
+            return reply
+        if len(service.requests) == 2:
+            reply["choices"][0]["message"]["content"] = '{"requirement_id":"left"}'
+            return reply
+        assert order in (["left"], ["right"])
+        return respond_with_records(request, reply)
+
+    service.reply = respond
+    budget = RunBudget({"tokens": 100000})
+    budget.select_stage(0, "05")
+    with budget_scope(budget):
+        design = design_backend_apis(backend_design_input)
+    requests = [request for _, request in service.requests]
+    assert [wire_order(request) for request in requests] == [["left", "right"], ["left"], ["left"], ["right"]]
+    assert "correction" in json.loads(requests[2]["messages"][-1]["content"])
+    assert all(request["thinking"] == {"type": "disabled"} and "reasoning_effort" not in request for request in requests)
+    assert set(design["apis"]) == {"api-left", "api-right"}
+    assert budget.snapshot()["used"]["tokens"] == 12288 + 11 + 3 * 20
+
+
+def test_backend_estimate_splits_before_http(monkeypatch, service, backend_design_input):
+    from infrastructure.pipeline.backend_apis import design_backend_apis
+    from infrastructure.utils.files import read_artifact
+
+    monkeypatch.setenv("MAX_OUTPUT_TOKENS", "3000")
+    service.reply = respond_with_records
+    budget = RunBudget({"tokens": 50000})
+    budget.select_stage(0, "05")
+    with budget_scope(budget):
+        design_backend_apis(backend_design_input)
+    report = read_artifact(backend_design_input, "design_batches_05.json")
+    assert report["attempts"][0]["split_reason"] == "estimated_output"
+    assert report["attempts"][0]["estimated_output_tokens"] == 3050
+    assert [wire_order(request) for _, request in service.requests] == [["left"], ["right"]]
+
+
+def test_stage_token_ceiling_leaves_budget_to_implement_accepted_contract(monkeypatch, service, backend_design_input):
+    from infrastructure.pipeline import backend_apis
+    from infrastructure.shared.agent.tasks import StageIncomplete
+    from infrastructure.utils.files import read_artifact
+
+    budget = RunBudget({"tokens": 24000})
+    budget.allocate_stages(["05", "06"])
+    budget.select_stage(1, "05")
+    assert budget.cap("tokens") == 24000 * 17 // 37
+    monkeypatch.setattr(backend_apis, "MAX_LEAVES", 1)
+
+    def respond(request, reply):
+        reply = respond_with_records(request, reply)
+        reply["usage"] = {"prompt_tokens": 8000, "completion_tokens": 100, "total_tokens": 8100}
+        return reply
+
+    service.reply = respond
+    with budget_scope(budget), pytest.raises(StageIncomplete):
+        backend_apis.design_backend_apis(backend_design_input)
+    accepted = read_artifact(backend_design_input, "backend_apis.json")
+    assert set(accepted["apis"]) == {"api-left"}
+    assert len(service.requests) == 1
+
+    # A subsequent model request consumes the actual published contract under 06.
+    budget.select_stage(0, "06")
+    service.reply = None
+    model = TextModel()
+    with closing(model.client), budget_scope(budget):
+        assert model.generate_json("Implement the accepted contract.", {"api": accepted["apis"]["api-left"]}) == RESULT
+    assert len(service.requests) == 2
+    assert budget.snapshot()["used"]["tokens"] == 8120

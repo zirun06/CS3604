@@ -80,9 +80,9 @@ test("count notes", async ({ page }) => {
 """
 
 
-def response(payload=None, *, tools=(), finish_reason=None):
+def response(payload=None, *, tools=(), finish_reason=None, content=None):
     message = ChatCompletionMessage(role="assistant",
-        content=json.dumps(payload) if payload is not None else None,
+        content=json.dumps(payload) if payload is not None else content,
         tool_calls=[{"id": f"call-{i}", "type": "function",
             "function": {"name": name, "arguments": json.dumps(arguments)}}
             for i, (name, arguments) in enumerate(tools)] or None)
@@ -201,9 +201,17 @@ export function App() {
         if number == "05":
             assert all(request["requirements"][owner]["required_obligations"]["read"] == apis[targets[owner]]["read"]
                 for owner in owners)
-            return response({"apis": apis, "modules": modules,
-                "requirements": {owner: {"api_ids": [targets[owner]], "module_ids": [],
-                    "conventions": {"count": "Use integer count for note counts."}} for owner in owners}})
+            existing = set(request["contracts"]["apis"])
+            lines = []
+            for owner in owners:
+                aid = targets[owner]
+                mod, = apis[aid]["callees"]
+                fresh = aid not in existing
+                lines.append(json.dumps({"requirement_id": owner, "api_ids": [aid], "module_ids": [],
+                    "apis": {aid: apis[aid]} if fresh else {}, "modules": {mod: modules[mod]} if fresh else {},
+                    "conventions": {"count": "Use integer count for note counts."}}))
+                existing.add(aid)
+            return response(content="\n".join(lines))
         if number == "07":
             assert "One panel" in json.dumps(request)
             assert "count" in request["shared_catalog"]["shared_conventions"]

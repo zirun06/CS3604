@@ -133,7 +133,7 @@ def logical_request(function):
     return run
 
 
-def _reserve_request(arguments):
+def _reserve_request(arguments, min_output=1):
     budget = active_budget()
     if budget is None:
         return dict(arguments), None
@@ -144,11 +144,13 @@ def _reserve_request(arguments):
     try:
         estimate = input_token_reserve(options)
         cap = budget.output_limit(options.get(parameter, 4096))
+        if budget.stage in {"04", "06", "08", "10"}:
+            min_output = max(min_output, 1024)
         if attempt is not None and (estimate > attempt.input_tokens or cap > attempt.output_tokens):
             budget.settle(attempt, None)
             attempt = None
         if attempt is None:
-            attempt = budget.reserve_attempt(estimate, cap, shrink=True)
+            attempt = budget.reserve_attempt(estimate, cap, shrink=True, min_output=min_output)
         if "tokens" in budget.limits or parameter in options:
             options[parameter] = attempt.output_tokens
         return options, attempt
@@ -565,14 +567,14 @@ def show_call_totals():
 
 
 @logical_request
-def invoke(client, arguments: dict, *, logger: AgentLogger | None = None):
+def invoke(client, arguments: dict, *, logger: AgentLogger | None = None, min_output=1):
     """Audit one SDK call and show a static waiting message until it returns."""
     call_id = uuid4().hex
     activity = current_activity()
     session = session_info()
     label = f"{session['stage']} | {activity}" if session else activity
     logger = logger or AgentLogger("Model")
-    arguments, reservation = _reserve_request(arguments)
+    arguments, reservation = _reserve_request(arguments, min_output)
     call = {"id": call_id, "activity": activity, "logger": logger, "model": arguments.get("model"),
         "reservation": reservation, "wire_attempts": 0, "pending": False,
         "tracks_writes": getattr(getattr(client, "_client", None), "_compiler_tracks_writes", False) is True,

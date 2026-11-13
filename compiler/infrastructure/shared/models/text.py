@@ -65,6 +65,11 @@ class ModelRequestFailed(RuntimeError):
 class ModelOutputTruncated(ValueError):
     """A provider finished with length rather than returning a complete answer."""
 
+    def __init__(self, message, *, content="", reasoning_tokens=0):
+        super().__init__(message)
+        self.content = content
+        self.reasoning_tokens = reasoning_tokens
+
 
 class TextModel:
     """Transport for structured stage proposals and file-edit responses."""
@@ -99,17 +104,20 @@ class TextModel:
         )
 
     @logical_request
-    def _request(self, **arguments):
+    def _request(self, *, min_output=1, require_reasoning_control=False, **arguments):
         """Apply one output budget to JSON calls, with legacy endpoint compatibility."""
         while True:
             options = dict(arguments)
             if not getattr(self, "_reasoning_supported", True):
+                if require_reasoning_control:
+                    raise ModelRequestFailed("This endpoint rejected the required non-reasoning mode")
                 options.pop("reasoning_effort", None)
                 options.pop("extra_body", None)
             parameter = self._token_parameter
             try:
+                limits = {"min_output": min_output} if min_output > 1 else {}
                 return invoke(self.client, {**options, parameter: self.max_output_tokens},
-                    logger=getattr(self, "logger", None))
+                    logger=getattr(self, "logger", None), **limits)
             except OpenAIError as error:
                 message = str(error).lower()
                 rejected = getattr(error, "status_code", None) in {400, 422} and any(
@@ -119,6 +127,8 @@ class TextModel:
                     continue
                 if ("reasoning_effort" in options or "extra_body" in options) and reasoning_rejected(error):
                     self._reasoning_supported = False
+                    if require_reasoning_control:
+                        raise ModelRequestFailed("This endpoint rejected the required non-reasoning mode") from error
                     print("Provider rejected reasoning controls; using provider defaults.", flush=True)
                     continue
                 raise
@@ -129,27 +139,45 @@ class TextModel:
         mode = getattr(self, "reasoning", "provider")
         if _repair.get():
             mode = getattr(self, "repair_reasoning", mode)
+        return json.loads(self._generate(instructions.rstrip() + "\n" + JSON_OUTPUT_RULE, payload, mode,
+            json_mode=getattr(self, "json_mode", True)))
+
+    @logical_request
+    def generate_records(self, instructions, payload):
+        """Request independently framed records with no reasoning on this call."""
+        deepseek = self.name.lower().startswith("deepseek")
+        mode = "provider" if not deepseek and self.reasoning == "provider" else "none"
+        return self._generate(instructions, payload, mode, min_output=payload["estimated_output_tokens"],
+            require_reasoning_control=mode == "none")
+
+    def _generate(self, instructions, payload, mode, *, json_mode=False, min_output=1, require_reasoning_control=False):
         try:
             response = self._request(
+                min_output=min_output, require_reasoning_control=require_reasoning_control,
                 model=self.name,
                 messages=[
-                    {"role": "system", "content": instructions.rstrip() + "\n" + JSON_OUTPUT_RULE},
+                    {"role": "system", "content": instructions},
                     {"role": "user", "content": json.dumps(payload, ensure_ascii=False, separators=(",", ":"))},
                 ],
-                **({"response_format": {"type": "json_object"}} if getattr(self, "json_mode", True) else {}),
+                **({"response_format": {"type": "json_object"}} if json_mode else {}),
                 **reasoning_arguments(self.name, mode),
             )
         except OpenAIError as error:
             raise ModelRequestFailed(f"Text model request failed: {error}") from error
         if response.choices and response.choices[0].finish_reason == "length":
+            usage = getattr(response, "usage", None)
+            details = getattr(usage, "completion_tokens_details", None)
+            reasoning_tokens = getattr(details, "reasoning_tokens", None) or 0
+            output_tokens = getattr(usage, "completion_tokens", None)
             raise ModelOutputTruncated(
-                f"Model output was truncated (finish_reason=length). The output budget is "
-                f"{self.max_output_tokens} tokens including reasoning; this is not an input-length error. "
-                "Return a complete JSON object with only necessary changes/tool calls; omit unchanged files. "
-                "Do not spend the entire budget restating the task.")
+                "Model output was truncated (finish_reason=length). "
+                + (f"The provider reported {output_tokens} output tokens, including {reasoning_tokens} reasoning. "
+                    if output_tokens is not None else "")
+                + "Return a complete JSON object with only necessary changes/tool calls; omit unchanged files. "
+                "Do not spend the entire budget restating the task.",
+                content=response.choices[0].message.content or "", reasoning_tokens=reasoning_tokens)
         if response.choices and getattr(response.choices[0].message, "refusal", None):
             raise ValueError(f"Text model refused the request: {response.choices[0].message.refusal}")
         if not response.choices or not response.choices[0].message.content:
             raise ValueError("Text model returned empty content")
-        content = response.choices[0].message.content.strip()
-        return json.loads(content)
+        return response.choices[0].message.content.strip()

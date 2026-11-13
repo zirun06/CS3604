@@ -36,11 +36,11 @@ class BackendRetriever:
             for identity in sorted(selected):
                 result[kind][identity] = deepcopy(records[identity])
             result["matches"][kind] = {"bm25": lexical, "obligation": overlap[:top_k]}
-        # Include dependencies and their callers so shared updates can coordinate contracts.
+        # Include callees for reuse. Callers are validated against the full accepted graph.
         pending = list(result["apis"].values()) + list(result["modules"].values())
         while pending:
             record = pending.pop()
-            for identity in record["callees"] + record["callers"]:
+            for identity in record["callees"]:
                 kind = "apis" if identity in design["apis"] else "modules"
                 if identity not in result[kind]:
                     neighbor = deepcopy(design[kind][identity])

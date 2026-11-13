@@ -1,6 +1,7 @@
 """Execute and report design batches, publishing only validated proposals."""
 
 from collections import defaultdict
+from dataclasses import replace
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
 from contextlib import nullcontext
@@ -16,6 +17,18 @@ from infrastructure.utils.presentation.events import task_scope
 
 
 MAX_REQUEST_CHARS = 96000
+
+
+class DesignOutputTooLarge(ValueError):
+    """Split a batch before sending a request whose projected output is too large."""
+
+
+class PartialDesign(RuntimeError):
+    """Only these complete leaf results have passed validation and been published."""
+
+    def __init__(self, accepted):
+        self.accepted = tuple(accepted)
+        super().__init__("Retained complete leaf records from truncated response")
 
 
 class DesignInputTooLarge(ValueError):
@@ -60,9 +73,10 @@ def check_shared_records(proposals, kinds):
 
 
 class DesignBatches:
-    def __init__(self, arc_dir, stage, console, root=None):
+    def __init__(self, arc_dir, stage, console, root=None, *, plan_options=None):
         self.arc_dir, self.console = arc_dir, console
-        self.plan = DesignPlan(root if root is not None else read_artifact(arc_dir, "requirements.json"))
+        self.plan = DesignPlan(root if root is not None else read_artifact(arc_dir, "requirements.json"),
+            **(plan_options or {}))
         self.stage = stage
         self.failures = TaskFailures(arc_dir, stage, console)
         self.records = []
@@ -95,7 +109,7 @@ class DesignBatches:
         save_json(self.arc_dir / "design_catalog.json", self.catalog)
 
     def propose(self, batch, model, instructions, requests, accept, max_attempts, *, context_index=None,
-            shared=None, output_rules=OUTPUT, log_checkpoints=True):
+            shared=None, output_rules=OUTPUT, log_checkpoints=True, accepted_symbols=None, **proposal_options):
         active = tuple(requests)
         if not active:
             return None
@@ -106,16 +120,23 @@ class DesignBatches:
                 in self.catalog["source_symbols"].items() if relevant.intersection(owners)}},
             **(shared or {})}
 
+        if accepted_symbols is not None:
+            request["shared_catalog"]["accepted_symbols"] = accepted_symbols
+
         def verify(proposal):
-            exact_keys(proposal["requirements"], active, "Batch requirements")
+            if isinstance(proposal, dict):
+                exact_keys(proposal["requirements"], active, "Batch requirements")
             return accept(proposal)
 
         self._records_by_id[batch.id]["request_chars"] = len(packed(request))
         check_request_size(request, len(batch.leaves))
         result, _ = propose_json(model, instructions + output_rules, request, verify,
             self.console, batch.id, max_attempts, context_index=context_index, split_on_truncation=True,
-            log_checkpoints=log_checkpoints, compact_feedback=True)
+            log_checkpoints=log_checkpoints, compact_feedback=True, **proposal_options)
         return result
+
+    def record_output_estimate(self, batch, tokens):
+        self._records_by_id[batch.id]["estimated_output_tokens"] = tokens
 
     def block(self, rid, reason):
         self.blocked_requirements[rid] = reason
@@ -153,12 +174,23 @@ class DesignBatches:
                     if result:
                         self.refresh_catalog()
                     record["status"] = "GREEN" if result else "NOT_APPLICABLE"
-                except (DesignInputTooLarge, ModelOutputTruncated, ProposalExhausted) as error:
+                except PartialDesign as error:
+                    retained = tuple(rid for rid in batch.leaves if rid in error.accepted)
+                    remaining = tuple(rid for rid in batch.leaves if rid not in error.accepted)
+                    self.effective.append(replace(batch, leaves=retained))
+                    self.refresh_catalog()
+                    record.update(status="SPLIT" if remaining else "GREEN", retained=list(retained),
+                        split_reason="retained_complete_records")
+                    if remaining:
+                        children = (replace(batch, id=batch.id + ".remaining", leaves=remaining),)
+                        record["children"] = [child.id for child in children]
+                except (DesignInputTooLarge, DesignOutputTooLarge, ModelOutputTruncated, ProposalExhausted) as error:
                     rejected = isinstance(error, ProposalExhausted)
                     if rejected and (not split_rejected or len(batch.leaves) == 1):
                         raise
                     record["split_reason"] = ("invalid_proposal" if rejected else "input_size"
-                        if isinstance(error, DesignInputTooLarge) else "output_truncated")
+                        if isinstance(error, DesignInputTooLarge) else "estimated_output"
+                        if isinstance(error, DesignOutputTooLarge) else "output_truncated")
                     if len(batch.leaves) == 1:
                         record["status"] = "TRUNCATED_SINGLE_LEAF"
                         raise

@@ -74,8 +74,8 @@ def backend_fixture(tmp_path, root, obligations):
 def test_backend_batch_rejects_missing_leaf_coverage_without_publishing(tmp_path, monkeypatch):
     root = module("root", module("feature", leaf("left"), leaf("right")))
     backend_fixture(tmp_path, root, {"left": {"read": [], "write": []}, "right": {"read": ["Note.id"], "write": []}})
-    model = Mock()
-    model.generate_json.return_value = {"apis": {}, "modules": {}, "requirements": {
+    model = Mock(max_output_tokens=12288)
+    model.generate_records.return_value = {"apis": {}, "modules": {}, "requirements": {
         rid: {"api_ids": [], "module_ids": []} for rid in ("left", "right")}}
     monkeypatch.setattr(backend_apis, "TextModel", lambda **_: model)
 
@@ -90,7 +90,7 @@ def test_backend_reuses_canonical_decisions_across_modules(tmp_path, monkeypatch
     root = module("root", module("account", leaf("left")), module("preferences", leaf("right")))
     empty = {"read": [], "write": []}
     backend_fixture(tmp_path, root, {"left": empty, "right": empty})
-    model = Mock()
+    model = Mock(max_output_tokens=12288)
     requests = []
 
     def generate(_instructions, request):
@@ -108,7 +108,7 @@ def test_backend_reuses_canonical_decisions_across_modules(tmp_path, monkeypatch
         return {"apis": {}, "modules": {}, "requirements": {
             rid: {"api_ids": [], "module_ids": [], "conventions": {"session-cookie": choice}}}}
 
-    model.generate_json.side_effect = generate
+    model.generate_records.side_effect = generate
     monkeypatch.setattr(backend_apis, "TextModel", lambda **_: model)
     backend_apis.design_backend_apis(tmp_path, max_attempts=2)
     assert [req["order"] for req in requests] == [["left"], ["right"], ["right"]]

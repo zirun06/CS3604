@@ -18,22 +18,29 @@ def validate_http_signature(identity, signature):
     return method, path
 
 
-def validate_backend_design(design, schema, obligations, tree, *, complete=False):
+def validate_backend_design(design, schema, obligations, tree, *, complete=False, derive_effects=False):
     """Validate the full accepted graph and every already associated requirement."""
     apis, modules = design["apis"], design["modules"]
     if set(apis) & set(modules):
         raise ValueError("API and module IDs must be globally distinct")
     records = {**apis, **modules}
     signatures, routes = set(), set()
+    inferred = set()
     for identity, record in records.items():
-        for key in ("description", "read", "write", "precondition", "postcondition", "callees"):
+        if derive_effects and "read" not in record and "write" not in record:
+            inferred.add(identity)
+        required_keys = ("description", "precondition", "postcondition", "callees")
+        if identity not in inferred:
+            required_keys += ("read", "write")
+        for key in required_keys:
             if key not in record:
                 raise ValueError(f"Missing {identity}.{key}")
         if not isinstance(record["description"], str) or not record["description"].strip():
             raise ValueError(f"{identity} needs a business description")
-        normalized = normalize_record(record)
-        record.update(normalized)
-        check_symbols([record], schema)
+        if identity not in inferred:
+            normalized = normalize_record(record)
+            record.update(normalized)
+            check_symbols([record], schema)
         callees = record["callees"]
         if not isinstance(callees, list) or any(not isinstance(item, str) for item in callees):
             raise ValueError(f"{identity}.callees must be module IDs")
@@ -93,7 +100,9 @@ def validate_backend_design(design, schema, obligations, tree, *, complete=False
         if identity in modules:
             children.append({"read": record["direct_read"], "write": record["direct_write"]})
         expected = union(children)
-        if normalize_record(record) != expected:
+        if identity in inferred:
+            record.update(expected)
+        elif normalize_record(record) != expected:
             raise ValueError(f"{identity} read/write must equal direct DB effects plus callee effects: {expected}")
         visiting.remove(identity)
         finished.add(identity)

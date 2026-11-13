@@ -17,6 +17,7 @@ ENV = {
 }
 MODEL_FAILURE_LIMIT = "COMPILER_MODEL_FAILURE_THRESHOLD"
 STAGE_WEIGHTS = dict(zip((f"{i:02}" for i in range(11)), (1, 13, 14, 12, 10, 9, 12, 7, 7, 5, 10)))
+TOKEN_WEIGHTS = dict(zip((f"{i:02}" for i in range(11)), (0, 4, 6, 7, 5, 17, 20, 8, 8, 7, 18)))
 OUTPUT_CAPS = {"02": 8192, "03": 6144, "04": 8192, **{f"{i:02}": 12288 for i in range(5, 11)}}
 
 
@@ -77,6 +78,7 @@ class RunBudget:
         self.stage_weights = STAGE_WEIGHTS.copy()
         self.output_caps = OUTPUT_CAPS.copy()
         self.stage_deadlines = {}
+        self.stage_token_ceilings = {}
         self.design_workers = 3
         self.reserve_final_checks = False
         self.lock = RLock()
@@ -129,6 +131,13 @@ class RunBudget:
 
     def allocate_stages(self, stages):
         stages = [name[:2] for name in stages]
+        token_limit = self.limits.get("tokens")
+        token_weight = sum(TOKEN_WEIGHTS.get(stage, 1) for stage in stages)
+        if token_limit is not None and token_weight:
+            cumulative = 0
+            for stage in stages:
+                cumulative += TOKEN_WEIGHTS.get(stage, 1)
+                self.stage_token_ceilings[stage] = token_limit * cumulative // token_weight
         limit = self.limits.get("seconds")
         if limit is not None:
             usable = limit - min(5, limit * .1)
@@ -149,6 +158,8 @@ class RunBudget:
         limit = self.limits.get(resource)
         if limit is None:
             return math.inf
+        if resource == "tokens" and self.stage in self.stage_token_ceilings:
+            return self.stage_token_ceilings[self.stage]
         # Retain a share for later passes; unused headroom rolls forward.
         reserve = limit * .25 * self.future / self.stages
         if resource == "seconds":
@@ -231,13 +242,13 @@ class RunBudget:
                 raise
             return attempt
 
-    def reserve_attempt(self, input_tokens, output_tokens, *, shrink=False):
+    def reserve_attempt(self, input_tokens, output_tokens, *, shrink=False, min_output=1):
         with self.lock:
             while True:
                 self.check_model_circuit()
                 remaining = self.check_model_time()
                 cap = self.cap("tokens")
-                minimum = 1 if shrink else output_tokens
+                minimum = min(output_tokens, min_output) if shrink else output_tokens
                 need_tokens = input_tokens + minimum
                 http_cap = self.cap("http_attempts")
                 temporary = (self.used["http_attempts"] < http_cap <= self.used["http_attempts"] + self.reserved_http
@@ -251,7 +262,7 @@ class RunBudget:
                 self.deny("http_attempts", "run" if self.used["http_attempts"] >= self.limits["http_attempts"] else "stage")
             free = cap - self.used["tokens"] - self.reserved_tokens - input_tokens
             if free < output_tokens:
-                if not shrink or free < 1:
+                if not shrink or free < minimum:
                     hard = self.used["tokens"] + need_tokens
                     self.deny("tokens", "run" if hard > self.limits["tokens"] else "stage")
                 output_tokens = int(free)
@@ -296,6 +307,7 @@ class RunBudget:
                 "reserved_http_attempts": self.reserved_http, "reserved_tokens": self.reserved_tokens,
                 "unreported_tokens_charged": self.unreported_tokens, "denials": list(self.denials),
                 "denial_count": self.denial_count, "image_token_reserve": self.image_tokens,
+                "stage_token_ceilings": self.stage_token_ceilings,
                 "stage_deadlines_seconds": self.stage_deadlines, "stage_output_caps": self.output_caps,
                 "obligation_workers": self.design_workers,
                 "model_failure_threshold": self.model_failure_threshold, "model_circuit": self.model_circuit,
